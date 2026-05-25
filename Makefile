@@ -23,7 +23,7 @@ strip:
 	test -x lzpack && sstrip lzpack || :
 
 clean:
-	rm -f lzpack mkstub
+	rm -f a.out lzpack mkstub
 	rm -f lzpack.o mkstub.o
 	rm -f lzpack.obj mkstub.obj
 	rm -f lzpack.cmd mkstub.cmd
@@ -31,8 +31,8 @@ clean:
 	rm -f lzpack.exe mkstub.exe
 
 distclean: clean
-	rm -f cs8080.h rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.bak
-	rm -f compile_commands.json
+	rm -f cs8080.h rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe
+	rm -f compile_commands.json core core-*
 
 stub: cs8080.h
 
