@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
  * SPDX-License-Identifier: MIT-0
+ * scspell-id: aa965896-585c-11f1-8233-80ee73e9b8e7
  */
 
 #include <ctype.h>

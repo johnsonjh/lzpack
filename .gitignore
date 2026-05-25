@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 # SPDX-License-Identifier: MIT-0
+# scspell-id: b43f8642-585c-11f1-937e-80ee73e9b8e7
 
-/README.wip
 *~
 /#*#
 *.$$$
@@ -35,6 +35,7 @@ log.pvs
 *.POP
 /popcom
 pvsreport
+/README.wip
 *.tmp
 *.TMP
 *.unp

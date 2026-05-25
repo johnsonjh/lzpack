@@ -1,5 +1,6 @@
 ; Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 ; SPDX-License-Identifier: MIT-0
+; scspell-id: d481d522-585c-11f1-8c19-80ee73e9b8e7
 
 ; 8080 decompressor block - runs relocated at STUB_RUN (just above out_end).
 ; pointers/bit-buffer live in fixed CP/M-80 scratch RAM (0040h-004Fh).

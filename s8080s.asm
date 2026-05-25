@@ -1,5 +1,6 @@
 ; Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 ; SPDX-License-Identifier: MIT-0
+; scspell-id: ded12e38-585c-11f1-8a15-80ee73e9b8e7
 
 ; 8080 setup block - runs in place at the stub load address (stub_v).
 ; restores the 16 literal header bytes, relocates the decompressor to high

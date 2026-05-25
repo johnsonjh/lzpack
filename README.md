@@ -1,5 +1,6 @@
 <!-- Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com> -->
 <!-- SPDX-License-Identifier: MIT-0 -->
+<!-- scspell-id: c0fa2810-585c-11f1-bf4f-80ee73e9b8e7 -->
 ```
 LZPACK - PopCom!-compatible CP/M-80 executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
