@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+ * SPDX-License-Identifier: MIT-0
+ */
+
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>

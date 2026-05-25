@@ -1,3 +1,6 @@
+; Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+; SPDX-License-Identifier: MIT-0
+
 ; 8080 decompressor block - runs relocated at STUB_RUN (just above out_end).
 ; pointers/bit-buffer live in fixed CP/M-80 scratch RAM (0040h-004Fh).
 ; only JMP/CALL targets (labels) need per-file relocation by +STUB_RUN.

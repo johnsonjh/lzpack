@@ -1,5 +1,9 @@
+# Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+# SPDX-License-Identifier: MIT-0
+
 CC = cc
-CFLAGS = -O3 -Wall -Wextra -Wpedantic -ansi -pedantic
+#CFLAGS = -O3 -Wall -Wextra -Wpedantic -ansi -pedantic
+CFLAGS = -O
 
 all: lzpack
 
@@ -28,6 +32,7 @@ clean:
 
 distclean: clean
 	rm -f cs8080.h rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.bak
+	rm -f compile_commands.json
 
 stub: cs8080.h
 

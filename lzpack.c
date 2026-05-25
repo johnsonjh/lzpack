@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+ * SPDX-License-Identifier: MIT-0
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1366,6 +1371,7 @@ static void
 usage (void)
 {
   fprintf (stderr, "LZPACK - PopCom!-compatible CP/M-80 executable compressor\n"
+                   "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n"
                    "\nUsage:\n"
 #ifndef POPCOM_DECODE_ONLY
                    "  lzpack [-e] [-8] <file>  compress (-e: extra, -8: 8080 compatible)\n"

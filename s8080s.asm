@@ -1,3 +1,6 @@
+; Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+; SPDX-License-Identifier: MIT-0
+
 ; 8080 setup block - runs in place at the stub load address (stub_v).
 ; restores the 16 literal header bytes, relocates the decompressor to high
 ; memory (STUB_RUN), then jumps into it, with payload relocation done by
