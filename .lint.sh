@@ -129,7 +129,9 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  /opt/oracle/developerstudio12.6/bin/lint -fd stubasm.c
+  /opt/oracle/developerstudio12.6/bin/lint \
+    -O -fd -std=c89 -err=warn -XCC=no \
+    -errchk=structarg,parentheses,locfmtchk stubasm.c
 ); then
   :
 else
@@ -138,7 +140,9 @@ fi
 
 if (
   set -x
-  /opt/oracle/developerstudio12.6/bin/lint -fd lzpack.c
+  /opt/oracle/developerstudio12.6/bin/lint \
+    -O -fd -std=c89 -err=warn -XCC=no \
+    -errchk=structarg,parentheses,locfmtchk lzpack.c
 ); then
   :
 else
