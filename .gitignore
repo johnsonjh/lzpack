@@ -24,6 +24,7 @@ core-*
 log.pvs
 /lzpack
 /LZPACK
+*.map
 /mkstub
 *.o
 *.O
@@ -38,6 +39,11 @@ log.pvs
 pvsreport
 /README.wip
 /stubasm
+/*.t
 *.tmp
 *.TMP
 *.unp
+
+# keep the test programs in-repo
+!tests/corpus/
+!tests/corpus/*.com

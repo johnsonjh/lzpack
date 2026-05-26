@@ -33,10 +33,20 @@
 /******************************************************************************/
 
 #ifndef HSZ
-# define HSZ 32768
+# ifdef POPCOM_STREAM
+#  define HSZ 1024
+# else
+#  define HSZ 32768
+# endif
 #endif
 
 /******************************************************************************/
+
+/*
+ * BUFSZ sizes the in-RAM whole-file buffers used by the non-streaming build.
+ * The streaming build does not use it: -R/-L allocate exactly what they need
+ * and compression streams through the dynamically-sized window.
+ */
 
 #ifndef BUFSZ
 # define BUFSZ (MZXFILE + 512)
@@ -44,8 +54,10 @@
 
 /******************************************************************************/
 
+#ifndef POPCOM_STREAM
 static unsigned char g_a[BUFSZ];
 static unsigned char g_b[BUFSZ];
+#endif
 
 /******************************************************************************/
 
@@ -66,7 +78,29 @@ static unsigned char g_b[BUFSZ];
 
 /******************************************************************************/
 
+/*
+ * Default self-extracting stub architecture.  z88dk predefines __8080 when its
+ * 8080 library is in use (-clib=8080) and __Z80 for a Z80 build; on an 8080
+ * host we default to the 8080 stub.  POPCOM_8080 may also be set by the build
+ * to force that default.  -8 always selects the 8080 stub and -Z the Z80 stub.
+ */
+
+#ifdef __8080
+# ifndef POPCOM_8080
+#  define POPCOM_8080
+# endif
+#endif
+
+#ifdef POPCOM_8080
+# define DEFAULT_USE8080 1
+#else
+# define DEFAULT_USE8080 0
+#endif
+
+/******************************************************************************/
+
 #ifndef POPCOM_DECODE_ONLY
+# ifndef POPCOM_STREAM
 static unsigned char g_c[BUFSZ];
 
 static void *
@@ -83,6 +117,7 @@ lxmalloc (size_t n)
 
   return p;
 }
+# endif
 #endif
 
 /******************************************************************************/
@@ -138,9 +173,14 @@ static const unsigned char z80_stub[STUBLEN] = {
 
 /******************************************************************************/
 
-static unsigned char *ob;
 static long ol, tagpos;
 static int tagcnt;
+
+/******************************************************************************/
+
+# ifndef POPCOM_STREAM
+
+static unsigned char *ob;
 
 /******************************************************************************/
 
@@ -178,6 +218,82 @@ e_byte (int x)
 {
   ob[ol++] = (unsigned char)(x & 0xff);
 }
+
+# else
+
+/*
+ * Streaming encoder: the payload is written to a temp file as it is produced,
+ * so only a small hold buffer is kept in RAM.  The single tag byte is the only
+ * byte ever modified after being written; everything strictly before it is
+ * final and may be flushed.  At most a handful of bytes accumulate between tag
+ * boundaries, so OBSZ need only be small.
+ */
+
+#  ifndef OBSZ
+#   define OBSZ 256
+#  endif
+
+static FILE *s_of;
+static unsigned char s_obuf[OBSZ];
+static long s_obase;
+
+/******************************************************************************/
+
+static void
+obuf_flush (long upto)
+{
+  long cnt = upto - s_obase;
+
+  if (cnt > 0)
+    {
+      fwrite (s_obuf, 1, (size_t)cnt, s_of);
+      memmove (s_obuf, s_obuf + cnt, (size_t)(ol - upto));
+      s_obase = upto;
+    }
+}
+
+/******************************************************************************/
+
+static void
+e_init_stream (FILE *f)
+{
+  s_of = f;
+  s_obase = 0;
+  ol = 0;
+  tagpos = -1;
+  tagcnt = 8;
+}
+
+/******************************************************************************/
+
+static void
+e_bit (int b)
+{
+  if (tagcnt == 8)
+    {
+      obuf_flush (ol);
+      tagpos = ol;
+      s_obuf[ol - s_obase] = 0;
+      ol++;
+      tagcnt = 0;
+    }
+
+  if (b)
+    s_obuf[tagpos - s_obase] |= (unsigned char)(1 << (7 - tagcnt));
+
+  tagcnt++;
+}
+
+/******************************************************************************/
+
+static void
+e_byte (int x)
+{
+  s_obuf[ol - s_obase] = (unsigned char)(x & 0xff);
+  ol++;
+}
+
+# endif
 
 /******************************************************************************/
 
@@ -322,6 +438,8 @@ e_match (int dist, int L)
 /******************************************************************************/
 
 static int head[HSZ];
+
+# ifndef POPCOM_STREAM
 static int *lnk;
 static const unsigned char *D;
 static long N;
@@ -349,6 +467,7 @@ hinsert (long i)
   lnk[i] = head[h];
   head[h] = (int)i;
 }
+# endif
 
 /******************************************************************************/
 
@@ -359,6 +478,8 @@ mlen_min (int dist)
 }
 
 /******************************************************************************/
+
+# ifndef POPCOM_STREAM
 
 static int
 findmatch (long i, int *bestdist, int maxdepth)
@@ -486,9 +607,12 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
   return ol;
 }
 
+# endif
+
 /******************************************************************************/
 
 # ifndef POPCOM_NO_OPT
+#  ifndef POPCOM_STREAM
 static int
 extlen_bits (int v)
 {
@@ -723,6 +847,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
   return ol;
 }
+#  endif
 # endif
 #endif
 
@@ -770,7 +895,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
   unsigned char const *mp;
 
   ip = pl;
-  ip_end = pl + pllen;
+  ip_end = pl + (size_t)pllen;
   dbc = 0;
 
   while ((long)(op - out) < outlen)
@@ -944,6 +1069,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 /******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
+# ifndef POPCOM_STREAM
 static long
 min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
          long pl_dst_top)
@@ -1152,6 +1278,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
   return ming;
 }
+# endif
 #endif
 
 /******************************************************************************/
@@ -1244,6 +1371,7 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
 /******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
+# ifndef POPCOM_STREAM
 static void
 put_header (unsigned char *outf, const unsigned char *data, long stub_v,
             long outlen)
@@ -1371,7 +1499,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
-# ifndef POPCOM_COMPRESS_ONLY
+#  ifndef POPCOM_COMPRESS_ONLY
   {
     unsigned r_stubv, r_litsrc;
     long r_outlen;
@@ -1394,7 +1522,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
                    fn);
       }
   }
-# endif
+#  endif
 
   if (n > MZXFILE)
     {
@@ -1419,15 +1547,15 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
-# ifdef POPCOM_NO_OPT
+#  ifdef POPCOM_NO_OPT
   if (optimal && verbose)
     fprintf (stderr, "  (note: -e is not available in this build)\n");
 
   pllen = compress (data, n, LITCNT, pl, 1024);
-# else
+#  else
   pllen = optimal ? compress_opt (data, n, LITCNT, pl, 4096)
                   : compress (data, n, LITCNT, pl, 1024);
-# endif
+#  endif
   outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
   ming = min_gap (pl, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
@@ -1485,6 +1613,847 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   return 0;
 }
+
+# else
+
+/*
+ * Streaming compressor for tiny (CP/M-80) hosts.  The input is read from disk
+ * through a fixed sliding window and the payload is written to a temp file, so
+ * working memory does not depend on file size and large executables can be
+ * packed on a 64K machine.  Match choices may differ from the in-RAM path, but
+ * the emitted format is identical and self-extracts the same way.
+ *
+ * The sliding window (window bytes + a 2-byte link per slot, = 3*WINSZ of RAM)
+ * is allocated dynamically: at startup the largest power-of-two window that
+ * fits in the available heap is chosen, from WIN_MAX down to WINMIN, so the
+ * compressor uses as big a window -- and packs as tightly -- as the host's TPA
+ * allows.  The effective match distance is min(WINSZ - MAXLEN - 1, MAXDIST).
+ *
+ * WIN_MAX is not a tunable: a window larger than 2*MAXDIST cannot help, since
+ * the format caps match distance at MAXDIST, so that is where the probe starts.
+ */
+
+#  define LOOKAHEAD MAXLEN
+#  define WIN_MAX (MAXDIST * 2)
+
+#  ifndef WINMIN
+#   define WINMIN 1024
+#  endif
+
+#  ifndef LZTMP
+#   define LZTMP "LZTMP.$$$"
+#  endif
+
+static int parse_header (const unsigned char *data, long n, unsigned *stubv,
+                         unsigned *lit_src, long *outlen);
+
+static unsigned char *s_win;
+static int *s_lnk;
+static long s_winsz, s_wmask, s_maxback;
+static FILE *s_in;
+static long s_N, s_loaded;
+
+/******************************************************************************/
+
+static int
+win_alloc (void)
+{
+  for (s_winsz = WIN_MAX; s_winsz >= WINMIN; s_winsz >>= 1)
+    {
+      s_win = (unsigned char *)malloc ((size_t)s_winsz);
+      s_lnk = (int *)malloc ((size_t)s_winsz * sizeof (int));
+
+      if (s_win && s_lnk)
+        break;
+
+      free (s_win);
+      free (s_lnk);
+      s_win = 0;
+      s_lnk = 0;
+    }
+
+  if (!s_win)
+    return -1;
+
+  s_wmask = s_winsz - 1;
+  s_maxback = s_winsz - LOOKAHEAD - 1;
+
+  if (s_maxback > MAXDIST)
+    s_maxback = MAXDIST;
+
+  return 0;
+}
+
+/******************************************************************************/
+
+static void
+win_free (void)
+{
+  free (s_win);
+  free (s_lnk);
+  s_win = 0;
+  s_lnk = 0;
+}
+
+/******************************************************************************/
+
+static void
+win_load (long upto)
+{
+  if (upto > s_N)
+    upto = s_N;
+
+  while (s_loaded < upto)
+    {
+      int c = getc (s_in);
+
+      if (c == EOF)
+        {
+          s_N = s_loaded;
+
+          break;
+        }
+
+      s_win[s_loaded & s_wmask] = (unsigned char)c;
+      s_loaded++;
+    }
+}
+
+/******************************************************************************/
+
+static int
+s_hash3 (long i)
+{
+  return (int)((((unsigned)s_win[i & s_wmask] << 10)
+                ^ ((unsigned)s_win[(i + 1) & s_wmask] << 5)
+                ^ s_win[(i + 2) & s_wmask]) & (HSZ - 1));
+}
+
+/******************************************************************************/
+
+static void
+s_hinsert (long i)
+{
+  int h;
+
+  if (i + 2 >= s_N)
+    return;
+
+  h = s_hash3 (i);
+  s_lnk[i & s_wmask] = head[h];
+  head[h] = (int)(i & s_wmask);
+}
+
+/******************************************************************************/
+
+/*
+ * Hash chains store positions as window-relative indices (0..s_winsz-1); the
+ * absolute position is reconstructed from the current position i, which is
+ * always within s_winsz of any live chain entry.  Entries older than s_maxback
+ * have been overwritten in the window and are pruned by the distance test.
+ */
+
+static int
+findmatch_stream (long i, int *bestdist, int maxdepth)
+{
+  int bl = 0, bd = 0, stored, ml, depth = maxdepth;
+  long base;
+
+  if (i + 2 >= s_N)
+    return 0;
+
+  base = i & ~s_wmask;
+  stored = head[s_hash3 (i)];
+
+  while (stored >= 0 && depth-- > 0)
+    {
+      long p = base | (long)stored;
+      long d;
+      int mx;
+
+      if (p > i)
+        p -= s_winsz;
+
+      d = i - p;
+
+      if (d <= 0 || d > s_maxback)
+        break;
+
+      mx = MAXLEN;
+
+      if ((long)mx > s_N - i)
+        mx = (int)(s_N - i);
+
+      if (bl > 0 && bl < mx
+          && s_win[(p + bl) & s_wmask] != s_win[(i + bl) & s_wmask])
+        {
+          stored = s_lnk[p & s_wmask];
+
+          continue;
+        }
+
+      ml = 0;
+
+      while (ml < mx && s_win[(p + ml) & s_wmask] == s_win[(i + ml) & s_wmask])
+        ml++;
+
+      if (ml >= mlen_min ((int)d) && (ml > bl || (ml == bl && d < bd)))
+        {
+          bl = ml;
+          bd = (int)d;
+
+          if (bl >= mx)
+            break;
+        }
+
+      stored = s_lnk[p & s_wmask];
+    }
+
+  *bestdist = bd;
+
+  return bl;
+}
+
+/******************************************************************************/
+
+static long
+compress_stream (FILE *in, long n, int start, FILE *out, int depth,
+                 unsigned char *first16)
+{
+  long i;
+  int k;
+
+  s_in = in;
+  s_N = n;
+  s_loaded = 0;
+
+  for (k = 0; k < HSZ; k++)
+    head[k] = -1;
+
+  e_init_stream (out);
+
+  win_load ((long)LOOKAHEAD + 1);
+
+  for (k = 0; k < LITCNT && (long)k < n; k++)
+    first16[k] = s_win[k & s_wmask];
+
+  for (i = 0; i < start && i + 2 < n; i++)
+    {
+      win_load (i + LOOKAHEAD + 1);
+      s_hinsert (i);
+    }
+
+  i = start;
+
+  while (i < n)
+    {
+      int d, L;
+
+      win_load (i + LOOKAHEAD + 1);
+      d = 0;
+      L = findmatch_stream (i, &d, depth);
+
+      if (L >= mlen_min (d))
+        {
+          int d2 = 0, L2 = 0;
+
+          if (i + 1 < n)
+            {
+              s_hinsert (i);
+              win_load (i + 1 + LOOKAHEAD + 1);
+              L2 = findmatch_stream (i + 1, &d2, depth);
+            }
+
+          if (L2 > L)
+            {
+              e_lit (s_win[i & s_wmask]);
+              i++;
+
+              continue;
+            }
+
+          e_match (d, L);
+          {
+            long e = i + L;
+
+            i++;
+
+            for (; i < e; i++)
+              {
+                win_load (i + LOOKAHEAD + 1);
+                s_hinsert (i);
+              }
+          }
+        }
+      else
+        {
+          e_lit (s_win[i & s_wmask]);
+          s_hinsert (i);
+          i++;
+        }
+    }
+
+  obuf_flush (ol);
+
+  return ol;
+}
+
+/******************************************************************************/
+
+static FILE *s_mg_f;
+static long s_mg_rd;
+
+static int
+mg_byte (void)
+{
+  s_mg_rd++;
+
+  return getc (s_mg_f);
+}
+
+/******************************************************************************/
+
+/*
+ * Worst-case overlap scan, identical to min_gap () but reading the payload
+ * sequentially from the temp file instead of a RAM buffer.
+ */
+
+static long
+min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
+{
+  long src_base = pl_dst_top + 1 - pl_len;
+  long dst_base = TPA + litcnt;
+  int bc = 0;
+  unsigned bv = 0;
+  long produced = 0;
+  long consumed;
+  long gap, ming = 0x7fffffffL;
+  int first = 1;
+  int ctrl, a, b, c, bit;
+  unsigned ml;
+  long k;
+
+  s_mg_f = f;
+  s_mg_rd = 0;
+
+  while (produced < outlen)
+    {
+      consumed = s_mg_rd;
+      gap = (src_base + consumed) - (dst_base + produced);
+
+      if (first || gap < ming)
+        {
+          ming = gap;
+          first = 0;
+        }
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      ctrl = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+      a = mg_byte ();
+
+      if (!ctrl)
+        {
+          produced++;
+
+          continue;
+        }
+
+      if (!(a & 0x80))
+        {
+          a = 0;
+
+          goto lf;
+        }
+      else if (!(a & 0x40))
+        {
+          b = 4;
+
+          do
+            {
+              if (bc == 0)
+                {
+                  bv = (unsigned)mg_byte ();
+                  bc = 8;
+                }
+
+              bv = (bv << 1) & 0xff;
+              bc--;
+            }
+          while (--b);
+
+          a = 1;
+
+          goto lf;
+        }
+      else
+        {
+          int b0;
+
+          b0 = mg_byte () & 1;
+          a = 2;
+
+          if (!b0)
+            {
+              ml = a + 1;
+
+              goto cpx;
+            }
+
+          c = 1;
+
+          goto lc;
+        }
+
+    lf:
+      c = a;
+      a++;
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      bit = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+
+      if (!bit)
+        {
+          ml = a + 1;
+
+          goto cpx;
+        }
+
+    lc:
+      a++;
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      bit = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+
+      if (!bit)
+        {
+          ml = a + 1;
+
+          goto cpx;
+        }
+
+      a++;
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      bit = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+
+      if (!bit)
+        {
+          ml = a + 1;
+
+          goto cpx;
+        }
+
+      a = 2;
+
+      for (;;)
+        {
+          if (bc == 0)
+            {
+              bv = (unsigned)mg_byte ();
+              bc = 8;
+            }
+
+          bit = (bv >> 7) & 1;
+          bv = (bv << 1) & 0xff;
+          bc--;
+
+          if (!bit)
+            break;
+
+          a++;
+
+          if (a == 7)
+            break;
+        }
+
+      b = a;
+      a = 1;
+
+      do
+        {
+          if (bc == 0)
+            {
+              bv = (unsigned)mg_byte ();
+              bc = 8;
+            }
+
+          bit = (bv >> 7) & 1;
+          bv = (bv << 1) & 0xff;
+          bc--;
+          a = ((a << 1) | bit) & 0xff;
+        }
+      while (--b);
+
+      a = (a + c) & 0xff;
+      ml = a + 1;
+
+    cpx:
+      for (k = 0; k < (long)ml; k++)
+        produced++;
+    }
+
+  (void)bit;
+
+  return ming;
+}
+
+/******************************************************************************/
+
+static long
+assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
+                     FILE *pl, long outlen, long pl_dst_top)
+{
+  unsigned out_end = (unsigned)(TPA + outlen);
+  long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
+  long stub_dst_top = pl_dst_top + 246;
+  unsigned char hdr[LITCNT], stub[STUBLEN];
+  long k;
+
+  memcpy (hdr, first16, LITCNT);
+  hdr[0] = 0xc3;
+  put16 (hdr + 1, (unsigned)stub_v);
+  memcpy (hdr + 5, "-pc1-", 5);
+  put16 (hdr + 10, (unsigned)outlen);
+  hdr[12] = hdr[13] = hdr[14] = hdr[15] = 0;
+  fwrite (hdr, 1, LITCNT, outf);
+
+  for (k = 0; k < pllen; k++)
+    putc (getc (pl), outf);
+
+  fwrite (first16, 1, LITCNT, outf);
+
+  memcpy (stub, z80_stub, STUBLEN);
+  put16 (stub + P_LIT_SRC, (unsigned)lit_src);
+  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + 0xe5));
+  put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
+  put16 (stub + P_PL_SRCTOP, (unsigned)(lit_src - 1));
+  put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
+  put16 (stub + P_PL_LEN, (unsigned)pllen);
+  put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - 195));
+  stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
+  stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
+  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - 195 + 0x0a));
+  fwrite (stub, 1, STUBLEN, outf);
+
+  return LITCNT + pllen + LITCNT + STUBLEN;
+}
+
+/******************************************************************************/
+
+static long
+assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
+                      FILE *pl, long outlen, long pl_dst_top)
+{
+  unsigned out_end = (unsigned)(TPA + outlen);
+  long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
+  long decomp_file_v = stub_v + S8_SLEN;
+  long stub_run = pl_dst_top + 51;
+  long dcmp_dsttop = stub_run + S8_DLEN - 1;
+  long pl_dstbot = pl_dst_top + 1 - pllen;
+  unsigned char hdr[LITCNT], su[S8_SLEN], de[S8_DLEN];
+  long k;
+  int i;
+
+  memcpy (hdr, first16, LITCNT);
+  hdr[0] = 0xc3;
+  put16 (hdr + 1, (unsigned)stub_v);
+  memcpy (hdr + 5, "-pc1-", 5);
+  put16 (hdr + 10, (unsigned)outlen);
+  hdr[12] = hdr[13] = hdr[14] = hdr[15] = 0;
+  fwrite (hdr, 1, LITCNT, outf);
+
+  for (k = 0; k < pllen; k++)
+    putc (getc (pl), outf);
+
+  fwrite (first16, 1, LITCNT, outf);
+
+  memcpy (su, setup8080, S8_SLEN);
+  memcpy (de, decomp8080, S8_DLEN);
+
+  for (i = 0; i < SETUP8080_FIX_N; i++)
+    put16 (su + setup8080_fix[i][0], (unsigned)(stub_v + setup8080_fix[i][1]));
+
+  put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
+  put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
+  put16 (su + S8S_DCMP_DSTTOP, (unsigned)dcmp_dsttop);
+  put16 (su + S8S_DCMP_LEN, (unsigned)S8_DLEN);
+  put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
+
+  for (i = 0; i < DECOMP8080_FIX_N; i++)
+    put16 (de + decomp8080_fix[i][0],
+           (unsigned)(stub_run + decomp8080_fix[i][1]));
+
+  de[S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
+  de[S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
+  put16 (de + S8D_PL_SRCTOP, (unsigned)(lit_src - 1));
+  put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
+  put16 (de + S8D_PL_LEN, (unsigned)pllen);
+  put16 (de + S8D_PL_DSTBOT, (unsigned)pl_dstbot);
+
+  fwrite (su, 1, S8_SLEN, outf);
+  fwrite (de, 1, S8_DLEN, outf);
+
+  return LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN;
+}
+
+/******************************************************************************/
+
+static long
+count_file (const char *fn)
+{
+  FILE *f = fopen (fn, "rb");
+  long n = 0;
+  size_t r;
+  unsigned char buf[128];
+
+  if (!f)
+    return -1;
+
+  while ((r = fread (buf, 1, sizeof buf, f)) > 0)
+    n += (long)r;
+
+  fclose (f);
+
+  return n;
+}
+
+/******************************************************************************/
+
+static int
+do_compress_stream (const char *fn, const char *oname, int verbose,
+                    int use8080, int optimal)
+{
+  FILE *in, *tmp, *outf;
+  long n, pllen, outlen, pl_dst_top, ming, pad, total, body;
+  long stub_dst_top, dcmp_dsttop;
+  unsigned char first16[LITCNT];
+  char nb[64];
+  long k;
+
+  n = count_file (fn);
+
+  if (n < 0)
+    {
+      fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
+      return 1;
+    }
+
+  if (n >= 16)
+    {
+      unsigned rsv, rls;
+      long rol;
+
+      in = fopen (fn, "rb");
+
+      if (in)
+        {
+          unsigned char hdr[LITCNT];
+
+          k = (long)fread (hdr, 1, LITCNT, in);
+          fclose (in);
+
+          if (k == LITCNT && parse_header (hdr, n, &rsv, &rls, &rol) == 0)
+            {
+              fprintf (stderr,
+                       "FATAL: %s is already packed; restore it first\n", fn);
+
+              return 1;
+            }
+        }
+    }
+
+  if (n > MZXFILE)
+    {
+      fprintf (stderr, "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
+               fn, (long)MZXFILE);
+
+      return 1;
+    }
+
+  if (n > 65535L)
+    {
+      fprintf (stderr, "FATAL: %s is too large for header (max 65535 bytes)\n",
+               fn);
+
+      return 1;
+    }
+
+  if (n <= LITCNT + 32)
+    {
+      fprintf (stderr, "FATAL: %s too small\n", fn);
+
+      return 1;
+    }
+
+  if (optimal && verbose)
+    fprintf (stderr, "  (note: -e is not available in this build)\n");
+
+  in = fopen (fn, "rb");
+
+  if (!in)
+    {
+      fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
+      return 1;
+    }
+
+  tmp = fopen (LZTMP, "wb");
+
+  if (!tmp)
+    {
+      fclose (in);
+      fprintf (stderr, "FATAL: cannot create temp file %s\n", LZTMP);
+
+      return 1;
+    }
+
+  /* Grab the largest window the heap allows, after the file buffers exist. */
+  if (win_alloc ())
+    {
+      fclose (in);
+      fclose (tmp);
+      remove (LZTMP);
+      fprintf (stderr, "FATAL: out of memory for compression window\n");
+
+      return 1;
+    }
+
+  if (verbose)
+    fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
+             fn, s_winsz, s_maxback);
+
+  pllen = compress_stream (in, n, LITCNT, tmp, 1024, first16);
+  win_free ();                 /* release the window before reopening files */
+  fclose (in);
+  fclose (tmp);
+
+  outlen = n;
+  pl_dst_top = (long)(TPA + outlen) - 1;
+
+  /* CP/M stdio cannot reliably read a file back through "w+b"; reopen "rb". */
+  tmp = fopen (LZTMP, "rb");
+
+  if (!tmp)
+    {
+      remove (LZTMP);
+      fprintf (stderr, "FATAL: cannot reopen temp file %s\n", LZTMP);
+
+      return 1;
+    }
+
+  ming = min_gap_stream (tmp, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
+  fclose (tmp);
+
+  if (ming < 1)
+    pl_dst_top += (1 - ming);
+
+  stub_dst_top = pl_dst_top + 246;
+  dcmp_dsttop = (pl_dst_top + 51) + S8_DLEN - 1;
+
+  if (use8080 ? (dcmp_dsttop > MEMTOP) : (stub_dst_top > MEMTOP))
+    {
+      remove (LZTMP);
+      fprintf (stderr, "FATAL: %s would not fit in memory\n", fn);
+
+      return 1;
+    }
+
+  body = use8080 ? (LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN)
+                 : (LITCNT + pllen + LITCNT + STUBLEN);
+  pad = (128 - (body % 128)) % 128;
+  total = body + pad;
+
+  if (total >= n)
+    {
+      if (verbose)
+        fprintf (stderr, "  %-12s -- inefficient (%ld => %ld), skipped\n",
+                 fn, n, total);
+
+      remove (LZTMP);
+
+      return 2;
+    }
+
+  if (!oname)
+    {
+      mkname (fn, ".pop", nb, sizeof nb);
+      oname = nb;
+    }
+
+  outf = fopen (oname, "wb");
+
+  if (!outf)
+    {
+      remove (LZTMP);
+      fprintf (stderr, "FATAL: cannot write %s\n", oname);
+
+      return 1;
+    }
+
+  tmp = fopen (LZTMP, "rb");
+
+  if (!tmp)
+    {
+      fclose (outf);
+      remove (LZTMP);
+      fprintf (stderr, "FATAL: cannot reopen temp file %s\n", LZTMP);
+
+      return 1;
+    }
+
+  if (use8080)
+    assemble_8080_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
+  else
+    assemble_z80_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
+
+  for (k = 0; k < pad; k++)
+    putc (0, outf);
+
+  fclose (outf);
+  fclose (tmp);
+  remove (LZTMP);
+
+  if (verbose)
+    {
+      long p10 = n ? (total * 1000L + n / 2) / n : 0;
+
+      fprintf (stderr, "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
+               total, p10 / 10, p10 % 10, use8080 ? "8080" : "Z80", oname);
+    }
+
+  return 0;
+}
+
+# endif
 #endif
 
 /******************************************************************************/
@@ -1521,6 +2490,7 @@ parse_header (const unsigned char *data, long n, unsigned *stubv,
 /******************************************************************************/
 
 #ifndef POPCOM_COMPRESS_ONLY
+# ifndef POPCOM_STREAM
 static int
 do_restore (const char *fn, const char *oname, int verbose)
 {
@@ -1538,6 +2508,13 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
+  if (n > BUFSZ)
+    {
+      fprintf (stderr, "FATAL: %s is too large to restore in this build\n", fn);
+
+      return 1;
+    }
+
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
       fprintf (stderr, "FATAL: %s is not a POPCOM/LZPACK file\n", fn);
@@ -1551,6 +2528,13 @@ do_restore (const char *fn, const char *oname, int verbose)
     {
       fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
+
+      return 1;
+    }
+
+  if (outlen > BUFSZ)
+    {
+      fprintf (stderr, "FATAL: %s is too large to restore in this build\n", fn);
 
       return 1;
     }
@@ -1586,18 +2570,26 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   return 0;
 }
-#endif
+# else
 
-/******************************************************************************/
+/*
+ * Streaming restore: the compressed file and the decompressed output are
+ * malloc'd to their exact sizes, so -R is limited only by the heap (not a
+ * fixed buffer) and the compression path keeps all of RAM for its window.
+ * Files too large for the heap are rejected cleanly.
+ */
 
 static int
-do_list (const char *fn)
+do_restore (const char *fn, const char *oname, int verbose)
 {
-  unsigned char *data = g_a;
-  long n, outlen;
+  unsigned char *data, *out;
+  long n, outlen, pstart;
   unsigned stubv, lit_src;
+  char nb[64];
+  FILE *f;
+  size_t r;
 
-  n = readfile (fn, data, (size_t)BUFSZ);
+  n = count_file (fn);
 
   if (n < 0)
     {
@@ -1606,7 +2598,139 @@ do_list (const char *fn)
       return 1;
     }
 
-  if (parse_header (data, n, &stubv, &lit_src, &outlen))
+  data = (unsigned char *)malloc ((size_t)(n > 0 ? n : 1));
+
+  if (!data)
+    {
+      fprintf (stderr, "FATAL: %s too large to restore (out of memory)\n", fn);
+
+      return 1;
+    }
+
+  f = fopen (fn, "rb");
+
+  if (!f)
+    {
+      free (data);
+      fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
+      return 1;
+    }
+
+  r = fread (data, 1, (size_t)n, f);
+  fclose (f);
+
+  if ((long)r != n || parse_header (data, n, &stubv, &lit_src, &outlen))
+    {
+      free (data);
+      fprintf (stderr, "FATAL: %s is not a POPCOM/LZPACK file\n", fn);
+
+      return 1;
+    }
+
+  pstart = TPA + LITCNT - TPA;
+
+  if (outlen > MZXFILE)
+    {
+      free (data);
+      fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
+               (long)MZXFILE);
+
+      return 1;
+    }
+
+  if ((long)lit_src - TPA < 0 ||
+      (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
+    {
+      free (data);
+      fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
+
+      return 1;
+    }
+
+  out = (unsigned char *)malloc ((size_t)outlen);
+
+  if (!out)
+    {
+      free (data);
+      fprintf (stderr, "FATAL: %s too large to restore (out of memory)\n", fn);
+
+      return 1;
+    }
+
+  memcpy (out, data + ((long)lit_src - TPA), (size_t)LITCNT);
+  decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen,
+          LITCNT);
+
+  if (!oname)
+    {
+      mkname (fn, ".unp", nb, sizeof (nb));
+      oname = nb;
+    }
+
+  if (writefile (oname, out, outlen))
+    {
+      free (data);
+      free (out);
+      fprintf (stderr, "FATAL: cannot write %s\n", oname);
+
+      return 1;
+    }
+
+  if (verbose)
+    fprintf (stderr, "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
+
+  free (data);
+  free (out);
+
+  return 0;
+}
+# endif
+#endif
+
+/******************************************************************************/
+
+static int
+do_list (const char *fn)
+{
+  unsigned char hdr[LITCNT];
+  long n, outlen;
+  unsigned stubv, lit_src;
+  size_t got;
+  FILE *f = fopen (fn, "rb");
+
+  if (!f)
+    {
+      fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
+      return 1;
+    }
+
+  /* Only the 16-byte header is parsed; the rest is read solely to size the
+     file, so listing never needs a whole-file buffer.  Count only after a full
+     header was read, and stop on the first short read, so fread is never
+     issued on a stream already at EOF or in error. */
+  got = fread (hdr, 1, (size_t)LITCNT, f);
+  n = (long)got;
+
+  if (got == (size_t)LITCNT)
+    {
+      unsigned char buf[128];
+
+      for (;;)
+        {
+          size_t r = fread (buf, 1, sizeof buf, f);
+
+          n += (long)r;
+
+          if (r < sizeof buf)
+            break;
+        }
+    }
+
+  fclose (f);
+
+  if (got < (size_t)LITCNT || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
       printf ("  %-16s (not a LZPACK/POPCOM file)\n", fn);
 
@@ -1634,7 +2758,11 @@ usage (void)
     "\n"
     "Usage:\n"
 #ifndef POPCOM_DECODE_ONLY
-     "  lzpack [-e] [-8] <file>  compress (-e: extra, -8: 8080 compatible)\n"
+# ifdef POPCOM_8080
+     "  lzpack [-e] [-Z] <file>  compress (-e: extra, -Z: Z80 stub; default 8080)\n"
+# else
+     "  lzpack [-e] [-8] <file>  compress (-e: extra, -8: 8080 stub; default Z80)\n"
+# endif
 #endif
 #ifndef POPCOM_COMPRESS_ONLY
      "  lzpack -R <file>         restore (decompress)\n"
@@ -1649,10 +2777,15 @@ int
 main (int argc, char **argv)
 {
   int mode = 0;
-  int i, rc = 0, any = 0;
+  int i, rc = 0, nfiles = 0;
   const char *oname = 0;
-  int use8080 = 0, optimal = 0;
+  int use8080 = DEFAULT_USE8080, optimal = 0;
 
+  /*
+   * First pass: gather options (which may appear anywhere on the line) and
+   * count the input files.  CP/M's CCP upper-cases the command tail, so each
+   * flag is accepted in either case.
+   */
   for (i = 1; i < argc; i++)
     {
       if (argv[i][0] == '-' && argv[i][1])
@@ -1665,9 +2798,11 @@ main (int argc, char **argv)
             mode = 2;
           else if (c == '8')
             use8080 = 1;
+          else if (c == 'Z' || c == 'z')
+            use8080 = 0;
           else if (c == 'e' || c == 'E')
             optimal = 1;
-          else if (c == 'o')
+          else if (c == 'o' || c == 'O')
             {
               if (i + 1 >= argc)
                 {
@@ -1690,11 +2825,37 @@ main (int argc, char **argv)
 
               return 2;
             }
+        }
+      else
+        nfiles++;
+    }
+
+  if (!nfiles)
+    {
+      usage ();
+
+      return 2;
+    }
+
+  if (oname && nfiles > 1)
+    {
+      fprintf (stderr, "FATAL: -o cannot be used with multiple files\n");
+
+      return 2;
+    }
+
+  /* Second pass: process each input file (skipping options). */
+  for (i = 1; i < argc; i++)
+    {
+      if (argv[i][0] == '-' && argv[i][1])
+        {
+          char c = argv[i][1];
+
+          if (c == 'o' || c == 'O')
+            i++;
 
           continue;
         }
-
-      any = 1;
 
       if (mode == 0)
         {
@@ -1702,7 +2863,11 @@ main (int argc, char **argv)
           fprintf (stderr, "FATAL: this build cannot compress\n");
           rc |= 1;
 #else
+# ifdef POPCOM_STREAM
+          rc |= do_compress_stream (argv[i], oname, 1, use8080, optimal);
+# else
           rc |= do_compress (argv[i], oname, 1, use8080, optimal);
+# endif
 #endif
         }
       else if (mode == 1)
@@ -1716,19 +2881,10 @@ main (int argc, char **argv)
         }
       else
         rc |= do_list (argv[i]);
-
-      oname = 0;
     }
 
   (void)use8080;
   (void)optimal;
-
-  if (!any)
-    {
-      usage ();
-
-      return 2;
-    }
 
   return rc ? 1 : 0;
 }

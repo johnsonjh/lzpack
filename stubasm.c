@@ -128,13 +128,31 @@ xstrtol (const char *nptr, char **endptr, int base)
 
 /******************************************************************************/
 
-#define MAXSYM 256
-#define MAXREF 512
-#define MAXCODE 4096
+/*
+ * Capacity limits.  Defaults are generous for the host; a CP/M-80 build can
+ * shrink them (e.g. -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768) to fit 64K.  The
+ * stub sources only need a fraction of these.
+ */
+
+#ifndef MAXSYM
+# define MAXSYM 256
+#endif
+
+#ifndef MAXREF
+# define MAXREF 512
+#endif
+
+#ifndef MAXCODE
+# define MAXCODE 4096
+#endif
+
+#ifndef NAMELEN
+# define NAMELEN 24            /* longest stub symbol is ~12 chars; 23 + NUL fits */
+#endif
 
 /******************************************************************************/
 
-static char sym_name[MAXSYM][64];
+static char sym_name[MAXSYM][NAMELEN];
 static long sym_val[MAXSYM];
 static int sym_islabel[MAXSYM];
 static int nsym;
@@ -144,7 +162,7 @@ static int nsym;
 typedef struct
 {
   int off;
-  char name[64];
+  char name[NAMELEN];
   int width;
 } Ref;
 
@@ -192,7 +210,7 @@ sym_set (const char *n, long v, int islabel)
 
       i = nsym++;
 
-      if (strlen (n) >= sizeof (sym_name[i]))
+      if (strlen (n) >= (size_t)NAMELEN)
         die ("symbol too long");
 
       strcpy (sym_name[i], n);
@@ -428,7 +446,7 @@ rec (const char *tok, int width)
 
       if (tok != NULL)
         {
-          if (strlen (tok) >= sizeof (refs[nref].name))
+          if (strlen (tok) >= (size_t)NAMELEN)
             die ("reference name too long");
 
           strcpy (refs[nref].name, tok);
@@ -736,7 +754,7 @@ assemble (const char *path)
                   else
                     emit ((int)evals (tok, pass, loc));
 
-                  tok = cm ? cm + 1 : 0;
+                  tok = cm ? cm + 1 : (char *)0;
                 }
 
               continue;
@@ -1000,7 +1018,7 @@ emit_bytes (const char *name, const unsigned char *b, int n)
 /******************************************************************************/
 
 static int fx_off[MAXREF], fx_tgt[MAXREF], nfx;
-static char sl_name[MAXREF][64];
+static char sl_name[MAXREF][NAMELEN];
 static int sl_off[MAXREF], sl_w[MAXREF], nsl;
 
 static void
@@ -1027,7 +1045,7 @@ collect (const char *const *patch)
           if (nsl >= MAXREF)
             die ("too many patches");
 
-          if (strlen (refs[j].name) >= sizeof (sl_name[nsl])) /* //-V547 */
+          if (strlen (refs[j].name) >= (size_t)NAMELEN) /* //-V547 */
             die ("patch name too long");
 
           strcpy (sl_name[nsl], refs[j].name);
@@ -1041,14 +1059,17 @@ collect (const char *const *patch)
 
 /******************************************************************************/
 
+static unsigned char setup[MAXCODE], decomp[MAXCODE];
+static int s_fx_off[MAXREF], s_fx_tgt[MAXREF];
+static char s_sl_name[MAXREF][NAMELEN];
+static int s_sl_off[MAXREF];
+
 int
 main (int argc, char **argv)
 {
-  static unsigned char setup[MAXCODE], decomp[MAXCODE];
   int slen, dlen, i;
-  int s_fx_off[MAXREF], s_fx_tgt[MAXREF], s_nfx = 0;
-  char s_sl_name[MAXREF][64];
-  int s_sl_off[MAXREF], s_nsl = 0;
+  int s_nfx = 0;
+  int s_nsl = 0;
 
   memset (s_fx_off, 0, sizeof (s_fx_off));
   memset (s_fx_tgt, 0, sizeof (s_fx_tgt));
