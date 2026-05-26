@@ -51,7 +51,7 @@ here="$(pwd -P)"
 
 # Fall back to sudo if the user cannot reach the Docker daemon directly.
 if ! ${DOCKER} info > /dev/null 2>&1; then
-  if command -v sudo > /dev/null 2>&1 && sudo -n ${DOCKER} info > /dev/null 2>&1; then
+  if command -v sudo > /dev/null 2>&1 && sudo ${DOCKER} info > /dev/null 2>&1; then
     # shellcheck disable=SC2086
     printf '%s\n' "note: using 'sudo docker' (current user cannot reach the daemon)"
     DOCKER="sudo ${DOCKER}"
