@@ -1506,7 +1506,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
     if (parse_header (data, n, &r_stubv, &r_litsrc, &r_outlen) == 0
         && r_outlen >= LITCNT && r_outlen <= MZXFILE
-        && (long)r_litsrc - TPA >= 0
+        && (long)r_litsrc - TPA >= LITCNT
         && (long)r_litsrc - TPA + LITCNT <= n)
       {
         unsigned char *tmp = g_c;
@@ -1605,7 +1605,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (verbose)
     {
-      long p10 = n ? (total * 1000L + n / 2) / n : 0;
+      long p10 = (total * 1000L + n / 2) / n;  /* n > LITCNT + 32 here */
 
       fprintf (stderr, "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
                total, p10 / 10, p10 % 10, use8080 ? "8080" : "Z80", oname);
@@ -2444,7 +2444,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (verbose)
     {
-      long p10 = n ? (total * 1000L + n / 2) / n : 0;
+      long p10 = (total * 1000L + n / 2) / n;  /* n > LITCNT + 32 here */
 
       fprintf (stderr, "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
                total, p10 / 10, p10 % 10, use8080 ? "8080" : "Z80", oname);
@@ -2528,13 +2528,6 @@ do_restore (const char *fn, const char *oname, int verbose)
     {
       fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
-
-      return 1;
-    }
-
-  if (outlen > BUFSZ)
-    {
-      fprintf (stderr, "FATAL: %s is too large to restore in this build\n", fn);
 
       return 1;
     }
