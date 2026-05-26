@@ -82,7 +82,7 @@ static unsigned char g_b[BUFSZ];
 # undef LZVER
 #endif
 
-#define LZVER "v0.6"
+#define LZVER "v0.7"
 
 /******************************************************************************/
 
