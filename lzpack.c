@@ -1034,7 +1034,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
           if (!cy)
             {
-              ml = a + 1;
+              ml = (unsigned int)(a + 1);
 
               goto cp;
             }
@@ -1051,7 +1051,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned int)(a + 1);
 
           goto cp;
         }
@@ -1062,7 +1062,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned int)(a + 1);
 
           goto cp;
         }
@@ -1072,7 +1072,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned int)(a + 1);
 
           goto cp;
         }
@@ -1213,7 +1213,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
           if (!b0)
             {
-              ml = a + 1;
+              ml = (unsigned int)(a + 1);
 
               goto cpx;
             }
@@ -1239,7 +1239,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned int)(a + 1);
 
           goto cpx;
         }
@@ -1259,7 +1259,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned int)(a + 1);
 
           goto cpx;
         }
@@ -1278,7 +1278,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned int)(a + 1);
 
           goto cpx;
         }
@@ -1325,7 +1325,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       while (--b);
 
       a = (a + c) & 0xff;
-      ml = a + 1;
+      ml = (unsigned int)(a + 1);
 
     cpx:
       for (k = 0; k < (long)ml; k++)
