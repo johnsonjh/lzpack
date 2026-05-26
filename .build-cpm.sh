@@ -27,8 +27,7 @@ set -eu
 IMAGE="${IMAGE:-z88dk/z88dk:latest}"
 DOCKER="${DOCKER:-docker}"
 TNYLPO="${TNYLPO:-tnylpo}"
-ARCHS="${ARCHS:-ixiy 8080}"  # z88dk libraries to build: 'ixiy' = Z80 (-> repo
-                             # root), '8080' = 8080/8085 (-> cpm-8080/)
+ARCHS="${ARCHS:-ixiy 8080}"
 HSZ="${HSZ:-1024}"
 MZXFILE="${MZXFILE:-65535L}"
 STACKSZ="${STACKSZ:-2048}"   # stack reserve; the rest of RAM becomes heap, so
@@ -154,7 +153,7 @@ make lzpack
 FITFAIL=0
 for arch in ${ARCHS}; do
   case "${arch}" in
-    ixiy) build_arch ixiy "." ;;
+    ixiy) build_arch ixiy "cpm-z80" ;;
     8080) build_arch 8080 "cpm-8080" ;;
     *)    build_arch "${arch}" "cpm-${arch}" ;;
   esac
@@ -167,8 +166,10 @@ fi
 
 # 4. Optional smoke test: confirm the .COM loads and prints its usage banner.
 if command -v "${TNYLPO}" >/dev/null 2>&1; then
-  printf '%s\n' ">> tnylpo smoke test"
-  "${TNYLPO}" -n lzpack.com || :
+  printf '%s\n' ">> tnylpo z80 smoke test"
+  "${TNYLPO}" -n ./cpm-z80/lzpack.com || :
+  printf '%s\n' ">> tnylpo 8080 smoke test"
+  "${TNYLPO}" -n ./cpm-8080/lzpack.com || :
   printf '%s\n' ">> for full self-extract tests: 'make test-cpm'"
 else
   printf '%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"

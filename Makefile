@@ -37,6 +37,7 @@ distclean: clean
 	rm -f compile_commands.json log.pvs core core-*
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
+	rm -f -r ./cpm-z80 2> /dev/null
 	test -d ./.git && git clean -ndx 2> /dev/null || :
 
 stub: cs8080.h

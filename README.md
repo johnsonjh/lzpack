@@ -16,5 +16,7 @@ Usage:
   lzpack -R <file>         restore (decompress)
   lzpack -L <file>         list stored sizes
   lzpack -o <name>         set output name
-
 ```
+
+* [*The Worst 8080 Assembler Ever™*](stubasm.c) is also included, and used
+during the build process.
