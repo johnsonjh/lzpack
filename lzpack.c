@@ -32,6 +32,14 @@
 
 /******************************************************************************/
 
+#ifdef POPCOM_STREAM
+# ifndef POPCOM_NO_OPT
+#  define POPCOM_NO_OPT
+# endif
+#endif
+
+/******************************************************************************/
+
 #ifndef HSZ
 # ifdef POPCOM_STREAM
 #  define HSZ 1024
@@ -221,6 +229,45 @@ e_byte (int x)
 
 # else
 
+/******************************************************************************/
+
+#  ifdef __AZTEC_C_42T__
+static char *
+xmemmove(char *dst, const char *src, unsigned int n)
+{
+  char *d = dst;
+  const char *s = src;
+
+  if ((unsigned long)d <= (unsigned long)s) {
+    while (n--)
+      *d++ = *s++;
+  } else {
+    d += n;
+    s += n;
+    while (n--)
+      *--d = *--s;
+  }
+
+  return dst;
+}
+#   undef memmove
+#   define memmove xmemmove /* //-V1059 */
+#  endif
+
+/******************************************************************************/
+
+#  ifdef __AZTEC_C_42T__
+static int
+xremove (const char *filename)
+{
+  return unlink (filename);
+}
+#   undef remove
+#   define remove xremove /* //-V1059 */
+#  endif
+
+/******************************************************************************/
+
 /*
  * Streaming encoder: the payload is written to a temp file as it is produced,
  * so only a small hold buffer is kept in RAM.  The single tag byte is the only
@@ -246,8 +293,16 @@ obuf_flush (long upto)
 
   if (cnt > 0)
     {
+      unsigned int len;
+      int off;
+
       (void)fwrite (s_obuf, 1, (size_t)cnt, s_of);
-      memmove (s_obuf, s_obuf + cnt, (size_t)(ol - upto));
+
+      off = (int)cnt;
+      len = (unsigned int)(ol - upto);
+
+      memmove((char *)s_obuf, (const char *)(s_obuf + off), len);
+
       s_obase = upto;
     }
 }
@@ -1293,6 +1348,9 @@ readfile (const char *fn, unsigned char *buf, size_t max)
   size_t n;
 
   if (!f)
+    f = fopen (fn, "r");
+
+  if (!f)
     return -1;
 
   n = fread (buf, 1, max, f);
@@ -1320,6 +1378,9 @@ static int
 writefile (const char *fn, const unsigned char *buf, long n)
 {
   FILE *f = fopen (fn, "wb");
+
+  if (!f)
+    f = fopen (fn, "w");
 
   if (!f)
     return -1;
@@ -2244,6 +2305,9 @@ count_file (const char *fn)
   unsigned char buf[128];
 
   if (!f)
+    f = fopen (fn, "r");
+
+  if (!f)
     return -1;
 
   while ((r = fread (buf, 1, sizeof (buf), f)) > 0)
@@ -2282,6 +2346,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       long rol;
 
       in = fopen (fn, "rb");
+
+      if (!in)
+        in = fopen (fn, "r");
 
       if (in)
         {
@@ -2332,6 +2399,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   in = fopen (fn, "rb");
 
   if (!in)
+    in = fopen (fn, "r");
+
+  if (!in)
     {
       (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
 
@@ -2339,6 +2409,11 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
   tmp = fopen (LZTMP, "wb");
+
+  if (!tmp) {
+    /* cppcheck-suppress incompatibleFileOpen */
+    tmp = fopen (LZTMP, "w");
+  }
 
   if (!tmp)
     {
@@ -2375,6 +2450,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   /* CP/M stdio cannot reliably read a file back through "w+b"; reopen "rb". */
 
   tmp = fopen (LZTMP, "rb");
+
+  if (!tmp)
+    tmp = fopen (LZTMP, "r");
 
   if (!tmp)
     {
@@ -2427,6 +2505,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   outf = fopen (oname, "wb");
 
   if (!outf)
+    outf = fopen (oname, "w");
+
+  if (!outf)
     {
       remove (LZTMP);
       (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
@@ -2435,6 +2516,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
   tmp = fopen (LZTMP, "rb");
+
+  if (!tmp)
+    tmp = fopen (LZTMP, "r");
 
   if (!tmp)
     {
@@ -2621,6 +2705,9 @@ do_restore (const char *fn, const char *oname, int verbose)
   f = fopen (fn, "rb");
 
   if (!f)
+    f = fopen (fn, "r");
+
+  if (!f)
     {
       free (data);
       (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
@@ -2712,6 +2799,9 @@ do_list (const char *fn)
   FILE *f = fopen (fn, "rb");
 
   if (!f)
+    f = fopen (fn, "r");
+
+  if (!f)
     {
       (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
 
@@ -2767,6 +2857,18 @@ do_list (const char *fn)
 static void
 usage (void)
 {
+#ifdef POPCOM_NO_OPT
+  static const char* exopt = "";
+  static const char* expad = "     ";
+  static const char* extra = "";
+#else
+# ifndef POPCOM_DECODE_ONLY
+  static const char* exopt = "[-e] ";
+  static const char* expad = "";
+  static const char* extra = "-e: extra, ";
+# endif
+#endif
+
   (void)fprintf (stderr,
     "LZPACK %s - PopCom!-compatible 48K CP/M-80 executable compressor\n"
     "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n"
@@ -2774,16 +2876,21 @@ usage (void)
     "Usage:\n"
 #ifndef POPCOM_DECODE_ONLY
 # ifdef POPCOM_8080
-    "  lzpack [-e] [-Z] <file>  compress (-e: extra, -Z: use Z80 stub)\n"
+    "  lzpack %s[-Z] <file>%s  compress (%s-Z: use Z80 stub)\n"
 # else
-    "  lzpack [-e] [-8] <file>  compress (-e: extra, -8: use 8080 stub)\n"
+    "  lzpack %s[-8] <file>%s  compress (%s-8: use 8080 stub)\n"
 # endif
 #endif
 #ifndef POPCOM_COMPRESS_ONLY
     "  lzpack -R <file>         restore (decompress)\n"
 #endif
     "  lzpack -L <file>         list stored sizes\n"
-    "  lzpack -o <name>         set output name\n", LZVER);
+    "  lzpack -o <name>         set output name\n",
+    LZVER
+#ifndef POPCOM_DECODE_ONLY
+    , exopt, expad, extra
+#endif
+    );
 }
 
 /******************************************************************************/
