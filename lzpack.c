@@ -494,6 +494,8 @@ e_match (int dist, int L)
 
 static int head[HSZ];
 
+/******************************************************************************/
+
 # ifndef POPCOM_STREAM
 static int *lnk;
 static const unsigned char *D;
@@ -668,6 +670,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
 # ifndef POPCOM_NO_OPT
 #  ifndef POPCOM_STREAM
+
 static int
 extlen_bits (int v)
 {
@@ -902,6 +905,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
   return ol;
 }
+
 #  endif
 # endif
 #endif
@@ -909,6 +913,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 /******************************************************************************/
 
 #ifndef POPCOM_COMPRESS_ONLY
+
 static const unsigned char *ip, *ip_end;
 static int dbc;
 static unsigned dbv;
@@ -1122,6 +1127,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
   return pos;
 }
+
 #endif
 
 /******************************************************************************/
@@ -1436,6 +1442,7 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
 
 #ifndef POPCOM_DECODE_ONLY
 # ifndef POPCOM_STREAM
+
 static void
 put_header (unsigned char *outf, const unsigned char *data, long stub_v,
             long outlen)
@@ -1545,6 +1552,8 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
 
 static int parse_header (const unsigned char *data, long n, unsigned *stubv,
                          unsigned *lit_src, long *outlen);
+
+/******************************************************************************/
 
 static int
 do_compress (const char *fn, const char *oname, int verbose, int use8080,
@@ -1683,6 +1692,8 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   return 0;
 }
 
+/******************************************************************************/
+
 # else
 
 /*
@@ -1713,8 +1724,12 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 #   define LZTMP "LZTMP.$$$"
 #  endif
 
+/******************************************************************************/
+
 static int parse_header (const unsigned char *data, long n, unsigned *stubv,
                          unsigned *lit_src, long *outlen);
+
+/******************************************************************************/
 
 static unsigned char *s_win;
 static int *s_lnk;

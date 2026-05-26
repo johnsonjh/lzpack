@@ -4,6 +4,8 @@
  * scspell-id: aa965896-585c-11f1-8233-80ee73e9b8e7
  */
 
+/******************************************************************************/
+
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -173,6 +175,8 @@ static Ref refs[MAXREF];
 static int nref;
 static unsigned char code[MAXCODE];
 static int clen;
+
+/******************************************************************************/
 
 static void
 die (const char *m)
@@ -977,12 +981,16 @@ assemble (const char *path)
 /******************************************************************************/
 
 static const char *SETUP_PATCH[] =
-  { "LIT_SRC", "DCMP_SRCTOP", "DCMP_DSTTOP",
+  { "LIT_SRC",  "DCMP_SRCTOP", "DCMP_DSTTOP",
     "DCMP_LEN", "DCMP_RUN", 0 };
+
+/******************************************************************************/
 
 static const char *DECOMP_PATCH[] =
   { "OUT_END_HI", "OUT_END_LO", "PL_SRCTOP",
-    "PL_DSTTOP", "PL_LEN", "PL_DSTBOT", 0 };
+    "PL_DSTTOP",  "PL_LEN",     "PL_DSTBOT", 0 };
+
+/******************************************************************************/
 
 static int
 in_list (const char *const *l, const char *n)
