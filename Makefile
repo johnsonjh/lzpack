@@ -34,7 +34,8 @@ clean:
 
 distclean: clean
 	rm -f cs8080.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map ./*.t
-	rm -f compile_commands.json compile_commands.events.json log.pvs core core-*
+	rm -f compile_commands.json compile_commands.events.json log.pvs
+	rm -f ./*.pop core core-*
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
@@ -47,14 +48,16 @@ cpm: cs8080.h
 
 cpm86 cpm-86: cs8080.h
 	@rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd
-	aztec42_cc "+FA" lzpack.c
-	aztec42_sqz lzpack.o
-	aztec42_link -o lzpack.cmd lzpack.o -lc86
-	pcdev_cmdinfo lzpack.cmd
-	aztec42_cc "+FA" stubasm.c
+	aztec42_cc -B "+FA" stubasm.c
 	aztec42_sqz stubasm.o
 	aztec42_link -o stubasm.cmd stubasm.o -lc86
+	test -f stubasm.cmd
 	pcdev_cmdinfo stubasm.cmd
+	aztec42_cc -B "+FA" -D__AZTEC_C_42T__=1 -DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c
+	aztec42_sqz lzpack.o
+	aztec42_link -o lzpack.cmd lzpack.o -lc86
+	test -f lzpack.cmd
+	pcdev_cmdinfo lzpack.cmd
 
 cpm-test test-cpm:
 	@printf '\n%s\n' "==========================================="
