@@ -1058,7 +1058,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
           exit (1);
         }
 
-      mpos = pos - (long)(off + 1);
+      mpos = pos - ((long)off + 1);
 
       for (i = 0; i < (int)ml; i++)
         if (pos < outlen)
