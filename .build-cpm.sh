@@ -154,8 +154,7 @@ build_arch()
   sm=${out}/stubasm.map
   printf '%s\n' ">> [${clib}] building ${lc}  (HSZ=${HSZ} MZXFILE=${MZXFILE} STACK=${STACKSZ})"
   run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${lc}" \
-    -DPOPCOM_STREAM -DPOPCOM_NO_OPT \
-    "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
+    -DPOPCOM_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
   printf '%s\n' ">> [${clib}] building ${sc}"
   run_zcc zcc +cpm -O2 -m stubasm.c -clib="${clib}" -o "${sc}" -DAMALLOC \
