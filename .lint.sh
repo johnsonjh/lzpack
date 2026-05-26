@@ -207,7 +207,7 @@ make clean > /dev/null 2>&1 || :
 if (
   set -x
   make \
-    CHECK="~/src/smatch/smatch --two-pass --full-path" \
+    CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
     CC="${HOME}/src/smatch/cgcc"
 ); then
   :
