@@ -19,8 +19,8 @@ ROOT    = os.path.dirname(os.path.abspath(__file__))
 CORPUS  = os.path.join(ROOT, 'corpus')
 PROJECT = os.path.dirname(ROOT)
 TNYLPO  = os.environ.get(
-    'TNYLPO', os.path.expanduser('~/src/tnylpo/tnylpo'))
-CPMEMU  = os.environ.get('CPMEMU', os.path.expanduser('~/src/cpm/cpm'))
+    'TNYLPO', os.path.expanduser('tnylpo'))
+CPMEMU  = os.environ.get('CPMEMU', os.path.expanduser('cpm'))
 NATIVE  = os.path.join(PROJECT, 'lzpack')
 CPMCOM  = os.environ.get('CPMCOM', os.path.join(PROJECT, 'lzpack.com'))
 

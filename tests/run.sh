@@ -7,8 +7,8 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-TNYLPO="${TNYLPO:-${HOME}/src/tnylpo/tnylpo}"
-CPMEMU="${CPMEMU:-${HOME}/src/cpm/cpm}"
+TNYLPO="${TNYLPO:-tnylpo}"
+CPMEMU="${CPMEMU:-cpm}"
 rc=0
 
 printf '%s\n' "========== native =========="
