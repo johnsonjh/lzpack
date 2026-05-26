@@ -41,5 +41,8 @@ else
   rc=1
 fi
 
+if ch -n ./stubasm.c; then :; else rc=1; fi
+if ch -n ./lzpack.c; then :; else rc=1; fi
+
 if [ "${rc}" = 0 ]; then printf '%s\n' ">> lint clean"; else printf '%s\n' ">> lint FAILED"; fi
 exit "${rc}"
