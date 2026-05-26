@@ -3,18 +3,26 @@
 # SPDX-License-Identifier: MIT-0
 # scspell-id: be82fe80-58d5-11f1-8fcd-80ee73e9b8e7
 
+# This script isn't quite for use by the general public just yet.
+# The author doesn't expect every machine to have all these tools,
+# so it's likely this script won't run successfully for anyone else.
+
 set -eu
 cd "$(dirname "$0")"
 
 rc=0
 
-printf '\n%s\n' ">> cppi --check"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
 for f in *.c; do
-  if cppi --check "${f}"; then :; else rc=1; fi
+  if cppi -a --check "${f}"; then
+    :
+  else
+    rc=1
+  fi
 done
 
-printf '\n%s\n' ">> cppcheck"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
 
 if cppcheck --enable=warning,style,performance,portability,unusedFunction \
   --force --check-level=exhaustive --std=c89 --platform=unix64 \
@@ -25,7 +33,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">> scan-build"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> scan-build <<<<<<<<<<<<<<<<"
 
 make distclean > /dev/null 2>&1 || :
 
@@ -36,7 +44,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">> pvs-studio"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> pvs-studio <<<<<<<<<<<<<<<<"
 
 rm -f compile_commands.json log.pvs 2> /dev/null
 rm -f -r ./pvsreport 2> /dev/null 2>&1
@@ -52,7 +60,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">> ch"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
 
 if ch -n ./stubasm.c; then
   :
@@ -66,7 +74,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">> oracle lint"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
 
 if /opt/oracle/developerstudio12.6/bin/lint stubasm.c; then
   :
@@ -80,10 +88,18 @@ else
   rc=1
 fi
 
-if [ "${rc}" = 0 ]; then
-  printf '\n%s\n' ">> lint clean"
+printf '\n%s\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
+
+if (reuse lint -q || reuse lint); then
+  :
 else
-  printf '\n%s\n' ">> lint FAILED"
+  rc=1
+fi
+
+if [ "${rc}" = 0 ]; then
+  printf '\n%s\n' ">>>>>>>>>>>>>>>> lint clean <<<<<<<<<<<<<<<<"
+else
+  printf '\n%s\n' ">>>>>>>>>>>>>>>> lint FAILED <<<<<<<<<<<<<<<<"
 fi
 
 exit "${rc}"

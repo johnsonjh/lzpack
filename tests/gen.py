@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+# SPDX-License-Identifier: MIT-0
 # scspell-id: b0a7050e-58d5-11f1-a28c-80ee73e9b8e7
 
 # Generate CP/M-80 .COM test programs that print a unique marker via BDOS fn 9,
