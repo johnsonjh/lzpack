@@ -51,7 +51,8 @@ here="$(pwd -P)"
 
 # Fall back to sudo if the user cannot reach the Docker daemon directly.
 if ! ${DOCKER} info > /dev/null 2>&1; then
-  if command -v sudo > /dev/null 2>&1 && sudo -n "${DOCKER}" info > /dev/null 2>&1; then
+  if command -v sudo > /dev/null 2>&1 && sudo -n ${DOCKER} info > /dev/null 2>&1; then
+    # shellcheck disable=SC2086
     printf '%s\n' "note: using 'sudo docker' (current user cannot reach the daemon)"
     DOCKER="sudo ${DOCKER}"
   else
@@ -145,13 +146,13 @@ check_48k()
 # (runtime auto-sized) compression window will be as large as the TPA allows.
 build_arch()
 {
-  clib=$1
-  out=$2
+  clib="$1"
+  out="$2"
   [ "${out}" = "." ] || mkdir -p "${out}"
-  lc=${out}/lzpack.com
-  lm=${out}/lzpack.map
-  sc=${out}/stubasm.com
-  sm=${out}/stubasm.map
+  lc="${out}/lzpack.com"
+  lm="${out}/lzpack.map"
+  sc="${out}/stubasm.com"
+  sm="${out}/stubasm.map"
   printf '%s\n' ">> [${clib}] building ${lc}  (HSZ=${HSZ} MZXFILE=${MZXFILE} STACK=${STACKSZ})"
   run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${lc}" \
     -DPOPCOM_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
