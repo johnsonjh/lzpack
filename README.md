@@ -13,7 +13,7 @@ LZPACK v0.5 - PopCom!-compatible 48K CP/M-80 executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
-  lzpack [-e] [-8] <file>  compress (-e: extra, -8: 8080 stub; default Z80)
+  lzpack [-e] [-8] <file>  compress (-e: extra, -8: use 8080 stub)
   lzpack -R <file>         restore (decompress)
   lzpack -L <file>         list stored sizes
   lzpack -o <name>         set output name
