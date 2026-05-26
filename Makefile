@@ -34,7 +34,7 @@ clean:
 
 distclean: clean
 	rm -f cs8080.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map ./*.t
-	rm -f compile_commands.json log.pvs core core-*
+	rm -f compile_commands.json compile_commands.events.json log.pvs core core-*
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
