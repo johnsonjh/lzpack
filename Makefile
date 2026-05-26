@@ -52,7 +52,7 @@ cpm86 cpm-86: cs8080.h
 	aztec42_sqz stubasm.o
 	aztec42_link -o stubasm.cmd stubasm.o -lc86
 	pcdev_cmdinfo stubasm.cmd
-	aztec42_cc -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 -DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c
+	aztec42_cc -I. -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 -DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c
 	aztec42_sqz lzpack.o
 	aztec42_link -o lzpack.cmd lzpack.o -lc86
 	pcdev_cmdinfo lzpack.cmd

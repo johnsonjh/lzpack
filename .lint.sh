@@ -12,7 +12,14 @@ cd "$(dirname "$0")"
 
 rc=0
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
+
+(
+  set -x
+  make distclean > /dev/null 2>&1 || :
+)
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
 for f in ./stubasm.c ./lzpack.c; do
   if (
@@ -25,14 +32,14 @@ for f in ./stubasm.c ./lzpack.c; do
   fi
 done
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
 
 if (
   set -x
   cppcheck \
     --enable=warning,style,performance,portability,unusedFunction \
     --force --check-level=exhaustive --std=c89 --platform=unix64 \
-    --inline-suppr --inconclusive --error-exitcode=2 \
+    --inline-suppr --inconclusive --quiet --error-exitcode=2 \
     -D__CPPCHECK__ -D__LINT__ -j 1 ./stubasm.c ./lzpack.c
 ); then
   :
@@ -40,33 +47,52 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> scan-build <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer <<<<<<<<<<<<<<<<"
 
 make distclean > /dev/null 2>&1 || :
 
 if (
   set -x
-  scan-build --status-bugs -o /tmp/lzpack-scan make all > /dev/null 2>&1
+  make \
+    CC="gcc" \
+    CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fanalyzer"
 ); then
   :
 else
-  printf '\n%s\n' "scan-build reported issues (see /tmp/lzpack-scan)"
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> pvs-studio <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build <<<<<<<<<<<<<<<<"
+
+make distclean > /dev/null 2>&1 || :
+TMPID=$$$$
+
+if (
+  set -x
+  scan-build \
+    --status-bugs \
+    -o /tmp/"lzpack-scan.${TMPID}" make all > /dev/null 2>&1
+); then
+  :
+else
+  printf '\n%s\n' "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
+  rc=1
+fi
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio <<<<<<<<<<<<<<<<"
 
 rm -f compile_commands.json log.pvs 2> /dev/null
 rm -f -r ./pvsreport 2> /dev/null 2>&1
+make clean > /dev/null 2>&1 || :
 
 (
   set -x
-  bear -- make clean all
+  bear -- make
 )
 
 (
   set -x
-  pvs-studio-analyzer analyze --intermodular -j 1 -o log.pvs
+  pvs-studio-analyzer analyze -q --intermodular -j 1 -o log.pvs
 )
 
 if (
@@ -79,7 +105,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
 
 if (
   set -x
@@ -99,11 +125,11 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  /opt/oracle/developerstudio12.6/bin/lint stubasm.c
+  /opt/oracle/developerstudio12.6/bin/lint -fd stubasm.c
 ); then
   :
 else
@@ -112,14 +138,14 @@ fi
 
 if (
   set -x
-  /opt/oracle/developerstudio12.6/bin/lint lzpack.c
+  /opt/oracle/developerstudio12.6/bin/lint -fd lzpack.c
 ); then
   :
 else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
 
 if (
   set -x
@@ -130,7 +156,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
 
 if (
   set -x
@@ -144,11 +170,11 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  shfmt -bn -sr -fn -i 2 -d \
+  shfmt -bn -sr -fn -i 2 -s -d \
     ./.build-cpm.sh \
     ./.lint.sh \
     ./tests/run.sh
@@ -158,7 +184,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n' ">>>>>>>>>>>>>>>> black <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> black <<<<<<<<<<<<<<<<"
 
 if (
   set -x
@@ -171,7 +197,22 @@ else
   rc=1
 fi
 
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch <<<<<<<<<<<<<<<<"
+
+make clean > /dev/null 2>&1 || :
+if (
+  set -x
+  make \
+    CHECK="~/src/smatch/smatch --two-pass --full-path" \
+    CC="${HOME}/src/smatch/cgcc"
+); then
+  :
+else
+  rc=1
+fi
+
 if [ "${rc}" = 0 ]; then
+  make distclean > /dev/null 2>&1 || :
   printf '\n%s\n' ">>>>>>>>>>>>>>>> lint SUCCESSFUL <<<<<<<<<<<<<<<<"
 else
   printf '\n%s\n' ">>>>>>>>>>>>>>>> lint FAILED!!!! <<<<<<<<<<<<<<<<"
