@@ -17,7 +17,7 @@
 /******************************************************************************/
 
 /*
- * Preprocessor defintions:
+ * Preprocessor definitions:
  *   MZXFILE            - input/output file max size (bytes); lower it for
  *                          very small memory targets (e.g., -DMZXFILE=49152L).
  *   HSZ                - compressor hash table size (power of two).
