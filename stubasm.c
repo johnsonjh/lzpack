@@ -1014,7 +1014,7 @@ emit_bytes (const char *name, const unsigned char *b, int n)
                     b[i], ((i % 12 == 11 || i == n - 1) ? "\n" : " "));
     }
 
-  (void)printf ("};\n");
+  (void)printf ("};\n\n");
 }
 
 /******************************************************************************/
@@ -1112,7 +1112,7 @@ main (int argc, char **argv)
   collect (DECOMP_PATCH);
 
   (void)printf ("#define S8_SLEN %d\n", slen);
-  (void)printf ("#define S8_DLEN %d\n", dlen);
+  (void)printf ("#define S8_DLEN %d\n\n", dlen);
 
   emit_bytes ("setup8080", setup, slen);
   emit_bytes ("decomp8080", decomp, dlen);
@@ -1120,13 +1120,13 @@ main (int argc, char **argv)
   (void)printf ("static const unsigned short setup8080_fix[][2] = {\n");
 
   for (i = 0; i < s_nfx; i++)
-    (void)printf ("    {0x%x,0x%x},\n", s_fx_off[i], s_fx_tgt[i]);
+    (void)printf ("    { 0x%x, 0x%x },\n", s_fx_off[i], s_fx_tgt[i]);
 
-  (void)printf ("};\n#define SETUP8080_FIX_N %d\n", s_nfx);
-  (void)printf ("static const unsigned short decomp8080_fix[][2] = {\n");
+  (void)printf ("};\n\n#define SETUP8080_FIX_N %d\n", s_nfx);
+  (void)printf ("\nstatic const unsigned short decomp8080_fix[][2] = {\n");
 
   for (i = 0; i < nfx; i++)
-    (void)printf ("    {0x%x,0x%x},\n", fx_off[i], fx_tgt[i]);
+    (void)printf ("    { 0x%x, 0x%x },\n", fx_off[i], fx_tgt[i]);
 
   (void)printf ("};\n#define DECOMP8080_FIX_N %d\n", nfx);
 
