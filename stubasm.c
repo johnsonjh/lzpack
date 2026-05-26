@@ -177,7 +177,7 @@ static int clen;
 static void
 die (const char *m)
 {
-  fprintf (stderr, "stubasm: %s\n", m);
+  (void)fprintf (stderr, "stubasm: %s\n", m);
 
   exit (1);
 }
@@ -213,7 +213,7 @@ sym_set (const char *n, long v, int islabel)
       if (strlen (n) >= (size_t)NAMELEN)
         die ("symbol too long");
 
-      strcpy (sym_name[i], n);
+      (void)strcpy (sym_name[i], n);
     }
 
   sym_val[i] = v;
@@ -282,7 +282,7 @@ eval1 (const char *tok, int pass, long loc)
             d = c - 'A' + 10;
           else
             {
-              fprintf (stderr, "stubasm: bad hex '%s'\n", tok);
+              (void)fprintf (stderr, "stubasm: bad hex '%s'\n", tok);
 
               exit (1);
             }
@@ -310,7 +310,7 @@ eval1 (const char *tok, int pass, long loc)
     if (pass == 1)
       return 0;
 
-    fprintf (stderr, "stubasm: undefined symbol '%s'\n", tok);
+    (void)fprintf (stderr, "stubasm: undefined symbol '%s'\n", tok);
 
     exit (1);
   }
@@ -330,7 +330,7 @@ evals (const char *s, int pass, long loc)
   if (!s)
     return 0;
 
-  memset (term, 0, sizeof (term));
+  (void)memset (term, 0, sizeof (term));
 
   for (i = 0;; i++)
     {
@@ -356,7 +356,7 @@ evals (const char *s, int pass, long loc)
             term[ti++] = c;
           else
             {
-              fprintf (stderr, "stubasm: expression term too long\n");
+              (void)fprintf (stderr, "stubasm: expression term too long\n");
 
               exit (1);
             }
@@ -375,7 +375,7 @@ regidx (const char *const *tab, const char *t, const char *what)
 
   if (!t)
     {
-      fprintf (stderr, "stubasm: missing %s\n", what);
+      (void)fprintf (stderr, "stubasm: missing %s\n", what);
 
       exit (1);
     }
@@ -384,10 +384,11 @@ regidx (const char *const *tab, const char *t, const char *what)
     if (!strcmp (tab[i], t))
       return i;
 
-  fprintf (stderr, "stubasm: bad %s '%s'\n", what, t);
+  (void)fprintf (stderr, "stubasm: bad %s '%s'\n", what, t);
 
   exit (1);
 
+  /*NOTREACHED*/ /* unreachable */
   return 0;
 }
 
@@ -449,7 +450,7 @@ rec (const char *tok, int width)
           if (strlen (tok) >= (size_t)NAMELEN)
             die ("reference name too long");
 
-          strcpy (refs[nref].name, tok);
+          (void)strcpy (refs[nref].name, tok);
         }
 
       refs[nref].width = width;
@@ -532,7 +533,7 @@ assemble (const char *path)
 
       if (!f)
         {
-          fprintf (stderr, "stubasm: cannot open %s\n", path);
+          (void)fprintf (stderr, "stubasm: cannot open %s\n", path);
 
           exit (1);
         }
@@ -688,12 +689,12 @@ assemble (const char *path)
 
           if (strlen (op) >= sizeof (opU))
             {
-              fprintf (stderr, "stubasm: opcode too long '%s'\n", op);
+              (void)fprintf (stderr, "stubasm: opcode too long '%s'\n", op);
 
               exit (1);
             }
 
-          strcpy (opU, op);
+          (void)strcpy (opU, op);
           upcase (opU);
           loc = (have_org ? org : 0) + clen;
 
@@ -781,7 +782,7 @@ assemble (const char *path)
             {
               if (!a0)
                 {
-                  fprintf (stderr, "stubasm: missing reg for LDAX\n");
+                  (void)fprintf (stderr, "stubasm: missing reg for LDAX\n");
 
                   exit (1);
                 }
@@ -795,7 +796,7 @@ assemble (const char *path)
             {
               if (!a0)
                 {
-                  fprintf (stderr, "stubasm: missing reg for STAX\n");
+                  (void)fprintf (stderr, "stubasm: missing reg for STAX\n");
 
                   exit (1);
                 }
@@ -964,12 +965,12 @@ assemble (const char *path)
               continue;
             }
 
-          fprintf (stderr, "stubasm: bad op '%s'\n", opU);
+          (void)fprintf (stderr, "stubasm: bad op '%s'\n", opU);
 
           exit (1);
         }
 
-      fclose (f);
+      (void)fclose (f);
     }
 }
 
@@ -1002,17 +1003,17 @@ emit_bytes (const char *name, const unsigned char *b, int n)
 {
   int i;
 
-  printf ("static const unsigned char %s[%d] = {\n", name, n);
+  (void)printf ("static const unsigned char %s[%d] = {\n", name, n);
 
   for (i = 0; i < n; i++)
     {
       if (i % 12 == 0)
-        printf ("    ");
+        (void)printf ("    ");
 
-      printf ("0x%02x,%s", b[i], (i % 12 == 11 || i == n - 1) ? "\n" : " ");
+      (void)printf ("0x%02x,%s", b[i], (i % 12 == 11 || i == n - 1) ? "\n" : " ");
     }
 
-  printf ("};\n");
+  (void)printf ("};\n");
 }
 
 /******************************************************************************/
@@ -1048,7 +1049,7 @@ collect (const char *const *patch)
           if (strlen (refs[j].name) >= (size_t)NAMELEN) /* //-V547 */
             die ("patch name too long");
 
-          strcpy (sl_name[nsl], refs[j].name);
+          (void)strcpy (sl_name[nsl], refs[j].name);
           sl_off[nsl] = refs[j].off;
           sl_w[nsl] = refs[j].width;
 
@@ -1071,21 +1072,21 @@ main (int argc, char **argv)
   int s_nfx = 0;
   int s_nsl = 0;
 
-  memset (s_fx_off, 0, sizeof (s_fx_off));
-  memset (s_fx_tgt, 0, sizeof (s_fx_tgt));
-  memset (s_sl_name, 0, sizeof (s_sl_name));
-  memset (s_sl_off, 0, sizeof (s_sl_off));
+  (void)memset (s_fx_off, 0, sizeof (s_fx_off));
+  (void)memset (s_fx_tgt, 0, sizeof (s_fx_tgt));
+  (void)memset (s_sl_name, 0, sizeof (s_sl_name));
+  (void)memset (s_sl_off, 0, sizeof (s_sl_off));
 
   if (argc < 3)
     {
-      fprintf (stderr, "usage: stubasm setup.asm decomp.asm > stub.h\n");
+      (void)fprintf (stderr, "usage: stubasm setup.asm decomp.asm > stub.h\n");
 
       return 2;
     }
 
   assemble (argv[1]);
   slen = clen;
-  memcpy (setup, code, (size_t)clen);
+  (void)memcpy (setup, code, (size_t)clen);
   collect (SETUP_PATCH);
 
   s_nfx = nfx;
@@ -1100,33 +1101,33 @@ main (int argc, char **argv)
 
   for (i = 0; i < nsl; i++)
     {
-      strcpy (s_sl_name[i], sl_name[i]);
+      (void)strcpy (s_sl_name[i], sl_name[i]);
       s_sl_off[i] = sl_off[i];
     }
 
   assemble (argv[2]);
   dlen = clen;
-  memcpy (decomp, code, (size_t)clen);
+  (void)memcpy (decomp, code, (size_t)clen);
   collect (DECOMP_PATCH);
 
-  printf ("#define S8_SLEN %d\n", slen);
-  printf ("#define S8_DLEN %d\n", dlen);
+  (void)printf ("#define S8_SLEN %d\n", slen);
+  (void)printf ("#define S8_DLEN %d\n", dlen);
 
   emit_bytes ("setup8080", setup, slen);
   emit_bytes ("decomp8080", decomp, dlen);
 
-  printf ("static const unsigned short setup8080_fix[][2] = {\n");
+  (void)printf ("static const unsigned short setup8080_fix[][2] = {\n");
 
   for (i = 0; i < s_nfx; i++)
-    printf ("    {0x%x,0x%x},\n", s_fx_off[i], s_fx_tgt[i]);
+    (void)printf ("    {0x%x,0x%x},\n", s_fx_off[i], s_fx_tgt[i]);
 
-  printf ("};\n#define SETUP8080_FIX_N %d\n", s_nfx);
-  printf ("static const unsigned short decomp8080_fix[][2] = {\n");
+  (void)printf ("};\n#define SETUP8080_FIX_N %d\n", s_nfx);
+  (void)printf ("static const unsigned short decomp8080_fix[][2] = {\n");
 
   for (i = 0; i < nfx; i++)
-    printf ("    {0x%x,0x%x},\n", fx_off[i], fx_tgt[i]);
+    (void)printf ("    {0x%x,0x%x},\n", fx_off[i], fx_tgt[i]);
 
-  printf ("};\n#define DECOMP8080_FIX_N %d\n", nfx);
+  (void)printf ("};\n#define DECOMP8080_FIX_N %d\n", nfx);
 
   {
     int p;
@@ -1134,7 +1135,7 @@ main (int argc, char **argv)
     for (p = 0; SETUP_PATCH[p]; p++)
       for (i = 0; i < s_nsl; i++)
         if (!strcmp (s_sl_name[i], SETUP_PATCH[p]))
-          printf ("#define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
+          (void)printf ("#define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
   }
 
   {
@@ -1143,7 +1144,7 @@ main (int argc, char **argv)
     for (p = 0; DECOMP_PATCH[p]; p++)
       for (i = 0; i < nsl; i++)
         if (!strcmp (sl_name[i], DECOMP_PATCH[p]))
-          printf ("#define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
+          (void)printf ("#define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
   }
 
   return 0;

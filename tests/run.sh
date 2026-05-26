@@ -13,7 +13,7 @@ rc=0
 
 printf '\n%s\n' "================= NATIVE =================="
 
-TNYLPO="${TNYLPO}" $(command -v python3) tests/harness.py native || rc=
+TNYLPO="${TNYLPO}" $(command -v python3) tests/harness.py native || rc=1
 
 if [ -f "./cpm-8080/lzpack.com" ] \
   && command -v "${TNYLPO}" > /dev/null 2>&1; then
