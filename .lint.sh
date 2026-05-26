@@ -83,11 +83,11 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio <<<<<<<<<<<<<<<<"
 
 rm -f compile_commands.json log.pvs 2> /dev/null
 rm -f -r ./pvsreport 2> /dev/null 2>&1
-make clean > /dev/null 2>&1 || :
+make distclean > /dev/null 2>&1 || :
 
 (
   set -x
-  bear -- make
+  bear -- make > /dev/null
 )
 
 (
