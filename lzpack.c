@@ -1509,12 +1509,11 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
         && (long)r_litsrc - TPA >= LITCNT
         && (long)r_litsrc - TPA + LITCNT <= n)
       {
-        unsigned char *tmp = g_c;
+        long lit_off = (long)r_litsrc - TPA;  /* in [LITCNT, n - LITCNT] */
 
-        memcpy (tmp, data + ((long)r_litsrc - TPA), (size_t)LITCNT);
-        decode (data + LITCNT, (long)((r_litsrc - TPA) - LITCNT), tmp, r_outlen,
-                LITCNT);
-        memcpy (data, tmp, (size_t)r_outlen);
+        memcpy (g_c, data + lit_off, (size_t)LITCNT);
+        decode (data + LITCNT, lit_off - LITCNT, g_c, r_outlen, LITCNT);
+        memcpy (data, g_c, (size_t)r_outlen);
         n = r_outlen;
 
         if (verbose)
