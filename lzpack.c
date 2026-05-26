@@ -4,11 +4,17 @@
  * scspell-id: a5653bbc-585c-11f1-954d-80ee73e9b8e7
  */
 
+/******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/******************************************************************************/
+
 /* //-V::707 */
+
+/******************************************************************************/
 
 /*
  * MZXFILE - input/output file (bytes).
@@ -17,20 +23,30 @@
  * POPCOM_DECODE_ONLY - build a restore/list-only utility
  */
 
+/******************************************************************************/
+
 #ifndef MZXFILE
 # define MZXFILE 262144L
 #endif
+
+/******************************************************************************/
 
 #ifndef HSZ
 # define HSZ 32768
 #endif
 
+/******************************************************************************/
+
 #ifndef BUFSZ
 # define BUFSZ (MZXFILE + 512)
 #endif
 
+/******************************************************************************/
+
 static unsigned char g_a[BUFSZ];
 static unsigned char g_b[BUFSZ];
+
+/******************************************************************************/
 
 #if 0
 # ifdef __Z88DK
@@ -38,6 +54,8 @@ static unsigned char g_b[BUFSZ];
 #  include <malloc.h>
 # endif
 #endif
+
+/******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
 static unsigned char g_c[BUFSZ];
@@ -57,12 +75,16 @@ lxmalloc (size_t n)
 }
 #endif
 
+/******************************************************************************/
+
 #define TPA 0x100
 #define LITCNT 16
 #define STUBLEN 230
 #define MAXDIST 8192
 #define MAXLEN 256
 #define MEMTOP 0xBDFF
+
+/******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
 
@@ -87,6 +109,8 @@ static const unsigned char z80_stub[STUBLEN] = {
   0x00, 0x4f, 0x03, 0xed, 0xb0, 0xeb, 0xc3, 0xbc, 0x16
 };
 
+/******************************************************************************/
+
 # define P_LIT_SRC 0x01
 # define P_STUB_SRCTOP 0x0c
 # define P_STUB_DSTTOP 0x0f
@@ -98,11 +122,18 @@ static const unsigned char z80_stub[STUBLEN] = {
 # define P_CP_LO 0x33
 # define P_JP_LOOP 0xe4
 
+/******************************************************************************/
+
 # include "cs8080.h"
+
+/******************************************************************************/
 
 static unsigned char *ob;
 static long ol, tagpos;
 static int tagcnt;
+
+/******************************************************************************/
+
 static void
 e_init (unsigned char *buf)
 {
@@ -111,6 +142,9 @@ e_init (unsigned char *buf)
   tagpos = -1;
   tagcnt = 8;
 }
+
+/******************************************************************************/
+
 static void
 e_bit (int b)
 {
@@ -122,17 +156,20 @@ e_bit (int b)
     }
 
   if (b)
-    {
-      ob[tagpos] |= (unsigned char)(1 << (7 - tagcnt));
-    }
+    ob[tagpos] |= (unsigned char)(1 << (7 - tagcnt));
 
   tagcnt++;
 }
+
+/******************************************************************************/
+
 static void
 e_byte (int x)
 {
   ob[ol++] = (unsigned char)(x & 0xff);
 }
+
+/******************************************************************************/
 
 static void
 e_bits (unsigned v, int n)
@@ -140,10 +177,10 @@ e_bits (unsigned v, int n)
   int i;
 
   for (i = n - 1; i >= 0; i--)
-    {
-      e_bit ((int)((v >> i) & 1));
-    }
+    e_bit ((int)((v >> i) & 1));
 }
+
+/******************************************************************************/
 
 static void
 e_extlen (int v)
@@ -159,17 +196,15 @@ e_extlen (int v)
   ones = B - 2;
 
   for (i = 0; i < ones; i++)
-    {
-      e_bit (1);
-    }
+    e_bit (1);
 
   if (B < 7)
-    {
-      e_bit (0);
-    }
+    e_bit (0);
 
   e_bits ((unsigned)(v & ((1 << B) - 1)), B);
 }
+
+/******************************************************************************/
 
 static void
 e_len (int L, int c)
@@ -203,6 +238,8 @@ e_len (int L, int c)
   e_extlen (L - c - 1);
 }
 
+/******************************************************************************/
+
 static void
 e_len3 (int L)
 {
@@ -223,12 +260,18 @@ e_len3 (int L)
   e_bit (1);
   e_extlen (L - 2);
 }
+
+/******************************************************************************/
+
 static void
 e_lit (int byte)
 {
   e_bit (0);
   e_byte (byte);
 }
+
+/******************************************************************************/
+
 static void
 e_match (int dist, int L)
 {
@@ -257,16 +300,18 @@ e_match (int dist, int L)
       e_byte (((off & 0x7f) << 1) | b0);
 
       if (L >= 4)
-        {
-          e_len3 (L);
-        }
+        e_len3 (L);
     }
 }
+
+/******************************************************************************/
 
 static int head[HSZ];
 static int *lnk;
 static const unsigned char *D;
 static long N;
+
+/******************************************************************************/
 
 static int
 hash3 (long i)
@@ -275,25 +320,30 @@ hash3 (long i)
                & (HSZ - 1));
 }
 
+/******************************************************************************/
+
 static void
 hinsert (long i)
 {
   int h;
 
   if (i + 2 >= N)
-    {
-      return;
-    }
+    return;
 
   h = hash3 (i);
   lnk[i] = head[h];
   head[h] = (int)i;
 }
+
+/******************************************************************************/
+
 static int
 mlen_min (int dist)
 {
   return (dist <= 128) ? 2 : 3;
 }
+
+/******************************************************************************/
 
 static int
 findmatch (long i, int *bestdist, int maxdepth)
@@ -302,9 +352,7 @@ findmatch (long i, int *bestdist, int maxdepth)
   long p;
 
   if (i + 2 >= N)
-    {
-      return 0;
-    }
+    return 0;
 
   h = hash3 (i);
 
@@ -314,33 +362,23 @@ findmatch (long i, int *bestdist, int maxdepth)
       int ml, mx;
 
       if (d > MAXDIST)
-        {
-          break;
-        }
+        break;
 
       mx = MAXLEN;
 
       if (mx > (int)(N - i))
-        {
-          mx = (int)(N - i);
-        }
+        mx = (int)(N - i);
 
       if (bl > 0 && bl < mx && D[p + bl] != D[i + bl])
-        {
-          continue;
-        }
+        continue;
 
       ml = 0;
 
       while (ml < mx && D[p + ml] == D[i + ml])
-        {
-          ml++;
-        }
+        ml++;
 
       if (ml < mlen_min ((int)d))
-        {
-          continue;
-        }
+        continue;
 
       if (ml > bl || (ml == bl && d < bd))
         {
@@ -348,15 +386,15 @@ findmatch (long i, int *bestdist, int maxdepth)
           bd = (int)d;
 
           if (bl >= mx)
-            {
-              break;
-            }
+            break;
         }
     }
 
   *bestdist = bd;
   return bl;
 }
+
+/******************************************************************************/
 
 static long
 compress (const unsigned char *data, long n, int start, unsigned char *out,
@@ -372,16 +410,12 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
     int j;
 
     for (j = 0; j < HSZ; j++)
-      {
-        head[j] = -1;
-      }
+      head[j] = -1;
   }
   e_init (out);
 
   for (i = 0; i < start && i + 2 < n; i++)
-    {
-      hinsert (i);
-    }
+    hinsert (i);
 
   i = start;
 
@@ -415,9 +449,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
             i++;
 
             for (; i < e; i++)
-              {
-                hinsert (i);
-              }
+              hinsert (i);
           }
         }
       else
@@ -430,6 +462,8 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
   free (lnk);
   return ol;
 }
+
+/******************************************************************************/
 
 # ifndef POPCOM_NO_OPT
 static int
@@ -444,63 +478,58 @@ extlen_bits (int v)
     }
   return (B < 7 ? (B - 2) + 1 : 5) + B;
 }
+
+/******************************************************************************/
+
 static int
 len_bits (int L, int c)
 {
   int b2 = c + 2;
 
   if (L == b2)
-    {
-      return 1;
-    }
+    return 1;
 
   if (L == b2 + 1)
-    {
-      return 2;
-    }
+    return 2;
 
   if (L == b2 + 2)
-    {
-      return 3;
-    }
+    return 3;
 
   return 3 + extlen_bits (L - c - 1);
 }
+
+/******************************************************************************/
+
 static int
 len3_bits (int L)
 {
   if (L == 3)
-    {
-      return 0;
-    }
+    return 0;
 
   if (L == 4)
-    {
-      return 1;
-    }
+    return 1;
 
   if (L == 5)
-    {
-      return 2;
-    }
+    return 2;
 
   return 2 + extlen_bits (L - 2);
 }
+
+/******************************************************************************/
+
 static int
 match_bits (int dist, int L)
 {
   if (dist <= 128)
-    {
-      return 1 + 8 + len_bits (L, 0);
-    }
+    return 1 + 8 + len_bits (L, 0);
 
   if (dist <= 1152)
-    {
-      return 1 + 8 + 4 + len_bits (L, 1);
-    }
+    return 1 + 8 + 4 + len_bits (L, 1);
 
   return 1 + 16 + len3_bits (L);
 }
+
+/******************************************************************************/
 
 static long
 compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
@@ -518,18 +547,15 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
   tlen = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
   tdist = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
   head2 = (int *)lxmalloc (sizeof (int) * (size_t)65536U);
+
   {
     long j;
 
     for (j = 0; j < HSZ; j++)
-      {
-        head[j] = -1;
-      }
+      head[j] = -1;
 
     for (j = 0; j < 65536; j++)
-      {
-        head2[j] = -1;
-      }
+      head2[j] = -1;
   }
 
   for (i = 0; i < start && i + 2 < n; i++)
@@ -564,9 +590,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
               long p;
 
               if (cap > (int)(n - i))
-                {
-                  cap = (int)(n - i);
-                }
+                cap = (int)(n - i);
 
               for (p = head[h]; p >= 0 && dep-- > 0; p = lnk[p])
                 {
@@ -574,37 +598,27 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
                   int ml;
 
                   if (d > MAXDIST)
-                    {
-                      break;
-                    }
+                    break;
 
                   if (maxml > 0 && maxml < cap && D[p + maxml] != D[i + maxml])
-                    {
-                      continue;
-                    }
+                    continue;
 
                   ml = 0;
 
                   while (ml < cap && D[p + ml] == D[i + ml])
-                    {
-                      ml++;
-                    }
+                    ml++;
 
                   if (ml > maxml)
                     {
                       int L;
 
                       for (L = maxml + 1; L <= ml; L++)
-                        {
-                          l2d[L] = (int)d;
-                        }
+                        l2d[L] = (int)d;
 
                       maxml = ml;
 
                       if (maxml >= cap)
-                        {
-                          break;
-                        }
+                        break;
                     }
                 }
 
@@ -647,9 +661,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
       hinsert (i);
 
       if (i + 1 < n)
-        {
-          head2[data[i] | (data[i + 1] << 8)] = (int)i;
-        }
+        head2[data[i] | (data[i + 1] << 8)] = (int)i;
     }
 
   {
@@ -670,26 +682,26 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
         int L = tlen[e];
 
         if (L > 1)
-          {
-            e_match (tdist[e], L);
-          }
+          e_match (tdist[e], L);
         else
-          {
-            e_lit (data[e - 1]);
-          }
+          e_lit (data[e - 1]);
       }
 
     free (st);
   }
+
   free (lnk);
   free (cost);
   free (tlen);
   free (tdist);
   free (head2);
+
   return ol;
 }
 # endif
 #endif
+
+/******************************************************************************/
 
 #ifndef POPCOM_COMPRESS_ONLY
 static const unsigned char *ip;
@@ -711,6 +723,8 @@ g_bit (void)
   dbc--;
   return b;
 }
+
+/******************************************************************************/
 
 static long
 decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
@@ -754,8 +768,8 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
               a = ((a << 1) | bit) & 0xff;
               c = ((c << 1) | cy) & 0xff;
             }
-
           while (--b);
+
           {
             int t = a + 0x80;
             a = t & 0xff;
@@ -827,16 +841,12 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           bit = g_bit ();
 
           if (!bit)
-            {
-              break;
-            }
+            break;
 
           a++;
 
           if (a == 7)
-            {
-              break;
-            }
+            break;
         }
 
       b = a;
@@ -847,7 +857,6 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           bit = g_bit ();
           a = ((a << 1) | bit) & 0xff;
         }
-
       while (--b);
 
       a = (a + c) & 0xff;
@@ -857,13 +866,13 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       mp = op - (off + 1);
 
       for (i = 0; i < (int)ml; i++)
-        {
-          *op++ = *mp++;
-        }
+        *op++ = *mp++;
     }
   return (long)(op - out);
 }
 #endif
+
+/******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
 static long
@@ -933,7 +942,6 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
               bv = (bv << 1) & 0xff;
               bc--;
             }
-
           while (--b);
 
           a = 1;
@@ -1029,16 +1037,12 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           bc--;
 
           if (!bit)
-            {
-              break;
-            }
+            break;
 
           a++;
 
           if (a == 7)
-            {
-              break;
-            }
+            break;
         }
 
       b = a;
@@ -1057,7 +1061,6 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           bc--;
           a = ((a << 1) | bit) & 0xff;
         }
-
       while (--b);
 
       a = (a + c) & 0xff;
@@ -1065,14 +1068,16 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
     cpx:
       for (k = 0; k < (long)ml; k++)
-        {
-          produced++;
-        }
+        produced++;
     }
+
   (void)bit;
+
   return ming;
 }
 #endif
+
+/******************************************************************************/
 
 static long
 readfile (const char *fn, unsigned char *buf, size_t max)
@@ -1081,14 +1086,14 @@ readfile (const char *fn, unsigned char *buf, size_t max)
   long n;
 
   if (!f)
-    {
-      return -1;
-    }
+    return -1;
 
   n = (long)fread (buf, 1, max, f);
   fclose (f);
   return n;
 }
+
+/******************************************************************************/
 
 static int
 writefile (const char *fn, const unsigned char *buf, long n)
@@ -1096,14 +1101,14 @@ writefile (const char *fn, const unsigned char *buf, long n)
   FILE *f = fopen (fn, "wb");
 
   if (!f)
-    {
-      return -1;
-    }
+    return -1;
 
   fwrite (buf, 1, (size_t)n, f);
   fclose (f);
   return 0;
 }
+
+/******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
 static void
@@ -1114,11 +1119,15 @@ put16 (unsigned char *p, unsigned v)
 }
 #endif
 
+/******************************************************************************/
+
 static unsigned
 get16 (const unsigned char *p)
 {
   return (unsigned)p[0] | ((unsigned)p[1] << 8);
 }
+
+/******************************************************************************/
 
 static void
 mkname (const char *in, const char *ext, char *out)
@@ -1128,17 +1137,15 @@ mkname (const char *in, const char *ext, char *out)
   size_t base;
 
   if (dot && (!slash || dot > slash))
-    {
-      base = (size_t)(dot - in);
-    }
+    base = (size_t)(dot - in);
   else
-    {
-      base = strlen (in);
-    }
+    base = strlen (in);
 
   memcpy (out, in, base);
   strcpy (out + base, ext);
 }
+
+/******************************************************************************/
 
 #ifndef POPCOM_DECODE_ONLY
 static void
@@ -1153,6 +1160,8 @@ put_header (unsigned char *outf, const unsigned char *data, long stub_v,
   outf[12] = outf[13] = outf[14] = outf[15] = 0;
 }
 
+/******************************************************************************/
+
 static long
 build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
            const unsigned char *pl, long outlen, long pl_dst_top)
@@ -1163,9 +1172,7 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   unsigned char *stub;
 
   if (stub_dst_top > MEMTOP)
-    {
-      return -1;
-    }
+    return -1;
 
   put_header (outf, data, stub_v, outlen);
   memcpy (outf + LITCNT, pl, (size_t)pllen);
@@ -1185,6 +1192,8 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   return LITCNT + pllen + LITCNT + STUBLEN;
 }
 
+/******************************************************************************/
+
 static long
 build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
             const unsigned char *pl, long outlen, long pl_dst_top)
@@ -1199,9 +1208,7 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   int i;
 
   if (dcmp_dsttop > MEMTOP)
-    {
-      return -1;
-    }
+    return -1;
 
   put_header (outf, data, stub_v, outlen);
 
@@ -1215,10 +1222,8 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   memcpy (de, decomp8080, S8_DLEN);
 
   for (i = 0; i < SETUP8080_FIX_N; i++)
-    {
-      put16 (su + setup8080_fix[i][0],
-             (unsigned)(stub_v + setup8080_fix[i][1]));
-    }
+    put16 (su + setup8080_fix[i][0],
+           (unsigned)(stub_v + setup8080_fix[i][1]));
 
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
@@ -1227,10 +1232,8 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
 
   for (i = 0; i < DECOMP8080_FIX_N; i++)
-    {
-      put16 (de + decomp8080_fix[i][0],
-             (unsigned)(stub_run + decomp8080_fix[i][1]));
-    }
+    put16 (de + decomp8080_fix[i][0],
+           (unsigned)(stub_run + decomp8080_fix[i][1]));
 
   de[S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
   de[S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
@@ -1240,6 +1243,8 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (de + S8D_PL_DSTBOT, (unsigned)pl_dstbot);
   return LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN;
 }
+
+/******************************************************************************/
 
 static int
 do_compress (const char *fn, const char *oname, int verbose, int use8080,
@@ -1272,9 +1277,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
 # ifdef POPCOM_NO_OPT
   if (optimal && verbose)
-    {
-      fprintf (stderr, "  (note: -e is not available in this build)\n");
-    }
+    fprintf (stderr, "  (note: -e is not available in this build)\n");
 
   pllen = compress (data, n, LITCNT, pl, 1024);
 # else
@@ -1286,9 +1289,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   ming = min_gap (pl, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
 
   if (ming < 1)
-    {
-      pl_dst_top += (1 - ming);
-    }
+    pl_dst_top += (1 - ming);
 
   body = use8080 ? build_8080 (outf, data, pllen, pl, outlen, pl_dst_top)
                  : build_z80 (outf, data, pllen, pl, outlen, pl_dst_top);
@@ -1303,19 +1304,15 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   pad = (128 - (total % 128)) % 128;
 
   if (pad)
-    {
-      memset (outf + total, 0, (size_t)pad);
-    }
+    memset (outf + total, 0, (size_t)pad);
 
   total += pad;
 
   if (total >= n)
     {
       if (verbose)
-        {
-          fprintf (stderr, "  %-12s -- inefficient (%ld => %ld), skipped\n",
-                   fn, n, total);
-        }
+        fprintf (stderr, "  %-12s -- inefficient (%ld => %ld), skipped\n",
+                 fn, n, total);
 
       return 2;
     }
@@ -1333,14 +1330,14 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
     }
 
   if (verbose)
-    {
-      fprintf (stderr, "  %-12s %6ld => %6ld  (%.1f%%)  [%s]  -> %s\n", fn, n,
-               total, 100.0 * total / n, use8080 ? "8080" : "Z80", oname);
-    }
+    fprintf (stderr, "  %-12s %6ld => %6ld  (%.1f%%)  [%s]  -> %s\n", fn, n,
+             total, 100.0 * total / n, use8080 ? "8080" : "Z80", oname);
 
   return 0;
 }
 #endif
+
+/******************************************************************************/
 
 static int
 parse_header (const unsigned char *data, long n, unsigned *stubv,
@@ -1349,34 +1346,26 @@ parse_header (const unsigned char *data, long n, unsigned *stubv,
   unsigned sv;
 
   if (data[0] == 0xc3)
-    {
-      sv = get16 (data + 1);
-    }
+    sv = get16 (data + 1);
   else if (data[0] == 0x18 && data[2] == 0xc3)
-    {
-      sv = get16 (data + 3);
-    }
+    sv = get16 (data + 3);
   else
-    {
-      return 1;
-    }
+    return 1;
 
   if (memcmp (data + 5, "-pc1-", 5) != 0)
-    {
-      return 1;
-    }
+    return 1;
 
   *stubv = sv;
   *lit_src = sv - LITCNT;
   *outlen = (long)get16 (data + 10);
 
   if (sv < 0x120 || *outlen <= 0 || (long)(sv - TPA) > n)
-    {
-      return 1;
-    }
+    return 1;
 
   return 0;
 }
+
+/******************************************************************************/
 
 #ifndef POPCOM_COMPRESS_ONLY
 static int
@@ -1426,13 +1415,13 @@ do_restore (const char *fn, const char *oname, int verbose)
     }
 
   if (verbose)
-    {
-      fprintf (stderr, "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
-    }
+    fprintf (stderr, "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
 
   return 0;
 }
 #endif
+
+/******************************************************************************/
 
 static int
 do_list (const char *fn)
@@ -1460,6 +1449,8 @@ do_list (const char *fn)
   return 0;
 }
 
+/******************************************************************************/
+
 static void
 usage (void)
 {
@@ -1476,6 +1467,8 @@ usage (void)
                    "  lzpack -o <name>         set output name\n");
 }
 
+/******************************************************************************/
+
 int
 main (int argc, char **argv)
 {
@@ -1491,27 +1484,17 @@ main (int argc, char **argv)
           char c = argv[i][1];
 
           if (c == 'R' || c == 'r')
-            {
-              mode = 1;
-            }
+            mode = 1;
           else if (c == 'L' || c == 'l')
-            {
-              mode = 2;
-            }
+            mode = 2;
           else if (c == '8')
-            {
-              use8080 = 1;
-            }
+            use8080 = 1;
           else if (c == 'e' || c == 'E')
-            {
-              optimal = 1;
-            }
+            optimal = 1;
           else if (c == 'o')
             {
               if (i + 1 < argc)
-                {
-                  oname = argv[++i];
-                }
+                oname = argv[++i];
             }
           else if (c == 'h')
             {
@@ -1548,9 +1531,7 @@ main (int argc, char **argv)
 #endif
         }
       else
-        {
-          rc |= do_list (argv[i]);
-        }
+        rc |= do_list (argv[i]);
 
       oname = 0;
     }
@@ -1566,3 +1547,5 @@ main (int argc, char **argv)
 
   return rc ? 1 : 0;
 }
+
+/******************************************************************************/

@@ -11,9 +11,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/******************************************************************************/
+
 #ifndef ERANGE
 # define ERANGE 1
 #endif
+
+/******************************************************************************/
 
 long
 xstrtol (const char *nptr, char **endptr, int base)
@@ -31,17 +35,13 @@ xstrtol (const char *nptr, char **endptr, int base)
   if (base != 10 && base != 16)
     {
       if (endptr)
-        {
-          *endptr = (char *)nptr;
-        }
+        *endptr = (char *)nptr;
 
       return 0L;
     }
 
   while ((c = (unsigned char)*s) != '\0' && isspace (c))
-    {
-      s++;
-    }
+    s++;
 
   c = (unsigned char)*s;
 
@@ -54,9 +54,7 @@ xstrtol (const char *nptr, char **endptr, int base)
   if (base == 16)
     {
       if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
-        {
-          s += 2;
-        }
+        s += 2;
     }
 
   cutoff = neg ? max_neg : max_pos;
@@ -130,36 +128,34 @@ xstrtol (const char *nptr, char **endptr, int base)
     }
 
   if (endptr)
-    {
-      *endptr = (char *)(any ? s : nptr);
-    }
+    *endptr = (char *)(any ? s : nptr);
 
   if (!any)
-    {
-      return 0L;
-    }
+    return 0L;
 
   if (overflow)
-    {
-      return neg ? LONG_MIN : LONG_MAX;
-    }
+    return neg ? LONG_MIN : LONG_MAX;
 
   if (neg)
-    {
-      return -(long)acc;
-    }
+    return -(long)acc;
 
   return (long)acc;
 }
+
+/******************************************************************************/
 
 #define MAXSYM 256
 #define MAXREF 512
 #define MAXCODE 4096
 
+/******************************************************************************/
+
 static char sym_name[MAXSYM][32];
 static long sym_val[MAXSYM];
 static int sym_islabel[MAXSYM];
 static int nsym;
+
+/******************************************************************************/
 
 typedef struct
 {
@@ -167,7 +163,10 @@ typedef struct
   char name[32];
   int width;
 } Ref;
+
 static Ref refs[MAXREF];
+
+/******************************************************************************/
 
 static int nref;
 static unsigned char code[MAXCODE];
@@ -179,6 +178,8 @@ die (const char *m)
   fprintf (stderr, "mkstub: %s\n", m);
   exit (1);
 }
+
+/******************************************************************************/
 
 static int
 sym_find (const char *n)
@@ -196,6 +197,8 @@ sym_find (const char *n)
   return -1;
 }
 
+/******************************************************************************/
+
 static void
 sym_set (const char *n, long v, int islabel)
 {
@@ -204,9 +207,7 @@ sym_set (const char *n, long v, int islabel)
   if (i < 0)
     {
       if (nsym >= MAXSYM)
-        {
-          die ("too many symbols");
-        }
+        die ("too many symbols");
 
       i = nsym++;
       strcpy (sym_name[i], n);
@@ -216,14 +217,16 @@ sym_set (const char *n, long v, int islabel)
   sym_islabel[i] = islabel;
 }
 
+/******************************************************************************/
+
 static void
 upcase (char *s)
 {
   for (; *s; s++)
-    {
-      *s = (char)toupper ((unsigned char)*s);
-    }
+    *s = (char)toupper ((unsigned char)*s);
 }
+
+/******************************************************************************/
 
 static int
 is_ident (const char *s)
@@ -231,24 +234,24 @@ is_ident (const char *s)
   return s && (s[0] == '_' || s[0] == '.' || isalpha ((unsigned char)s[0]));
 }
 
+/******************************************************************************/
+
 static int
 is_symbol (const char *s)
 {
   if (!is_ident (s))
-    {
-      return 0;
-    }
+    return 0;
 
   for (; *s; s++)
     {
       if (!(isalnum ((unsigned char)*s) || *s == '_' || *s == '.'))
-        {
-          return 0;
-        }
+        return 0;
     }
 
   return 1;
 }
+
+/******************************************************************************/
 
 static long
 eval1 (const char *tok, int pass, long loc)
@@ -256,9 +259,7 @@ eval1 (const char *tok, int pass, long loc)
   size_t n = strlen (tok);
 
   if (strcmp (tok, "$") == 0)
-    {
-      return loc;
-    }
+    return loc;
 
   if (n > 1 &&
        (tok[n - 1] == 'h' || tok[n - 1] == 'H') &&
@@ -273,17 +274,11 @@ eval1 (const char *tok, int pass, long loc)
           int d;
 
           if (c >= '0' && c <= '9')
-            {
-              d = c - '0';
-            }
+            d = c - '0';
           else if (c >= 'a' && c <= 'f')
-            {
-              d = c - 'a' + 10;
-            }
+            d = c - 'a' + 10;
           else if (c >= 'A' && c <= 'F')
-            {
-              d = c - 'A' + 10;
-            }
+            d = c - 'A' + 10;
           else
             {
               fprintf (stderr, "mkstub: bad hex '%s'\n", tok);
@@ -299,9 +294,7 @@ eval1 (const char *tok, int pass, long loc)
   if (tok[0] >= '0' && tok[0] <= '9')
     {
       if (n > 2 && tok[0] == '0' && (tok[1] == 'x' || tok[1] == 'X'))
-        {
-          return xstrtol (tok + 2, 0, 16);
-        }
+        return xstrtol (tok + 2, 0, 16);
 
       return xstrtol (tok, 0, 10);
     }
@@ -310,14 +303,10 @@ eval1 (const char *tok, int pass, long loc)
     int i = sym_find (tok);
 
     if (i >= 0)
-      {
-        return sym_val[i];
-      }
+      return sym_val[i];
 
     if (pass == 1)
-      {
-        return 0;
-      }
+      return 0;
 
     fprintf (stderr, "mkstub: undefined symbol '%s'\n", tok);
     exit (1);
@@ -325,6 +314,8 @@ eval1 (const char *tok, int pass, long loc)
 
   return 0;
 }
+
+/******************************************************************************/
 
 static long
 evals (const char *s, int pass, long loc)
@@ -336,9 +327,7 @@ evals (const char *s, int pass, long loc)
   size_t i;
 
   if (!s)
-    {
-      return 0;
-    }
+    return 0;
 
   memset (term, 0, sizeof (term));
 
@@ -356,9 +345,7 @@ evals (const char *s, int pass, long loc)
             }
 
           if (c == 0)
-            {
-              break;
-            }
+            break;
 
           sign = (c == '+') ? 1 : -1;
         }
@@ -373,6 +360,8 @@ evals (const char *s, int pass, long loc)
 
   return acc;
 }
+
+/******************************************************************************/
 
 static int
 regidx (const char *const *tab, const char *t, const char *what)
@@ -399,6 +388,8 @@ regidx (const char *const *tab, const char *t, const char *what)
   return 0;
 }
 
+/******************************************************************************/
+
 static int
 r8 (const char *t)
 {
@@ -406,6 +397,8 @@ r8 (const char *t)
 
   return regidx (T, t, "reg");
 }
+
+/******************************************************************************/
 
 static int
 rp (const char *t)
@@ -415,6 +408,8 @@ rp (const char *t)
   return regidx (T, t, "rp");
 }
 
+/******************************************************************************/
+
 static int
 rpp (const char *t)
 {
@@ -423,16 +418,18 @@ rpp (const char *t)
   return regidx (T, t, "rpp");
 }
 
+/******************************************************************************/
+
 static void
 emit (int b)
 {
   if (clen >= MAXCODE)
-    {
-      die ("code overflow");
-    }
+    die ("code overflow");
 
   code[clen++] = (unsigned char)(b & 0xff);
 }
+
+/******************************************************************************/
 
 static void
 rec (const char *tok, int width)
@@ -440,27 +437,27 @@ rec (const char *tok, int width)
   if (is_symbol (tok))
     {
       if (nref >= MAXREF)
-        {
-          die ("too many refs");
-        }
+        die ("too many refs");
 
       refs[nref].off = clen + 1;
 
       if (tok != NULL)
-        {
-          strcpy (refs[nref].name, tok);
-        }
+        strcpy (refs[nref].name, tok);
 
       refs[nref].width = width;
       nref++;
     }
 }
 
+/******************************************************************************/
+
 typedef struct
 {
   const char *name;
   int op;
 } OpB;
+
+/******************************************************************************/
 
 static int
 lookup (const OpB *t, const char *n)
@@ -477,6 +474,8 @@ lookup (const OpB *t, const char *n)
 
   return -1;
 }
+
+/******************************************************************************/
 
 static void
 assemble (const char *path)
@@ -545,30 +544,22 @@ assemble (const char *path)
           semi = strchr (line, ';');
 
           if (semi)
-            {
-              *semi = 0;
-            }
+            *semi = 0;
 
           s = line;
 
           while (*s && isspace ((unsigned char)*s))
-            {
-              s++;
-            }
+            s++;
 
           {
             char *e = s + strlen (s);
 
             while (e > s && isspace ((unsigned char)e[-1]))
-              {
-                *--e = 0;
-              }
+              *--e = 0;
           }
 
           if (!*s)
-            {
-              continue;
-            }
+            continue;
 
           colon = strchr (s, ':');
 
@@ -596,19 +587,13 @@ assemble (const char *path)
                   s = colon + 1;
 
                   while (*s && isspace ((unsigned char)*s))
-                    {
-                      s++;
-                    }
+                    s++;
 
                   if (!*s)
-                    {
-                      continue;
-                    }
+                    continue;
                 }
               else
-                {
-                  *colon = save;
-                }
+                *colon = save;
             }
 
           op = s;
@@ -635,9 +620,7 @@ assemble (const char *path)
             int k = 0;
 
             while (*q && !isspace ((unsigned char)*q) && k < 31)
-              {
-                w[k++] = *q++;
-              }
+              w[k++] = *q++;
 
             w[k] = 0;
             upcase (w);
@@ -647,16 +630,13 @@ assemble (const char *path)
                 char *val = q;
 
                 while (*val && isspace ((unsigned char)*val))
-                  {
-                    val++;
-                  }
+                  val++;
+
                 {
                   char *e = val + strlen (val);
 
                   while (e > val && isspace ((unsigned char)e[-1]))
-                    {
-                      *--e = 0;
-                    }
+                    *--e = 0;
                 }
 
                 sym_set (op, evals (val, pass, 0), 0);
@@ -676,17 +656,13 @@ assemble (const char *path)
                 a1 = cm + 1;
 
                 while (*a1 && isspace ((unsigned char)*a1))
-                  {
-                    a1++;
-                  }
+                  a1++;
 
                 {
                   char *e = a0 + strlen (a0);
 
                   while (e > a0 && isspace ((unsigned char)e[-1]))
-                    {
-                      *--e = 0;
-                    }
+                    *--e = 0;
                 }
               }
           }
@@ -704,12 +680,8 @@ assemble (const char *path)
                   have_org = 1;
                 }
               else
-                {
-                  while (org + clen < nv)
-                    {
-                      emit (0);
-                    }
-                }
+                while (org + clen < nv)
+                  emit (0);
 
               continue;
             }
@@ -723,28 +695,20 @@ assemble (const char *path)
                   char *cm = strchr (tok, ',');
 
                   if (cm)
-                    {
-                      *cm = 0;
-                    }
+                    *cm = 0;
 
                   while (*tok && isspace ((unsigned char)*tok))
-                    {
-                      tok++;
-                    }
+                    tok++;
 
                   if (tok[0] == '\'' || tok[0] == '"')
                     {
                       char *p = tok + 1;
 
                       while (*p && *p != tok[0])
-                        {
-                          emit (*p++);
-                        }
+                        emit (*p++);
                     }
                   else
-                    {
-                      emit ((int)evals (tok, pass, loc));
-                    }
+                    emit ((int)evals (tok, pass, loc));
 
                   tok = cm ? cm + 1 : 0;
                 }
@@ -912,6 +876,8 @@ assemble (const char *path)
     }
 }
 
+/******************************************************************************/
+
 static const char *SETUP_PATCH[] =
   { "LIT_SRC", "DCMP_SRCTOP", "DCMP_DSTTOP",
     "DCMP_LEN", "DCMP_RUN", 0 };
@@ -926,15 +892,13 @@ in_list (const char *const *l, const char *n)
   int i;
 
   for (i = 0; l[i]; i++)
-    {
-      if (!strcmp (l[i], n))
-        {
-          return 1;
-        }
-    }
+    if (!strcmp (l[i], n))
+      return 1;
 
   return 0;
 }
+
+/******************************************************************************/
 
 static void
 emit_bytes (const char *name, const unsigned char *b, int n)
@@ -946,15 +910,15 @@ emit_bytes (const char *name, const unsigned char *b, int n)
   for (i = 0; i < n; i++)
     {
       if (i % 12 == 0)
-        {
-          printf ("    ");
-        }
+        printf ("    ");
 
       printf ("0x%02x,%s", b[i], (i % 12 == 11 || i == n - 1) ? "\n" : " ");
     }
 
   printf ("};\n");
 }
+
+/******************************************************************************/
 
 static int fx_off[MAXREF], fx_tgt[MAXREF], nfx;
 static char sl_name[32][32];
@@ -987,6 +951,8 @@ collect (const char *const *patch)
         }
     }
 }
+
+/******************************************************************************/
 
 int
 main (int argc, char **argv)
@@ -1038,17 +1004,13 @@ main (int argc, char **argv)
   printf ("static const unsigned short setup8080_fix[][2] = {\n");
 
   for (i = 0; i < s_nfx; i++)
-    {
-      printf ("    {0x%x,0x%x},\n", s_fx_off[i], s_fx_tgt[i]);
-    }
+    printf ("    {0x%x,0x%x},\n", s_fx_off[i], s_fx_tgt[i]);
 
   printf ("};\n#define SETUP8080_FIX_N %d\n", s_nfx);
   printf ("static const unsigned short decomp8080_fix[][2] = {\n");
 
   for (i = 0; i < nfx; i++)
-    {
-      printf ("    {0x%x,0x%x},\n", fx_off[i], fx_tgt[i]);
-    }
+    printf ("    {0x%x,0x%x},\n", fx_off[i], fx_tgt[i]);
 
   printf ("};\n#define DECOMP8080_FIX_N %d\n", nfx);
 
@@ -1056,31 +1018,21 @@ main (int argc, char **argv)
     int p;
 
     for (p = 0; SETUP_PATCH[p]; p++)
-      {
-        for (i = 0; i < s_nsl; i++)
-          {
-            if (!strcmp (s_sl_name[i], SETUP_PATCH[p]))
-              {
-                printf ("#define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
-              }
-          }
-      }
+      for (i = 0; i < s_nsl; i++)
+        if (!strcmp (s_sl_name[i], SETUP_PATCH[p]))
+          printf ("#define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
   }
 
   {
     int p;
 
     for (p = 0; DECOMP_PATCH[p]; p++)
-      {
-        for (i = 0; i < nsl; i++)
-          {
-            if (!strcmp (sl_name[i], DECOMP_PATCH[p]))
-              {
-                printf ("#define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
-              }
-          }
-      }
+      for (i = 0; i < nsl; i++)
+        if (!strcmp (sl_name[i], DECOMP_PATCH[p]))
+          printf ("#define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
   }
 
   return 0;
 }
+
+/******************************************************************************/
