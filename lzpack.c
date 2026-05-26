@@ -2237,7 +2237,7 @@ count_file (const char *fn)
   if (!f)
     return -1;
 
-  while ((r = fread (buf, 1, sizeof buf, f)) > 0)
+  while ((r = fread (buf, 1, sizeof (buf), f)) > 0)
     n += (long)r;
 
   fclose (f);
@@ -2405,7 +2405,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (!oname)
     {
-      mkname (fn, ".pop", nb, sizeof nb);
+      mkname (fn, ".pop", nb, sizeof (nb));
       oname = nb;
     }
 
@@ -2719,11 +2719,11 @@ do_list (const char *fn)
 
       for (;;)
         {
-          size_t r = fread (buf, 1, sizeof buf, f);
+          size_t r = fread (buf, 1, sizeof (buf), f);
 
           n += (long)r;
 
-          if (r < sizeof buf)
+          if (r < sizeof (buf))
             break;
         }
     }
@@ -2753,7 +2753,7 @@ static void
 usage (void)
 {
   fprintf (stderr,
-    "LZPACK " LZVER " - PopCom!-compatible 48K CP/M-80 executable compressor\n"
+    "LZPACK %s - PopCom!-compatible 48K CP/M-80 executable compressor\n"
     "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n"
     "\n"
     "Usage:\n"
@@ -2768,7 +2768,7 @@ usage (void)
      "  lzpack -R <file>         restore (decompress)\n"
 #endif
      "  lzpack -L <file>         list stored sizes\n"
-     "  lzpack -o <name>         set output name\n");
+     "  lzpack -o <name>         set output name\n", LZVER);
 }
 
 /******************************************************************************/
