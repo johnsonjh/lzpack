@@ -445,7 +445,7 @@ rec (const char *tok, int width)
 
       refs[nref].off = clen + 1;
 
-      if (tok != NULL)
+      if (tok)
         {
           if (strlen (tok) >= (size_t)NAMELEN)
             die ("reference name too long");
@@ -658,7 +658,7 @@ assemble (const char *path)
                     *--e = 0;
                 }
 
-                sym_set (op, evals (val, pass, 0), 0);
+                sym_set (op, evals (val, pass, (long)0), 0);
 
                 continue;
               }
