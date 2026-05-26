@@ -202,7 +202,7 @@ if command -v "${TNYLPO}" > /dev/null 2>&1; then
   "${TNYLPO}" -n ./cpm-z80/lzpack.com || :
   printf '\n%s\n' ">> tnylpo 8080 smoke test"
   "${TNYLPO}" -n ./cpm-8080/lzpack.com || :
-  printf '\n%s\n' ">> for full self-extract tests: 'make test-cpm && make test'"
+  printf '\n%s\n' ">> for full self-extract tests: 'make test && make test-cpm'"
 else
   printf '\n%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
 fi

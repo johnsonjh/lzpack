@@ -46,7 +46,7 @@ cpm: cs8080.h
 	@./.build-cpm.sh
 
 cpm-test test-cpm:
-	@printf '%s\n' "==========================================="
+	@printf '\n%s\n' "==========================================="
 	@$$(command -v python3) ./tests/harness.py cpm
 
 lint:
