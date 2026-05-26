@@ -37,6 +37,7 @@ log.pvs
 /popcom
 pvsreport
 /README.wip
+/stubasm
 *.tmp
 *.TMP
 *.unp

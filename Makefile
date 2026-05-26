@@ -11,25 +11,25 @@ all: lzpack
 lzpack: lzpack.c cs8080.h
 	$(CC) $(CFLAGS) -I. -o $@ lzpack.c
 
-cs8080.h: s8080s.asm s8080d.asm mkstub
-	./mkstub s8080s.asm s8080d.asm > $@
+cs8080.h: s8080s.asm s8080d.asm stubasm
+	./stubasm s8080s.asm s8080d.asm > $@
 
-mkstub: mkstub.c
-	$(CC) $(CFLAGS) -o $@ mkstub.c
+stubasm: stubasm.c
+	$(CC) $(CFLAGS) -o $@ stubasm.c
 
 strip:
-	test -x mkstub && strip mkstub || :
-	test -x mkstub && sstrip mkstub || :
+	test -x stubasm && strip stubasm || :
+	test -x stubasm && sstrip stubasm || :
 	test -x lzpack && strip lzpack || :
 	test -x lzpack && sstrip lzpack || :
 
 clean:
-	rm -f a.out lzpack mkstub
-	rm -f lzpack.o mkstub.o
-	rm -f lzpack.obj mkstub.obj
-	rm -f lzpack.cmd mkstub.cmd
-	rm -f lzpack.com mkstub.com
-	rm -f lzpack.exe mkstub.exe
+	rm -f a.out lzpack stubasm
+	rm -f lzpack.o stubasm.o
+	rm -f lzpack.obj stubasm.obj
+	rm -f lzpack.cmd stubasm.cmd
+	rm -f lzpack.com stubasm.com
+	rm -f lzpack.exe stubasm.exe
 
 distclean: clean
 	rm -f cs8080.h rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe

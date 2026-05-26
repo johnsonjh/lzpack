@@ -161,7 +161,7 @@ static int clen;
 static void
 die (const char *m)
 {
-  fprintf (stderr, "mkstub: %s\n", m);
+  fprintf (stderr, "stubasm: %s\n", m);
 
   exit (1);
 }
@@ -268,7 +268,7 @@ eval1 (const char *tok, int pass, long loc)
             d = c - 'A' + 10;
           else
             {
-              fprintf (stderr, "mkstub: bad hex '%s'\n", tok);
+              fprintf (stderr, "stubasm: bad hex '%s'\n", tok);
 
               exit (1);
             }
@@ -296,7 +296,7 @@ eval1 (const char *tok, int pass, long loc)
     if (pass == 1)
       return 0;
 
-    fprintf (stderr, "mkstub: undefined symbol '%s'\n", tok);
+    fprintf (stderr, "stubasm: undefined symbol '%s'\n", tok);
 
     exit (1);
   }
@@ -344,7 +344,7 @@ evals (const char *s, int pass, long loc)
             }
           else
             {
-              fprintf (stderr, "mkstub: expression term too long\n");
+              fprintf (stderr, "stubasm: expression term too long\n");
 
               exit (1);
             }
@@ -363,20 +363,16 @@ regidx (const char *const *tab, const char *t, const char *what)
 
   if (!t)
     {
-      fprintf (stderr, "mkstub: missing %s\n", what);
+      fprintf (stderr, "stubasm: missing %s\n", what);
 
       exit (1);
     }
 
   for (i = 0; tab[i]; i++)
-    {
-      if (!strcmp (tab[i], t))
-        {
-          return i;
-        }
-    }
+    if (!strcmp (tab[i], t))
+      return i;
 
-  fprintf (stderr, "mkstub: bad %s '%s'\n", what, t);
+  fprintf (stderr, "stubasm: bad %s '%s'\n", what, t);
 
   exit (1);
 
@@ -465,12 +461,8 @@ lookup (const OpB *t, const char *n)
   int i;
 
   for (i = 0; t[i].name; i++)
-    {
-      if (!strcmp (t[i].name, n))
-        {
-          return t[i].op;
-        }
-    }
+    if (!strcmp (t[i].name, n))
+      return t[i].op;
 
   return -1;
 }
@@ -528,7 +520,7 @@ assemble (const char *path)
 
       if (!f)
         {
-          fprintf (stderr, "mkstub: cannot open %s\n", path);
+          fprintf (stderr, "stubasm: cannot open %s\n", path);
 
           exit (1);
         }
@@ -690,7 +682,7 @@ assemble (const char *path)
 
           if (strlen (op) >= sizeof (opU))
             {
-              fprintf (stderr, "mkstub: opcode too long '%s'\n", op);
+              fprintf (stderr, "stubasm: opcode too long '%s'\n", op);
 
               exit (1);
             }
@@ -783,7 +775,7 @@ assemble (const char *path)
             {
               if (!a0)
                 {
-                  fprintf (stderr, "mkstub: missing reg for LDAX\n");
+                  fprintf (stderr, "stubasm: missing reg for LDAX\n");
 
                   exit (1);
                 }
@@ -797,7 +789,7 @@ assemble (const char *path)
             {
               if (!a0)
                 {
-                  fprintf (stderr, "mkstub: missing reg for STAX\n");
+                  fprintf (stderr, "stubasm: missing reg for STAX\n");
 
                   exit (1);
                 }
@@ -966,7 +958,7 @@ assemble (const char *path)
               continue;
             }
 
-          fprintf (stderr, "mkstub: bad op '%s'\n", opU);
+          fprintf (stderr, "stubasm: bad op '%s'\n", opU);
 
           exit (1);
         }
@@ -1075,7 +1067,8 @@ main (int argc, char **argv)
 
   if (argc < 3)
     {
-      fprintf (stderr, "usage: mkstub setup.asm decomp.asm > stub8080.h\n");
+      fprintf (stderr, "usage: stubasm setup.asm decomp.asm > stub.h\n");
+
       return 2;
     }
 
