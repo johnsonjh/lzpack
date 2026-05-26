@@ -18,11 +18,12 @@ import os, sys, shutil, subprocess, glob, tempfile
 ROOT    = os.path.dirname(os.path.abspath(__file__))
 CORPUS  = os.path.join(ROOT, 'corpus')
 PROJECT = os.path.dirname(ROOT)
-TNYLPO  = os.environ.get(
-    'TNYLPO', os.path.expanduser('tnylpo'))
-CPMEMU  = os.environ.get('CPMEMU', os.path.expanduser('cpm'))
+# Emulators: a name on PATH by default; set TNYLPO/CPMEMU to a path otherwise.
+TNYLPO  = os.environ.get('TNYLPO', 'tnylpo')
+CPMEMU  = os.environ.get('CPMEMU', 'cpm')
 NATIVE  = os.path.join(PROJECT, 'lzpack')
-CPMCOM  = os.environ.get('CPMCOM', os.path.join(PROJECT, 'lzpack.com'))
+# .build-cpm.sh emits the CP/M binaries into cpm-z80/ and cpm-8080/.
+CPMCOM  = os.environ.get('CPMCOM', os.path.join(PROJECT, 'cpm-z80', 'lzpack.com'))
 
 # corpus file -> (expected_marker_substring, expectation)
 # expectation: 'ok' = must self-extract; 'skip' = compressor should refuse
@@ -165,6 +166,21 @@ def main():
     if which not in table:
         print('usage: harness.py native|cpm|cpm2'); return 2
     runner, EMU = table[which]
+
+    # Fail cleanly (no traceback) when the needed emulator or CP/M binary is
+    # absent.  Emulators default to a name on PATH; set TNYLPO/CPMEMU otherwise.
+    emu = CPMEMU if which == 'cpm2' else TNYLPO
+    env = 'CPMEMU' if which == 'cpm2' else 'TNYLPO'
+    if not (os.access(emu, os.X_OK) and os.path.isfile(emu)) \
+            and shutil.which(emu) is None:
+        sys.stderr.write('error: emulator %r not found; put it on PATH or set %s\n'
+                         % (emu, env))
+        return 2
+    if which in ('cpm', 'cpm2') and not os.path.isfile(CPMCOM):
+        sys.stderr.write("error: %s not found; run 'make cpm' first (or set CPMCOM)\n"
+                         % CPMCOM)
+        return 2
+
     # The corpus .com files are git-ignored; regenerate them if absent.
     if not os.path.exists(os.path.join(CORPUS, CORPUS_FILES[0][0])):
         subprocess.run([sys.executable, os.path.join(ROOT, 'gen.py')], check=True)

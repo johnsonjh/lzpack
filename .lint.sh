@@ -4,7 +4,7 @@
 # scspell-id: be82fe80-58d5-11f1-8fcd-80ee73e9b8e7
 
 set -eu
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 rc=0
 

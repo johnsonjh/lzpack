@@ -28,13 +28,13 @@ fi
 
 if [ -f "./cpm-z80/lzpack.com" ] && [ -x "${TNYLPO}" ]; then
   printf '%s\n' "========== Z80 tnylpo =========="
-  TNYLPO="${TNYLPO}" CPMCOM="./cpm-8080/lzpack.com" \
+  TNYLPO="${TNYLPO}" CPMCOM="./cpm-z80/lzpack.com" \
     $(command -v python3) tests/harness.py cpm || rc=1
 fi
 
 if [ -f "./cpm-z80/lzpack.com" ] && [ -x "${CPMEMU}" ]; then
   printf '%s\n' "========== Z80 cpm =========="
-  CPMEMU="${CPMEMU}" CPMCOM="./cpm-8080/lzpack.com" \
+  CPMEMU="${CPMEMU}" CPMCOM="./cpm-z80/lzpack.com" \
     $(command -v python3) tests/harness.py cpm2 || rc=1
 fi
 
