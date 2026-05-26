@@ -19,10 +19,10 @@ stubasm: stubasm.c
 	$(CC) $(CFLAGS) -o $@ stubasm.c
 
 strip:
-	test -x stubasm && strip stubasm || :
-	test -x stubasm && sstrip stubasm || :
-	test -x lzpack && strip lzpack || :
-	test -x lzpack && sstrip lzpack || :
+	test -x stubasm 2> /dev/null && strip stubasm || :
+	test -x stubasm 2> /dev/null && sstrip stubasm 2> /dev/null || :
+	test -x lzpack 2> /dev/null && strip lzpack || :
+	test -x lzpack 2> /dev/null && sstrip lzpack 2> /dev/null || :
 
 clean:
 	rm -f a.out lzpack stubasm
@@ -38,20 +38,20 @@ distclean: clean
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
-	test -d ./.git && git clean -ndx 2> /dev/null || :
+	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 stub: cs8080.h
 
 cpm: cs8080.h
-	./.build-cpm.sh
+	@./.build-cpm.sh
 
-cpm-test:
-	python3 tests/harness.py cpm
+cpm-test test-cpm:
+	@$$(command -v python3) ./tests/harness.py cpm
 
 lint:
-	./.lint.sh
+	@./.lint.sh
 
 test: lzpack
-	./tests/run.sh
+	@./tests/run.sh
 
 .PHONY: all clean distclean stub cpm cpm-test lint test

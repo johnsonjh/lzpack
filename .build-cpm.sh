@@ -142,12 +142,16 @@ build_arch() {               # $1 = clib   $2 = outdir
   check_48k "${clib} stubasm" "${sm}" 0 0
   trim_bss "${lc}" "${lm}"; trim_bss "${sc}" "${sm}"
   pack "${lc}"; pack "${sc}"
+  printf '%s\n' ""
   ls -l "${lc}" "${sc}"
+  printf '%s\n' ""
 }
 
 # 1. Host build: stub tables (cs8080.h) and the native lzpack used for packing.
+printf '%s\n' ""
 printf '%s\n' ">> building host tools (cs8080.h + ./lzpack)"
 make lzpack
+printf '%s\n' ""
 
 # 2. Build each requested architecture (Z80 -> repo root, 8080 -> cpm-8080/).
 FITFAIL=0
@@ -168,9 +172,9 @@ fi
 if command -v "${TNYLPO}" >/dev/null 2>&1; then
   printf '%s\n' ">> tnylpo z80 smoke test"
   "${TNYLPO}" -n ./cpm-z80/lzpack.com || :
-  printf '%s\n' ">> tnylpo 8080 smoke test"
+  printf '\n%s\n' ">> tnylpo 8080 smoke test"
   "${TNYLPO}" -n ./cpm-8080/lzpack.com || :
-  printf '%s\n' ">> for full self-extract tests: 'make test-cpm'"
+  printf '\n%s\n' ">> for full self-extract tests: 'make test-cpm'"
 else
-  printf '%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
+  printf '\n%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
 fi
