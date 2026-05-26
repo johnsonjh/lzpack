@@ -19,7 +19,7 @@
 
 /******************************************************************************/
 
-long
+static long
 xstrtol (const char *nptr, char **endptr, int base)
 {
   const char *s = nptr;
@@ -68,30 +68,20 @@ xstrtol (const char *nptr, char **endptr, int base)
       if (base == 10)
         {
           if (!isdigit (c))
-            {
-              break;
-            }
+            break;
 
           c -= '0';
         }
       else
         {
           if (c >= '0' && c <= '9')
-            {
-              c -= '0';
-            }
+            c -= '0';
           else if (c >= 'a' && c <= 'f')
-            {
-              c = c - 'a' + 10;
-            }
+            c = c - 'a' + 10;
           else if (c >= 'A' && c <= 'F')
-            {
-              c = c - 'A' + 10;
-            }
+            c = c - 'A' + 10;
           else
-            {
-              break;
-            }
+            break;
         }
 
       if (acc > cutoff || (acc == cutoff && c > cutlim))
@@ -107,16 +97,12 @@ xstrtol (const char *nptr, char **endptr, int base)
               if (base == 10)
                 {
                   if (!isdigit (c))
-                    {
-                      break;
-                    }
+                    break;
                 }
               else
                 {
                   if (!isxdigit (c))
-                    {
-                      break;
-                    }
+                    break;
                 }
             }
 
@@ -150,7 +136,7 @@ xstrtol (const char *nptr, char **endptr, int base)
 
 /******************************************************************************/
 
-static char sym_name[MAXSYM][32];
+static char sym_name[MAXSYM][64];
 static long sym_val[MAXSYM];
 static int sym_islabel[MAXSYM];
 static int nsym;
@@ -160,7 +146,7 @@ static int nsym;
 typedef struct
 {
   int off;
-  char name[32];
+  char name[64];
   int width;
 } Ref;
 
@@ -176,6 +162,7 @@ static void
 die (const char *m)
 {
   fprintf (stderr, "mkstub: %s\n", m);
+
   exit (1);
 }
 
@@ -187,12 +174,8 @@ sym_find (const char *n)
   int i;
 
   for (i = 0; i < nsym; i++)
-    {
-      if (strcmp (sym_name[i], n) == 0)
-        {
-          return i;
-        }
-    }
+    if (strcmp (sym_name[i], n) == 0)
+      return i;
 
   return -1;
 }
@@ -210,6 +193,10 @@ sym_set (const char *n, long v, int islabel)
         die ("too many symbols");
 
       i = nsym++;
+
+      if (strlen (n) >= sizeof (sym_name[i]))
+        die ("symbol too long");
+
       strcpy (sym_name[i], n);
     }
 
@@ -265,7 +252,7 @@ eval1 (const char *tok, int pass, long loc)
        (tok[n - 1] == 'h' || tok[n - 1] == 'H') &&
          (tok[0] >= '0' && tok[0] <= '9'))
     {
-      long v = 0;
+      unsigned long v = 0;
       size_t i;
 
       for (i = 0; i < n - 1; i++)
@@ -282,13 +269,14 @@ eval1 (const char *tok, int pass, long loc)
           else
             {
               fprintf (stderr, "mkstub: bad hex '%s'\n", tok);
+
               exit (1);
             }
 
-          v = v * 16 + d;
+          v = v * 16 + (unsigned long)d;
         }
 
-      return v;
+      return (long)v;
     }
 
   if (tok[0] >= '0' && tok[0] <= '9')
@@ -309,10 +297,9 @@ eval1 (const char *tok, int pass, long loc)
       return 0;
 
     fprintf (stderr, "mkstub: undefined symbol '%s'\n", tok);
+
     exit (1);
   }
-
-  return 0;
 }
 
 /******************************************************************************/
@@ -322,7 +309,7 @@ evals (const char *s, int pass, long loc)
 {
   long acc = 0;
   int sign = 1;
-  char term[64];
+  char term[256];
   int ti = 0;
   size_t i;
 
@@ -351,9 +338,15 @@ evals (const char *s, int pass, long loc)
         }
       else if (!isspace ((unsigned char)c))
         {
-          if (ti < 63)
+          if (ti < (int)sizeof (term) - 1)
             {
               term[ti++] = c;
+            }
+          else
+            {
+              fprintf (stderr, "mkstub: expression term too long\n");
+
+              exit (1);
             }
         }
     }
@@ -371,6 +364,7 @@ regidx (const char *const *tab, const char *t, const char *what)
   if (!t)
     {
       fprintf (stderr, "mkstub: missing %s\n", what);
+
       exit (1);
     }
 
@@ -383,6 +377,7 @@ regidx (const char *const *tab, const char *t, const char *what)
     }
 
   fprintf (stderr, "mkstub: bad %s '%s'\n", what, t);
+
   exit (1);
 
   return 0;
@@ -442,7 +437,12 @@ rec (const char *tok, int width)
       refs[nref].off = clen + 1;
 
       if (tok != NULL)
-        strcpy (refs[nref].name, tok);
+        {
+          if (strlen (tok) >= sizeof (refs[nref].name))
+            die ("reference name too long");
+
+          strcpy (refs[nref].name, tok);
+        }
 
       refs[nref].width = width;
       nref++;
@@ -512,36 +512,55 @@ assemble (const char *path)
     { { "LDA",  0x3A }, { "STA",  0x32 },
       { "LHLD", 0x2A }, { "SHLD", 0x22 }, { 0, 0 } };
 
-  char line[256];
+  char line[1024];
   FILE *f;
   int pass;
-  long org = 0, have_org;
 
   nsym = 0;
 
   for (pass = 1; pass <= 2; pass++)
     {
+      long org = 0, have_org = 0;
       clen = 0;
       nref = 0;
-      have_org = 0;
-      org = 0;
 
       f = fopen (path, "r");
 
       if (!f)
         {
           fprintf (stderr, "mkstub: cannot open %s\n", path);
+
           exit (1);
         }
 
       while (fgets (line, sizeof (line), f))
         {
-          char *s, *semi, *op, *a0, *a1, *colon;
-          char opU[32];
+          char *s, *semi, *a0, *colon;
+          const char *op, *a1;
+          char opU[256];
           long loc;
           int v;
 
-          semi = strchr (line, ';');
+          semi = 0;
+
+          {
+            int q = 0;
+            char *p;
+            for (p = line; *p; p++)
+              {
+                if (*p == '\'' || *p == '"')
+                  {
+                    if (q == 0) q = *p;
+                    else if (q == *p) q = 0;
+                  }
+                else if (*p == ';' && q == 0)
+                  {
+                    semi = p;
+
+                    break;
+                  }
+              }
+          }
 
           if (semi)
             *semi = 0;
@@ -576,6 +595,7 @@ assemble (const char *path)
                   if (!(is_ident (p) || (*p >= '0' && *p <= '9')))
                     {
                       isl = 0;
+
                       break;
                     }
                 }
@@ -640,6 +660,7 @@ assemble (const char *path)
                 }
 
                 sym_set (op, evals (val, pass, 0), 0);
+
                 continue;
               }
           }
@@ -667,6 +688,13 @@ assemble (const char *path)
               }
           }
 
+          if (strlen (op) >= sizeof (opU))
+            {
+              fprintf (stderr, "mkstub: opcode too long '%s'\n", op);
+
+              exit (1);
+            }
+
           strcpy (opU, op);
           upcase (opU);
           loc = (have_org ? org : 0) + clen;
@@ -692,7 +720,25 @@ assemble (const char *path)
 
               while (tok)
                 {
-                  char *cm = strchr (tok, ',');
+                  char *cm = 0;
+                  {
+                    int q = 0;
+                    char *p;
+                    for (p = tok; *p; p++)
+                      {
+                        if (*p == '\'' || *p == '"')
+                          {
+                            if (q == 0) q = *p;
+                            else if (q == *p) q = 0;
+                          }
+                        else if (*p == ',' && q == 0)
+                          {
+                            cm = p;
+
+                            break;
+                          }
+                      }
+                  }
 
                   if (cm)
                     *cm = 0;
@@ -701,12 +747,12 @@ assemble (const char *path)
                     tok++;
 
                   if (tok[0] == '\'' || tok[0] == '"')
-                    {
-                      char *p = tok + 1;
+                   {
+                     const char *p = tok + 1;
 
-                      while (*p && *p != tok[0])
-                        emit (*p++);
-                    }
+                     while (*p && *p != tok[0])
+                       emit (*p++);
+                   }
                   else
                     emit ((int)evals (tok, pass, loc));
 
@@ -719,26 +765,45 @@ assemble (const char *path)
           if (!strcmp (opU, "DW"))
             {
               long v2 = evals (a0, pass, loc);
+
               emit ((int)(v2 & 0xff));
               emit ((int)((v2 >> 8) & 0xff));
+
               continue;
             }
 
           if ((v = lookup (simple, opU)) >= 0)
             {
               emit (v);
+
               continue;
             }
 
           if (!strcmp (opU, "LDAX"))
             {
+              if (!a0)
+                {
+                  fprintf (stderr, "mkstub: missing reg for LDAX\n");
+
+                  exit (1);
+                }
+
               emit (!strcmp (a0, "B") ? 0x0A : 0x1A);
+
               continue;
             }
 
           if (!strcmp (opU, "STAX"))
             {
+              if (!a0)
+                {
+                  fprintf (stderr, "mkstub: missing reg for STAX\n");
+
+                  exit (1);
+                }
+
               emit (!strcmp (a0, "B") ? 0x02 : 0x12);
+
               continue;
             }
 
@@ -746,11 +811,15 @@ assemble (const char *path)
             {
               long w;
 
-              rec (a0, 2);
+              if (a0)
+                rec (a0, 2);
+
               w = evals (a0, pass, loc);
+
               emit (v);
               emit ((int)(w & 0xff));
               emit ((int)((w >> 8) & 0xff));
+
               continue;
             }
 
@@ -759,11 +828,15 @@ assemble (const char *path)
               long w;
               int r = rp (a0);
 
-              rec (a1, 2);
+              if (a1)
+                rec (a1, 2);
+
               w = evals (a1, pass, loc);
+
               emit (0x01 | (r << 4));
               emit ((int)(w & 0xff));
               emit ((int)((w >> 8) & 0xff));
+
               continue;
             }
 
@@ -772,64 +845,77 @@ assemble (const char *path)
               long w;
               int r = r8 (a0);
 
-              rec (a1, 1);
+              if (a1)
+                rec (a1, 1);
+
               w = evals (a1, pass, loc);
+
               emit (0x06 | (r << 3));
               emit ((int)(w & 0xff));
+
               continue;
             }
 
           if (!strcmp (opU, "MOV"))
             {
               emit (0x40 | (r8 (a0) << 3) | r8 (a1));
+
               continue;
             }
 
           if (!strcmp (opU, "INX"))
             {
               emit (0x03 | (rp (a0) << 4));
+
               continue;
             }
 
           if (!strcmp (opU, "DCX"))
             {
               emit (0x0B | (rp (a0) << 4));
+
               continue;
             }
 
           if (!strcmp (opU, "DAD"))
             {
               emit (0x09 | (rp (a0) << 4));
+
               continue;
             }
 
           if (!strcmp (opU, "INR"))
             {
               emit (0x04 | (r8 (a0) << 3));
+
               continue;
             }
 
           if (!strcmp (opU, "DCR"))
             {
               emit (0x05 | (r8 (a0) << 3));
+
               continue;
             }
 
           if (!strcmp (opU, "PUSH"))
             {
               emit (0xC5 | (rpp (a0) << 4));
+
               continue;
             }
 
           if (!strcmp (opU, "POP"))
             {
               emit (0xC1 | (rpp (a0) << 4));
+
               continue;
             }
 
           if ((v = lookup (alu, opU)) >= 0)
             {
               emit (v | r8 (a0));
+
               continue;
             }
 
@@ -837,10 +923,14 @@ assemble (const char *path)
             {
               long w;
 
-              rec (a0, 1);
+              if (a0)
+                rec (a0, 1);
+
               w = evals (a0, pass, loc);
+
               emit (v);
               emit ((int)(w & 0xff));
+
               continue;
             }
 
@@ -848,11 +938,15 @@ assemble (const char *path)
             {
               long w;
 
-              rec (a0, 2);
+              if (a0)
+                rec (a0, 2);
+
               w = evals (a0, pass, loc);
+
               emit (v);
               emit ((int)(w & 0xff));
               emit ((int)((w >> 8) & 0xff));
+
               continue;
             }
 
@@ -860,15 +954,20 @@ assemble (const char *path)
             {
               long w;
 
-              rec (a0, 2);
+              if (a0)
+                rec (a0, 2);
+
               w = evals (a0, pass, loc);
+
               emit (v);
               emit ((int)(w & 0xff));
               emit ((int)((w >> 8) & 0xff));
+
               continue;
             }
 
           fprintf (stderr, "mkstub: bad op '%s'\n", opU);
+
           exit (1);
         }
 
@@ -921,8 +1020,8 @@ emit_bytes (const char *name, const unsigned char *b, int n)
 /******************************************************************************/
 
 static int fx_off[MAXREF], fx_tgt[MAXREF], nfx;
-static char sl_name[32][32];
-static int sl_off[32], sl_w[32], nsl;
+static char sl_name[MAXREF][64];
+static int sl_off[MAXREF], sl_w[MAXREF], nsl;
 
 static void
 collect (const char *const *patch)
@@ -944,6 +1043,12 @@ collect (const char *const *patch)
         }
       else if (in_list (patch, refs[j].name))
         {
+          if (nsl >= MAXREF)
+            die ("too many patches");
+
+          if (strlen (refs[j].name) >= sizeof (sl_name[nsl])) /* //-V547 */
+            die ("patch name too long");
+
           strcpy (sl_name[nsl], refs[j].name);
           sl_off[nsl] = refs[j].off;
           sl_w[nsl] = refs[j].width;
@@ -959,9 +1064,14 @@ main (int argc, char **argv)
 {
   static unsigned char setup[MAXCODE], decomp[MAXCODE];
   int slen, dlen, i;
-  int s_fx_off[MAXREF], s_fx_tgt[MAXREF], s_nfx;
-  char s_sl_name[32][32];
-  int s_sl_off[32], s_nsl;
+  int s_fx_off[MAXREF], s_fx_tgt[MAXREF], s_nfx = 0;
+  char s_sl_name[MAXREF][64];
+  int s_sl_off[MAXREF], s_nsl = 0;
+
+  memset (s_fx_off, 0, sizeof (s_fx_off));
+  memset (s_fx_tgt, 0, sizeof (s_fx_tgt));
+  memset (s_sl_name, 0, sizeof (s_sl_name));
+  memset (s_sl_off, 0, sizeof (s_sl_off));
 
   if (argc < 3)
     {

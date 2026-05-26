@@ -33,7 +33,8 @@ clean:
 
 distclean: clean
 	rm -f cs8080.h rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe
-	rm -f compile_commands.json core core-*
+	rm -f compile_commands.json log.pvs core core-*
+	rm -f -r ./pvsreport > /dev/null 2>&1
 
 stub: cs8080.h
 

@@ -68,6 +68,7 @@ lxmalloc (size_t n)
   if (!p)
     {
       fprintf (stderr, "FATAL: Out of memory!\n");
+
       exit (1);
     }
 
@@ -214,6 +215,7 @@ e_len (int L, int c)
   if (L == b2)
     {
       e_bit (0);
+
       return;
     }
 
@@ -221,6 +223,7 @@ e_len (int L, int c)
     {
       e_bit (1);
       e_bit (0);
+
       return;
     }
 
@@ -229,6 +232,7 @@ e_len (int L, int c)
       e_bit (1);
       e_bit (1);
       e_bit (0);
+
       return;
     }
 
@@ -246,6 +250,7 @@ e_len3 (int L)
   if (L == 4)
     {
       e_bit (0);
+
       return;
     }
 
@@ -253,6 +258,7 @@ e_len3 (int L)
     {
       e_bit (1);
       e_bit (0);
+
       return;
     }
 
@@ -391,6 +397,7 @@ findmatch (long i, int *bestdist, int maxdepth)
     }
 
   *bestdist = bd;
+
   return bl;
 }
 
@@ -401,17 +408,19 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
           int depth)
 {
   long i;
-  int d, L, d2, L2;
+  int d, d2, L2;
 
   D = data;
   N = n;
   lnk = (int *)lxmalloc (sizeof (int) * (size_t)(n > 0 ? n : 1));
+
   {
     int j;
 
     for (j = 0; j < HSZ; j++)
       head[j] = -1;
   }
+
   e_init (out);
 
   for (i = 0; i < start && i + 2 < n; i++)
@@ -421,6 +430,8 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
   while (i < n)
     {
+      int L;
+
       d = 0;
       L = findmatch (i, &d, depth);
 
@@ -439,6 +450,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
             {
               e_lit (data[i]);
               i++;
+
               continue;
             }
 
@@ -459,7 +471,9 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
           i++;
         }
     }
+
   free (lnk);
+
   return ol;
 }
 
@@ -476,6 +490,7 @@ extlen_bits (int v)
       t >>= 1;
       B++;
     }
+
   return (B < 7 ? (B - 2) + 1 : 5) + B;
 }
 
@@ -542,6 +557,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
   D = data;
   N = n;
+
   lnk = (int *)lxmalloc (sizeof (int) * (size_t)(n > 0 ? n : 1));
   cost = (long *)lxmalloc (sizeof (long) * (size_t)(n + 1));
   tlen = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
@@ -704,7 +720,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 /******************************************************************************/
 
 #ifndef POPCOM_COMPRESS_ONLY
-static const unsigned char *ip;
+static const unsigned char *ip, *ip_end;
 static int dbc;
 static unsigned dbv;
 static int
@@ -714,6 +730,13 @@ g_bit (void)
 
   if (dbc == 0)
     {
+      if (ip >= ip_end)
+        {
+          fprintf (stderr, "FATAL: unexpected end of data\n");
+
+          exit (1);
+        }
+
       dbv = *ip++;
       dbc = 8;
     }
@@ -721,30 +744,43 @@ g_bit (void)
   b = (dbv >> 7) & 1;
   dbv = (dbv << 1) & 0xff;
   dbc--;
+
   return b;
 }
+
 
 /******************************************************************************/
 
 static long
-decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
+decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
+        int litcnt)
 {
   unsigned char *op = out + litcnt;
   int ctrl, a, b, c, bit, i;
   unsigned off, ml;
-  unsigned char *mp;
+  unsigned char const *mp;
 
   ip = pl;
+  ip_end = pl + pllen;
   dbc = 0;
 
   while ((long)(op - out) < outlen)
     {
       ctrl = g_bit ();
+
+      if (ip >= ip_end)
+        {
+          fprintf (stderr, "FATAL: unexpected end of data\n");
+
+          exit (1);
+        }
+
       a = *ip++;
 
       if (!ctrl)
         {
           *op++ = (unsigned char)a;
+
           continue;
         }
 
@@ -752,6 +788,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
         {
           off = (unsigned)a;
           a = 0;
+
           goto lf;
         }
       else if (!(a & 0x40))
@@ -777,6 +814,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           }
 
           a = 1;
+
           goto lf;
         }
       else
@@ -787,6 +825,14 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           cy = a & 1;
           a >>= 1;
           oh = a;
+
+          if (ip >= ip_end)
+            {
+              fprintf (stderr, "FATAL: unexpected end of data\n");
+
+              exit (1);
+            }
+
           a = *ip++;
           nc = a & 1;
           a = ((cy << 7) | (a >> 1)) & 0xff;
@@ -798,10 +844,12 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           if (!cy)
             {
               ml = a + 1;
+
               goto cp;
             }
 
           c = 1;
+
           goto lc;
         }
 
@@ -813,6 +861,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       if (!bit)
         {
           ml = a + 1;
+
           goto cp;
         }
 
@@ -823,6 +872,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       if (!bit)
         {
           ml = a + 1;
+
           goto cp;
         }
 
@@ -832,6 +882,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       if (!bit)
         {
           ml = a + 1;
+
           goto cp;
         }
 
@@ -860,14 +911,25 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       while (--b);
 
       a = (a + c) & 0xff;
-      ml = a + 1;
+      ml = (unsigned)a + 1;
 
     cp:
+      if (off >= (unsigned)(op - out))
+        {
+          fprintf (stderr, "FATAL: invalid compressed data (underflow)\n");
+
+          exit (1);
+        }
+
       mp = op - (off + 1);
 
       for (i = 0; i < (int)ml; i++)
-        *op++ = *mp++;
+        {
+          if ((long)(op - out) < outlen)
+            *op++ = *mp++;
+        }
     }
+
   return (long)(op - out);
 }
 #endif
@@ -919,12 +981,14 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       if (!ctrl)
         {
           produced++;
+
           continue;
         }
 
       if (!(a & 0x80))
         {
           a = 0;
+
           goto lf;
         }
       else if (!(a & 0x40))
@@ -945,6 +1009,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           while (--b);
 
           a = 1;
+
           goto lf;
         }
       else
@@ -958,10 +1023,12 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           if (!b0)
             {
               ml = a + 1;
+
               goto cpx;
             }
 
           c = 1;
+
           goto lc;
         }
 
@@ -982,6 +1049,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       if (!bit)
         {
           ml = a + 1;
+
           goto cpx;
         }
 
@@ -1001,6 +1069,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       if (!bit)
         {
           ml = a + 1;
+
           goto cpx;
         }
 
@@ -1019,6 +1088,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       if (!bit)
         {
           ml = a + 1;
+
           goto cpx;
         }
 
@@ -1083,14 +1153,28 @@ static long
 readfile (const char *fn, unsigned char *buf, size_t max)
 {
   FILE *f = fopen (fn, "rb");
-  long n;
+  size_t n;
 
   if (!f)
     return -1;
 
-  n = (long)fread (buf, 1, max, f);
+  n = fread (buf, 1, max, f);
+
+  if (n == max)
+    {
+      unsigned char c;
+
+      if (fread (&c, 1, 1, f) > 0)
+        {
+          fclose (f);
+
+          return (long)max + 1;
+        }
+    }
+
   fclose (f);
-  return n;
+
+  return (long)n;
 }
 
 /******************************************************************************/
@@ -1105,6 +1189,7 @@ writefile (const char *fn, const unsigned char *buf, long n)
 
   fwrite (buf, 1, (size_t)n, f);
   fclose (f);
+
   return 0;
 }
 
@@ -1130,7 +1215,7 @@ get16 (const unsigned char *p)
 /******************************************************************************/
 
 static void
-mkname (const char *in, const char *ext, char *out)
+mkname (const char *in, const char *ext, char *out, size_t outsz)
 {
   const char *dot = strrchr (in, '.');
   const char *slash = strrchr (in, '/');
@@ -1141,8 +1226,12 @@ mkname (const char *in, const char *ext, char *out)
   else
     base = strlen (in);
 
+  if (base >= outsz)
+    base = outsz - 1;
+
   memcpy (out, in, base);
-  strcpy (out + base, ext);
+  out[base] = '\0';
+  strncat (out, ext, outsz - base - 1);
 }
 
 /******************************************************************************/
@@ -1175,10 +1264,14 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
     return -1;
 
   put_header (outf, data, stub_v, outlen);
+
   memcpy (outf + LITCNT, pl, (size_t)pllen);
   memcpy (outf + LITCNT + pllen, data, LITCNT);
+
   stub = outf + LITCNT + pllen + LITCNT;
+
   memcpy (stub, z80_stub, STUBLEN);
+
   put16 (stub + P_LIT_SRC, (unsigned)lit_src);
   put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + 0xe5));
   put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
@@ -1186,9 +1279,12 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (stub + P_PL_LEN, (unsigned)pllen);
   put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - 195));
+
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
+
   put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - 195 + 0x0a));
+
   return LITCNT + pllen + LITCNT + STUBLEN;
 }
 
@@ -1237,10 +1333,12 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
 
   de[S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
   de[S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
+
   put16 (de + S8D_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (de + S8D_PL_LEN, (unsigned)pllen);
   put16 (de + S8D_PL_DSTBOT, (unsigned)pl_dstbot);
+
   return LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN;
 }
 
@@ -1259,6 +1357,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n < 0)
     {
       fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
       return 1;
     }
 
@@ -1266,12 +1365,22 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
     {
       fprintf (stderr, "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n", fn,
                (long)MZXFILE);
+
+      return 1;
+    }
+
+  if (n > 65535L)
+    {
+      fprintf (stderr, "FATAL: %s is too large for header (max 65535 bytes)\n",
+               fn);
+
       return 1;
     }
 
   if (n <= LITCNT + 32)
     {
       fprintf (stderr, "FATAL: %s too small\n", fn);
+
       return 1;
     }
 
@@ -1297,6 +1406,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (body < 0)
     {
       fprintf (stderr, "FATAL: %s would not fit in memory\n", fn);
+
       return 1;
     }
 
@@ -1319,13 +1429,14 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (!oname)
     {
-      mkname (fn, ".pop", nb);
+      mkname (fn, ".pop", nb, sizeof (nb));
       oname = nb;
     }
 
   if (writefile (oname, outf, total))
     {
       fprintf (stderr, "FATAL: cannot write %s\n", oname);
+
       return 1;
     }
 
@@ -1381,12 +1492,14 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (n < 0)
     {
       fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
       return 1;
     }
 
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
       fprintf (stderr, "FATAL: %s is not a POPCOM/LZPACK file\n", fn);
+
       return 1;
     }
 
@@ -1396,21 +1509,31 @@ do_restore (const char *fn, const char *oname, int verbose)
     {
       fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
+
       return 1;
     }
 
-  memcpy (out, data + ((long)lit_src - TPA), LITCNT);
-  decode (data + pstart, out, outlen - LITCNT, LITCNT);
+  if ((long)lit_src - TPA < 0 || (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
+    {
+      fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
+
+      return 1;
+    }
+
+  memcpy (out, data + ((long)lit_src - TPA), (size_t)LITCNT); /* //-V1086 */
+  decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen, LITCNT);
+
 
   if (!oname)
     {
-      mkname (fn, ".unp", nb);
+      mkname (fn, ".unp", nb, sizeof (nb));
       oname = nb;
     }
 
   if (writefile (oname, out, outlen))
     {
       fprintf (stderr, "FATAL: cannot write %s\n", oname);
+
       return 1;
     }
 
@@ -1435,17 +1558,20 @@ do_list (const char *fn)
   if (n < 0)
     {
       fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
       return 1;
     }
 
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
       printf ("  %-16s (not a POPCOM file)\n", fn);
+
       return 0;
     }
 
   printf ("  %-16s compressed %6ld   original %6ld   (%.1f%%)\n", fn, n,
           outlen, 100.0 * n / (double)outlen);
+
   return 0;
 }
 
@@ -1499,11 +1625,13 @@ main (int argc, char **argv)
           else if (c == 'h')
             {
               usage ();
+
               return 0;
             }
           else
             {
               fprintf (stderr, "FATAL: unknown option %s\n", argv[i]);
+
               return 2;
             }
 
@@ -1542,6 +1670,7 @@ main (int argc, char **argv)
   if (!any)
     {
       usage ();
+
       return 2;
     }
 
