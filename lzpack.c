@@ -1078,7 +1078,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
          long pl_dst_top)
 {
   long src_base = pl_dst_top + 1 - pl_len;
-  long dst_base = TPA + litcnt;
+  long dst_base = (long)TPA + litcnt;
   long pi = 0;
   int bc = 0;
   unsigned bv = 0;
