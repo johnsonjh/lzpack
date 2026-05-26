@@ -18,5 +18,5 @@ Usage:
   lzpack -o <name>         set output name
 ```
 
-* [*The Worst 8080 Assembler Ever™*](stubasm.c) is also included, and used
-during the build process.
+* [StubASM](stubasm.c), *The Worst 8080 Assembler Ever™*, is also included,
+  as it is utilized during the build process.
