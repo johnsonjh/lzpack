@@ -15,18 +15,19 @@ done
 
 printf '%s\n' ">> cppcheck"
 if cppcheck --enable=warning,style,performance,portability,unusedFunction \
-     --force --check-level=exhaustive --std=c89 --platform=unix64 \
-     --inline-suppr --inconclusive --error-exitcode=2 \
-     -D__CPPCHECK__ -D__LINT__ -j 1 ./*.c; then :; else rc=1; fi
+  --force --check-level=exhaustive --std=c89 --platform=unix64 \
+  --inline-suppr --inconclusive --error-exitcode=2 \
+  -D__CPPCHECK__ -D__LINT__ -j 1 ./*.c; then :; else rc=1; fi
 
 printf '%s\n' ">> scan-build"
-make distclean >/dev/null 2>&1 || :
-if scan-build --status-bugs -o /tmp/lzpack-scan make all >/dev/null 2>&1; then
+make distclean > /dev/null 2>&1 || :
+if scan-build --status-bugs -o /tmp/lzpack-scan make all > /dev/null 2>&1; then
   :
 else
-  printf '%s\n' "scan-build reported issues (see /tmp/lzpack-scan)"; rc=1
+  printf '%s\n' "scan-build reported issues (see /tmp/lzpack-scan)"
+  rc=1
 fi
-make distclean >/dev/null 2>&1 || :
+make distclean > /dev/null 2>&1 || :
 
 if [ "${rc}" = 0 ]; then printf '%s\n' ">> lint clean"; else printf '%s\n' ">> lint FAILED"; fi
 exit "${rc}"
