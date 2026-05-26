@@ -52,10 +52,8 @@ xstrtol (const char *nptr, char **endptr, int base)
     }
 
   if (base == 16)
-    {
-      if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
-        s += 2;
-    }
+    if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+      s += 2;
 
   cutoff = neg ? max_neg : max_pos;
   cutlim = (int)(cutoff % (unsigned long)base);
@@ -230,10 +228,8 @@ is_symbol (const char *s)
     return 0;
 
   for (; *s; s++)
-    {
-      if (!(isalnum ((unsigned char)*s) || *s == '_' || *s == '.'))
-        return 0;
-    }
+    if (!(isalnum ((unsigned char)*s) || *s == '_' || *s == '.'))
+      return 0;
 
   return 1;
 }
@@ -339,9 +335,7 @@ evals (const char *s, int pass, long loc)
       else if (!isspace ((unsigned char)c))
         {
           if (ti < (int)sizeof (term) - 1)
-            {
-              term[ti++] = c;
-            }
+            term[ti++] = c;
           else
             {
               fprintf (stderr, "stubasm: expression term too long\n");
@@ -583,14 +577,12 @@ assemble (const char *path)
               *colon = 0;
 
               for (p = s; *p; p++)
-                {
-                  if (!(is_ident (p) || (*p >= '0' && *p <= '9')))
-                    {
-                      isl = 0;
+                if (!(is_ident (p) || (*p >= '0' && *p <= '9')))
+                  {
+                    isl = 0;
 
-                      break;
-                    }
-                }
+                    break;
+                  }
 
               if (isl && p != s)
                 {
@@ -611,18 +603,14 @@ assemble (const char *path)
           op = s;
 
           while (*s && !isspace ((unsigned char)*s))
-            {
-              s++;
-            }
+            s++;
 
           if (*s)
             {
               *s++ = 0;
 
               while (*s && isspace ((unsigned char)*s))
-                {
-                  s++;
-                }
+                s++;
             }
 
           {
@@ -1031,6 +1019,7 @@ collect (const char *const *patch)
         {
           fx_off[nfx] = refs[j].off;
           fx_tgt[nfx] = (int)sym_val[k];
+
           nfx++;
         }
       else if (in_list (patch, refs[j].name))
@@ -1044,6 +1033,7 @@ collect (const char *const *patch)
           strcpy (sl_name[nsl], refs[j].name);
           sl_off[nsl] = refs[j].off;
           sl_w[nsl] = refs[j].width;
+
           nsl++;
         }
     }

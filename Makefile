@@ -32,7 +32,7 @@ clean:
 	rm -f lzpack.exe stubasm.exe
 
 distclean: clean
-	rm -f cs8080.h rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe
+	rm -f cs8080.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe
 	rm -f compile_commands.json log.pvs core core-*
 	rm -f -r ./pvsreport > /dev/null 2>&1
 

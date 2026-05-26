@@ -17,10 +17,11 @@
 /******************************************************************************/
 
 /*
- * MZXFILE - input/output file (bytes).
- *           lower it for small-memory targets (e.g. -DMZXFILE=49152L).
- * HSZ - compressor hash table size (power of two).
- * POPCOM_DECODE_ONLY - build a restore/list-only utility
+ * Preprocessor defintions:
+ *   MZXFILE            - input/output file max size (bytes); lower it for
+ *                          very small memory targets (e.g., -DMZXFILE=49152L).
+ *   HSZ                - compressor hash table size (power of two).
+ *   POPCOM_DECODE_ONLY - build a restore/list-only utility
  */
 
 /******************************************************************************/
@@ -54,6 +55,14 @@ static unsigned char g_b[BUFSZ];
 #  include <malloc.h>
 # endif
 #endif
+
+/******************************************************************************/
+
+#ifdef LZVER
+# undef LZVER
+#endif
+
+#define LZVER "v0.2"
 
 /******************************************************************************/
 
@@ -924,10 +933,8 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
       mp = op - (off + 1);
 
       for (i = 0; i < (int)ml; i++)
-        {
-          if ((long)(op - out) < outlen)
-            *op++ = *mp++;
-        }
+        if ((long)(op - out) < outlen)
+          *op++ = *mp++;
     }
 
   return (long)(op - out);
@@ -1344,6 +1351,9 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
 
 /******************************************************************************/
 
+static int parse_header (const unsigned char *data, long n, unsigned *stubv,
+                         unsigned *lit_src, long *outlen);
+
 static int
 do_compress (const char *fn, const char *oname, int verbose, int use8080,
              int optimal)
@@ -1361,10 +1371,35 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
+# ifndef POPCOM_COMPRESS_ONLY
+  {
+    unsigned r_stubv, r_litsrc;
+    long r_outlen;
+
+    if (parse_header (data, n, &r_stubv, &r_litsrc, &r_outlen) == 0
+        && r_outlen >= LITCNT && r_outlen <= MZXFILE
+        && (long)r_litsrc - TPA >= 0
+        && (long)r_litsrc - TPA + LITCNT <= n)
+      {
+        unsigned char *tmp = g_c;
+
+        memcpy (tmp, data + ((long)r_litsrc - TPA), (size_t)LITCNT);
+        decode (data + LITCNT, (long)((r_litsrc - TPA) - LITCNT), tmp, r_outlen,
+                LITCNT);
+        memcpy (data, tmp, (size_t)r_outlen);
+        n = r_outlen;
+
+        if (verbose)
+          fprintf (stderr, "  %-12s already packed; recompressing original\n",
+                   fn);
+      }
+  }
+# endif
+
   if (n > MZXFILE)
     {
-      fprintf (stderr, "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n", fn,
-               (long)MZXFILE);
+      fprintf (stderr, "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
+               fn, (long)MZXFILE);
 
       return 1;
     }
@@ -1456,6 +1491,9 @@ parse_header (const unsigned char *data, long n, unsigned *stubv,
 {
   unsigned sv;
 
+  if (n < 16)
+    return 1;
+
   if (data[0] == 0xc3)
     sv = get16 (data + 1);
   else if (data[0] == 0x18 && data[2] == 0xc3)
@@ -1513,7 +1551,8 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
-  if ((long)lit_src - TPA < 0 || (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
+  if ((long)lit_src - TPA < 0 ||
+      (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
       fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
 
@@ -1521,7 +1560,8 @@ do_restore (const char *fn, const char *oname, int verbose)
     }
 
   memcpy (out, data + ((long)lit_src - TPA), (size_t)LITCNT); /* //-V1086 */
-  decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen, LITCNT);
+  decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen,
+          LITCNT);
 
 
   if (!oname)
@@ -1564,7 +1604,7 @@ do_list (const char *fn)
 
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
-      printf ("  %-16s (not a POPCOM file)\n", fn);
+      printf ("  %-16s (not a LZPACK/POPCOM file)\n", fn);
 
       return 0;
     }
@@ -1580,17 +1620,19 @@ do_list (const char *fn)
 static void
 usage (void)
 {
-  fprintf (stderr, "LZPACK - PopCom!-compatible CP/M-80 executable compressor\n"
-                   "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n"
-                   "\nUsage:\n"
+  fprintf (stderr,
+    "LZPACK " LZVER " - PopCom!-compatible 48K CP/M-80 executable compressor\n"
+    "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n"
+    "\n"
+    "Usage:\n"
 #ifndef POPCOM_DECODE_ONLY
-                   "  lzpack [-e] [-8] <file>  compress (-e: extra, -8: 8080 compatible)\n"
+     "  lzpack [-e] [-8] <file>  compress (-e: extra, -8: 8080 compatible)\n"
 #endif
 #ifndef POPCOM_COMPRESS_ONLY
-                   "  lzpack -R <file>         restore (decompress)\n"
+     "  lzpack -R <file>         restore (decompress)\n"
 #endif
-                   "  lzpack -L <file>         list stored sizes\n"
-                   "  lzpack -o <name>         set output name\n");
+     "  lzpack -L <file>         list stored sizes\n"
+     "  lzpack -o <name>         set output name\n");
 }
 
 /******************************************************************************/
@@ -1605,7 +1647,7 @@ main (int argc, char **argv)
 
   for (i = 1; i < argc; i++)
     {
-      if (argv[i][0] == '-' && argv[i][1] && !oname)
+      if (argv[i][0] == '-' && argv[i][1])
         {
           char c = argv[i][1];
 
@@ -1619,8 +1661,14 @@ main (int argc, char **argv)
             optimal = 1;
           else if (c == 'o')
             {
-              if (i + 1 < argc)
-                oname = argv[++i];
+              if (i + 1 >= argc)
+                {
+                  fprintf (stderr, "FATAL: -o requires an argument\n");
+
+                  return 2;
+                }
+
+              oname = argv[++i];
             }
           else if (c == 'h')
             {
