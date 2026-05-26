@@ -44,5 +44,8 @@ fi
 if ch -n ./stubasm.c; then :; else rc=1; fi
 if ch -n ./lzpack.c; then :; else rc=1; fi
 
+if /opt/oracle/developerstudio12.6/bin/lint stubasm.c; then :; else rc=1; fi
+if /opt/oracle/developerstudio12.6/bin/lint lzpack.c; then :; else rc=1; fi
+
 if [ "${rc}" = 0 ]; then printf '%s\n' ">> lint clean"; else printf '%s\n' ">> lint FAILED"; fi
 exit "${rc}"
