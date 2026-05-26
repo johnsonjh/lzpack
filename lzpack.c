@@ -889,10 +889,10 @@ static long
 decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
         int litcnt, const unsigned char *litsrc)
 {
-  unsigned char *op = out + litcnt;
+  long pos = litcnt;
+  long mpos;
   int ctrl, a, b, c, bit, i;
   unsigned off, ml;
-  unsigned char const *mp;
 
   (void)memcpy (out, litsrc, (size_t)litcnt);   /* seed the literal prefix */
 
@@ -900,7 +900,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
   ip_end = pl + (size_t)pllen;
   dbc = 0;
 
-  while ((long)(op - out) < outlen)
+  while (pos < outlen)
     {
       ctrl = g_bit ();
 
@@ -915,7 +915,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (!ctrl)
         {
-          *op++ = (unsigned char)a;
+          out[pos++] = (unsigned char)a;
 
           continue;
         }
@@ -1050,22 +1050,22 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
       ml = (unsigned)a + 1;
 
     cp:
-      if (off >= (unsigned)(op - out))
+      if (off >= (unsigned)pos)
         {
           (void)fprintf (stderr,
-	                 "FATAL: invalid compressed data (underflow)\n");
+                         "FATAL: invalid compressed data (underflow)\n");
 
           exit (1);
         }
 
-      mp = op - (off + 1);
+      mpos = pos - (long)(off + 1);
 
       for (i = 0; i < (int)ml; i++)
-        if ((long)(op - out) < outlen)
-          *op++ = *mp++;
+        if (pos < outlen)
+          out[pos++] = out[mpos++];
     }
 
-  return (long)(op - out);
+  return pos;
 }
 #endif
 
@@ -1079,7 +1079,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 {
   long src_base = pl_dst_top + 1 - pl_len;
   long dst_base = TPA + litcnt;
-  const unsigned char *p = pl;
+  long pi = 0;
   int bc = 0;
   unsigned bv = 0;
   long produced = 0;
@@ -1094,7 +1094,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
   while (produced < outlen)
     {
-      consumed = (long)(p - pl);
+      consumed = pi;
       gap = (src_base + consumed) - (dst_base + produced);
 
       if (first || gap < ming)
@@ -1105,14 +1105,14 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = *p++;
+          bv = pl[pi++];
           bc = 8;
         }
 
       ctrl = (bv >> 7) & 1;
       bv = (bv << 1) & 0xff;
       bc--;
-      a = *p++;
+      a = pl[pi++];
 
       if (!ctrl)
         {
@@ -1135,7 +1135,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
             {
               if (bc == 0)
                 {
-                  bv = *p++;
+                  bv = pl[pi++];
                   bc = 8;
                 }
 
@@ -1153,7 +1153,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           int b0;
 
           (void)(a & 0x3f);
-          b0 = (*p++) & 1;
+          b0 = (pl[pi++]) & 1;
           a = 2;
 
           if (!b0)
@@ -1174,7 +1174,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = *p++;
+          bv = pl[pi++];
           bc = 8;
         }
 
@@ -1194,7 +1194,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = *p++;
+          bv = pl[pi++];
           bc = 8;
         }
 
@@ -1213,7 +1213,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = *p++;
+          bv = pl[pi++];
           bc = 8;
         }
 
@@ -1234,7 +1234,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           if (bc == 0)
             {
-              bv = *p++;
+              bv = pl[pi++];
               bc = 8;
             }
 
@@ -1258,7 +1258,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           if (bc == 0)
             {
-              bv = *p++;
+              bv = pl[pi++];
               bc = 8;
             }
 
@@ -1359,7 +1359,7 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
   size_t base;
 
   if (dot && (!slash || dot > slash))
-    base = (size_t)(dot - in);
+    base = strlen (in) - strlen (dot);   /* offset of dot within in */
   else
     base = strlen (in);
 
@@ -1521,7 +1521,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
         if (verbose)
           (void)fprintf (stderr,
-		         "  %-12s already packed; recompressing original\n",
+                         "  %-12s already packed; recompressing original\n",
                          fn);
       }
   }
@@ -1530,7 +1530,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n > MZXFILE)
     {
       (void)fprintf (stderr,
-	             "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
+                     "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
                      fn, (long)MZXFILE);
 
       return 1;
@@ -1539,7 +1539,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n > 65535L)
     {
       (void)fprintf (stderr,
-	             "FATAL: %s is too large for header (max 65535 bytes)\n",
+                     "FATAL: %s is too large for header (max 65535 bytes)\n",
                      fn);
 
       return 1;
@@ -1590,7 +1590,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
     {
       if (verbose)
         (void)fprintf (stderr,
-		       "  %-12s -- inefficient (%ld => %ld), skipped\n",
+                       "  %-12s -- inefficient (%ld => %ld), skipped\n",
                        fn, n, total);
 
       return 2;
@@ -1614,9 +1614,9 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       long p10 = (total * 1000L + n / 2) / n;  /* n > LITCNT + 32 here */
 
       (void)fprintf (stderr,
-	             "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n",
-		     fn, n, total, p10 / 10, p10 % 10,
-		     use8080 ? "8080" : "Z80", oname);
+                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n",
+                     fn, n, total, p10 / 10, p10 % 10,
+                     use8080 ? "8080" : "Z80", oname);
     }
 
   return 0;
@@ -2294,7 +2294,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
             {
               (void)fprintf (stderr,
                              "FATAL: %s is already packed; restore it first\n",
-			     fn);
+                             fn);
 
               return 1;
             }
@@ -2304,7 +2304,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (n > MZXFILE)
     {
       (void)fprintf (stderr,
-	             "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
+                     "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
                      fn, (long)MZXFILE);
 
       return 1;
@@ -2313,7 +2313,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (n > 65535L)
     {
       (void)fprintf (stderr,
-	             "FATAL: %s is too large for header (max 65535 bytes)\n",
+                     "FATAL: %s is too large for header (max 65535 bytes)\n",
                      fn);
 
       return 1;
@@ -2408,7 +2408,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     {
       if (verbose)
         (void)fprintf (stderr,
-		       "  %-12s -- inefficient (%ld => %ld), skipped\n",
+                       "  %-12s -- inefficient (%ld => %ld), skipped\n",
                        fn, n, total);
 
       remove (LZTMP);
@@ -2460,9 +2460,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       long p10 = (total * 1000L + n / 2) / n;  /* n > LITCNT + 32 here */
 
       (void)fprintf (stderr,
-	             "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
+                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
                      total, p10 / 10, p10 % 10, use8080 ? "8080" : "Z80",
-		     oname);
+                     oname);
     }
 
   return 0;
@@ -2526,7 +2526,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (n > BUFSZ)
     {
       (void)fprintf (stderr,
-	             "FATAL: %s is too large to restore in this build\n", fn);
+                     "FATAL: %s is too large to restore in this build\n", fn);
 
       return 1;
     }
@@ -2574,7 +2574,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (verbose)
     (void)fprintf (stderr, "  %-12s %6ld => %6ld  -> %s\n",
-	           fn, n, outlen, oname);
+                   fn, n, outlen, oname);
 
   return 0;
 }
@@ -2611,7 +2611,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (!data)
     {
       (void)fprintf (stderr,
-	             "FATAL: %s too large to restore (out of memory)\n", fn);
+                     "FATAL: %s too large to restore (out of memory)\n", fn);
 
       return 1;
     }
@@ -2663,14 +2663,13 @@ do_restore (const char *fn, const char *oname, int verbose)
     {
       free (data);
       (void)fprintf (stderr,
-	             "FATAL: %s too large to restore (out of memory)\n", fn);
+                     "FATAL: %s too large to restore (out of memory)\n", fn);
 
       return 1;
     }
 
-  (void)memcpy (out, data + ((long)lit_src - TPA), (size_t)LITCNT);
   (void)decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen,
-                LITCNT);
+                LITCNT, data + ((long)lit_src - TPA));
 
   if (!oname)
     {
@@ -2689,7 +2688,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (verbose)
     (void)fprintf (stderr,
-	           "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
+                   "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
 
   free (data);
   free (out);
@@ -2755,7 +2754,7 @@ do_list (const char *fn)
     long p10 = outlen ? (n * 1000L + outlen / 2) / outlen : 0;
 
     (void)printf ("  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)\n",
-	          fn, n, outlen, p10 / 10, p10 % 10);
+                  fn, n, outlen, p10 / 10, p10 % 10);
   }
 
   return 0;

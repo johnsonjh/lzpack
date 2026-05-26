@@ -206,7 +206,7 @@ def main():
     for fname, marker, expect in CORPUS_FILES:
         test_file(runner, fname, marker, expect, results)
     npass = sum(1 for r in results if r[1] == 'PASS')
-    print('  %d/%d passed' % (npass, len(results)), flush=True)
+    print('\n  **** %d/%d passed ****' % (npass, len(results)), flush=True)
     return 0 if npass == len(results) else 1
 
 

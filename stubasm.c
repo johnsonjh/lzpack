@@ -147,7 +147,7 @@ xstrtol (const char *nptr, char **endptr, int base)
 #endif
 
 #ifndef NAMELEN
-# define NAMELEN 24            /* longest stub symbol is ~12 chars; 23 + NUL fits */
+# define NAMELEN 24 /* longest stub symbol is ~12 chars; 23 + NUL fits */
 #endif
 
 /******************************************************************************/
@@ -1010,7 +1010,8 @@ emit_bytes (const char *name, const unsigned char *b, int n)
       if (i % 12 == 0)
         (void)printf ("    ");
 
-      (void)printf ("0x%02x,%s", b[i], (i % 12 == 11 || i == n - 1) ? "\n" : " ");
+      (void)printf ("0x%02x,%s",
+                    b[i], (i % 12 == 11 || i == n - 1) ? "\n" : " ");
     }
 
   (void)printf ("};\n");
