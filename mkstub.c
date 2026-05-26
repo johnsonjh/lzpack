@@ -239,7 +239,6 @@ is_symbol (const char *s)
       return 0;
     }
 
-
   for (; *s; s++)
     {
       if (!(isalnum ((unsigned char)*s) || *s == '_' || *s == '.'))

@@ -32,6 +32,13 @@
 static unsigned char g_a[BUFSZ];
 static unsigned char g_b[BUFSZ];
 
+#if 0
+# ifdef __Z88DK
+#  pragma output CLIB_MALLOC_HEAP_SIZE = 2048
+#  include <malloc.h>
+# endif
+#endif
+
 #ifndef POPCOM_DECODE_ONLY
 static unsigned char g_c[BUFSZ];
 
@@ -244,9 +251,11 @@ e_match (int dist, int L)
   else
     {
       int b0 = (L == 3) ? 0 : 1;
+
       e_bit (1);
       e_byte (0xC0 | ((off >> 7) & 0x3f));
       e_byte (((off & 0x7f) << 1) | b0);
+
       if (L >= 4)
         {
           e_len3 (L);
@@ -298,16 +307,19 @@ findmatch (long i, int *bestdist, int maxdepth)
     }
 
   h = hash3 (i);
+
   for (p = head[h]; p >= 0 && depth-- > 0; p = lnk[p])
     {
       long d = i - p;
       int ml, mx;
+
       if (d > MAXDIST)
         {
           break;
         }
 
       mx = MAXLEN;
+
       if (mx > (int)(N - i))
         {
           mx = (int)(N - i);
@@ -319,10 +331,12 @@ findmatch (long i, int *bestdist, int maxdepth)
         }
 
       ml = 0;
+
       while (ml < mx && D[p + ml] == D[i + ml])
         {
           ml++;
         }
+
       if (ml < mlen_min ((int)d))
         {
           continue;
@@ -332,6 +346,7 @@ findmatch (long i, int *bestdist, int maxdepth)
         {
           bl = ml;
           bd = (int)d;
+
           if (bl >= mx)
             {
               break;
@@ -355,26 +370,31 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
   lnk = (int *)lxmalloc (sizeof (int) * (size_t)(n > 0 ? n : 1));
   {
     int j;
+
     for (j = 0; j < HSZ; j++)
       {
         head[j] = -1;
       }
   }
   e_init (out);
+
   for (i = 0; i < start && i + 2 < n; i++)
     {
       hinsert (i);
     }
 
   i = start;
+
   while (i < n)
     {
       d = 0;
       L = findmatch (i, &d, depth);
+
       if (L >= mlen_min (d))
         {
           d2 = 0;
           L2 = 0;
+
           if (i + 1 < n)
             {
               hinsert (i);
@@ -391,7 +411,9 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
           e_match (d, L);
           {
             long e = i + L;
+
             i++;
+
             for (; i < e; i++)
               {
                 hinsert (i);
@@ -498,6 +520,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
   head2 = (int *)lxmalloc (sizeof (int) * (size_t)65536U);
   {
     long j;
+
     for (j = 0; j < HSZ; j++)
       {
         head[j] = -1;
@@ -508,6 +531,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
         head2[j] = -1;
       }
   }
+
   for (i = 0; i < start && i + 2 < n; i++)
     {
       hinsert (i);
@@ -522,6 +546,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
     }
 
   cost[start] = 0;
+
   for (i = start; i < n; i++)
     {
       if (cost[i] != 0x3fffffffL)
@@ -537,6 +562,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
             {
               int h = hash3 (i), dep = depth, maxml = 0, cap = MAXLEN;
               long p;
+
               if (cap > (int)(n - i))
                 {
                   cap = (int)(n - i);
@@ -546,6 +572,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
                 {
                   long d = i - p;
                   int ml;
+
                   if (d > MAXDIST)
                     {
                       break;
@@ -557,19 +584,23 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
                     }
 
                   ml = 0;
+
                   while (ml < cap && D[p + ml] == D[i + ml])
                     {
                       ml++;
                     }
+
                   if (ml > maxml)
                     {
                       int L;
+
                       for (L = maxml + 1; L <= ml; L++)
                         {
                           l2d[L] = (int)d;
                         }
 
                       maxml = ml;
+
                       if (maxml >= cap)
                         {
                           break;
@@ -579,10 +610,12 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
               {
                 int L;
+
                 for (L = 3; L <= maxml; L++)
                   {
                     int d = l2d[L];
                     long c2 = cost[i] + match_bits (d, L);
+
                     if (c2 < cost[i + L])
                       {
                         cost[i + L] = c2;
@@ -596,9 +629,11 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
           if (i + 1 < n)
             {
               int p2 = head2[data[i] | (data[i + 1] << 8)];
+
               if (p2 >= 0 && (i - p2) <= 128)
                 {
                   long c2 = cost[i] + match_bits ((int)(i - p2), 2);
+
                   if (c2 < cost[i + 2])
                     {
                       cost[i + 2] = c2;
@@ -610,6 +645,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
         }
 
       hinsert (i);
+
       if (i + 1 < n)
         {
           head2[data[i] | (data[i + 1] << 8)] = (int)i;
@@ -619,6 +655,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
   {
     long *st = (long *)lxmalloc (sizeof (long) * (size_t)(n + 1));
     long sp = 0, k;
+
     for (k = n; k > start;)
       {
         st[sp++] = k;
@@ -626,10 +663,12 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
       }
 
     e_init (out);
+
     for (k = sp - 1; k >= 0; k--)
       {
         long e = st[k];
         int L = tlen[e];
+
         if (L > 1)
           {
             e_match (tdist[e], L);
@@ -683,10 +722,12 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
 
   ip = pl;
   dbc = 0;
+
   while ((long)(op - out) < outlen)
     {
       ctrl = g_bit ();
       a = *ip++;
+
       if (!ctrl)
         {
           *op++ = (unsigned char)a;
@@ -704,6 +745,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           a &= 0x7f;
           b = 4;
           c = 0;
+
           do
             {
               int cy;
@@ -712,18 +754,21 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
               a = ((a << 1) | bit) & 0xff;
               c = ((c << 1) | cy) & 0xff;
             }
+
           while (--b);
           {
             int t = a + 0x80;
             a = t & 0xff;
             off = ((unsigned)(c + (t >> 8)) << 8) | (unsigned)a;
           }
+
           a = 1;
           goto lf;
         }
       else
         {
           int cy, nc, oh, ol2;
+
           a &= 0x3f;
           cy = a & 1;
           a >>= 1;
@@ -735,6 +780,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
           ol2 = a;
           off = ((unsigned)oh << 8) | (unsigned)ol2;
           a = 2;
+
           if (!cy)
             {
               ml = a + 1;
@@ -749,6 +795,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       c = a;
       a++;
       bit = g_bit ();
+
       if (!bit)
         {
           ml = a + 1;
@@ -758,6 +805,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
     lc:
       a++;
       bit = g_bit ();
+
       if (!bit)
         {
           ml = a + 1;
@@ -766,6 +814,7 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
 
       a++;
       bit = g_bit ();
+
       if (!bit)
         {
           ml = a + 1;
@@ -776,12 +825,14 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
       for (;;)
         {
           bit = g_bit ();
+
           if (!bit)
             {
               break;
             }
 
           a++;
+
           if (a == 7)
             {
               break;
@@ -790,16 +841,21 @@ decode (const unsigned char *pl, unsigned char *out, long outlen, int litcnt)
 
       b = a;
       a = 1;
+
       do
         {
           bit = g_bit ();
           a = ((a << 1) | bit) & 0xff;
         }
+
       while (--b);
+
       a = (a + c) & 0xff;
       ml = a + 1;
+
     cp:
       mp = op - (off + 1);
+
       for (i = 0; i < (int)ml; i++)
         {
           *op++ = *mp++;
@@ -828,10 +884,12 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
   long k;
 
   (void)pl_len;
+
   while (produced < outlen)
     {
       consumed = (long)(p - pl);
       gap = (src_base + consumed) - (dst_base + produced);
+
       if (first || gap < ming)
         {
           ming = gap;
@@ -848,6 +906,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       bv = (bv << 1) & 0xff;
       bc--;
       a = *p++;
+
       if (!ctrl)
         {
           produced++;
@@ -862,6 +921,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       else if (!(a & 0x40))
         {
           b = 4;
+
           do
             {
               if (bc == 0)
@@ -873,16 +933,20 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
               bv = (bv << 1) & 0xff;
               bc--;
             }
+
           while (--b);
+
           a = 1;
           goto lf;
         }
       else
         {
           int b0;
+
           (void)(a & 0x3f);
           b0 = (*p++) & 1;
           a = 2;
+
           if (!b0)
             {
               ml = a + 1;
@@ -896,6 +960,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
     lf:
       c = a;
       a++;
+
       if (bc == 0)
         {
           bv = *p++;
@@ -905,6 +970,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       bit = (bv >> 7) & 1;
       bv = (bv << 1) & 0xff;
       bc--;
+
       if (!bit)
         {
           ml = a + 1;
@@ -913,6 +979,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
     lc:
       a++;
+
       if (bc == 0)
         {
           bv = *p++;
@@ -922,6 +989,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       bit = (bv >> 7) & 1;
       bv = (bv << 1) & 0xff;
       bc--;
+
       if (!bit)
         {
           ml = a + 1;
@@ -929,6 +997,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         }
 
       a++;
+
       if (bc == 0)
         {
           bv = *p++;
@@ -938,6 +1007,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
       bit = (bv >> 7) & 1;
       bv = (bv << 1) & 0xff;
       bc--;
+
       if (!bit)
         {
           ml = a + 1;
@@ -945,6 +1015,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         }
 
       a = 2;
+
       for (;;)
         {
           if (bc == 0)
@@ -956,12 +1027,14 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           bit = (bv >> 7) & 1;
           bv = (bv << 1) & 0xff;
           bc--;
+
           if (!bit)
             {
               break;
             }
 
           a++;
+
           if (a == 7)
             {
               break;
@@ -970,6 +1043,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       b = a;
       a = 1;
+
       do
         {
           if (bc == 0)
@@ -983,9 +1057,12 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
           bc--;
           a = ((a << 1) | bit) & 0xff;
         }
+
       while (--b);
+
       a = (a + c) & 0xff;
       ml = a + 1;
+
     cpx:
       for (k = 0; k < (long)ml; k++)
         {
@@ -1127,12 +1204,16 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
     }
 
   put_header (outf, data, stub_v, outlen);
+
   memcpy (outf + LITCNT, pl, (size_t)pllen);
   memcpy (outf + LITCNT + pllen, data, LITCNT);
+
   su = outf + LITCNT + pllen + LITCNT;
   de = su + S8_SLEN;
+
   memcpy (su, setup8080, S8_SLEN);
   memcpy (de, decomp8080, S8_DLEN);
+
   for (i = 0; i < SETUP8080_FIX_N; i++)
     {
       put16 (su + setup8080_fix[i][0],
@@ -1144,6 +1225,7 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (su + S8S_DCMP_DSTTOP, (unsigned)dcmp_dsttop);
   put16 (su + S8S_DCMP_LEN, (unsigned)S8_DLEN);
   put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
+
   for (i = 0; i < DECOMP8080_FIX_N; i++)
     {
       put16 (de + decomp8080_fix[i][0],
@@ -1168,6 +1250,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   char nb[1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
+
   if (n < 0)
     {
       fprintf (stderr, "FATAL: cannot read %s\n", fn);
@@ -1201,6 +1284,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
   ming = min_gap (pl, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
+
   if (ming < 1)
     {
       pl_dst_top += (1 - ming);
@@ -1208,6 +1292,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   body = use8080 ? build_8080 (outf, data, pllen, pl, outlen, pl_dst_top)
                  : build_z80 (outf, data, pllen, pl, outlen, pl_dst_top);
+
   if (body < 0)
     {
       fprintf (stderr, "FATAL: %s would not fit in memory\n", fn);
@@ -1216,12 +1301,14 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   total = body;
   pad = (128 - (total % 128)) % 128;
+
   if (pad)
     {
       memset (outf + total, 0, (size_t)pad);
     }
 
   total += pad;
+
   if (total >= n)
     {
       if (verbose)
@@ -1282,6 +1369,7 @@ parse_header (const unsigned char *data, long n, unsigned *stubv,
   *stubv = sv;
   *lit_src = sv - LITCNT;
   *outlen = (long)get16 (data + 10);
+
   if (sv < 0x120 || *outlen <= 0 || (long)(sv - TPA) > n)
     {
       return 1;
@@ -1300,6 +1388,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   char nb[1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
+
   if (n < 0)
     {
       fprintf (stderr, "FATAL: cannot read %s\n", fn);
@@ -1313,6 +1402,7 @@ do_restore (const char *fn, const char *oname, int verbose)
     }
 
   pstart = TPA + LITCNT - TPA;
+
   if (outlen > MZXFILE)
     {
       fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
@@ -1322,6 +1412,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   memcpy (out, data + ((long)lit_src - TPA), LITCNT);
   decode (data + pstart, out, outlen - LITCNT, LITCNT);
+
   if (!oname)
     {
       mkname (fn, ".unp", nb);
@@ -1351,6 +1442,7 @@ do_list (const char *fn)
   unsigned stubv, lit_src;
 
   n = readfile (fn, data, (size_t)BUFSZ);
+
   if (n < 0)
     {
       fprintf (stderr, "FATAL: cannot read %s\n", fn);
@@ -1397,6 +1489,7 @@ main (int argc, char **argv)
       if (argv[i][0] == '-' && argv[i][1] && !oname)
         {
           char c = argv[i][1];
+
           if (c == 'R' || c == 'r')
             {
               mode = 1;
@@ -1435,6 +1528,7 @@ main (int argc, char **argv)
         }
 
       any = 1;
+
       if (mode == 0)
         {
 #ifdef POPCOM_DECODE_ONLY
@@ -1463,6 +1557,7 @@ main (int argc, char **argv)
 
   (void)use8080;
   (void)optimal;
+
   if (!any)
     {
       usage ();
