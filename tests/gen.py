@@ -43,10 +43,12 @@ make(d + "/small.com", 2048, "SMALL-MARK-B2", "text")
 make(d + "/med.com", 8192, "MED-MARK-C3", "text")
 make(d + "/big16.com", 16384, "BIG16-MARK-D4", "text")
 make(d + "/big24.com", 24576, "BIG24-MARK-E5", "zero")
-make(d + "/big46.com", 46848, "BIG46-MARK-F6", "text")  # near 0xBDFF ceiling
-make(
-    d + "/incomp.com", 4096, "INCOMP-MARK-G7", "rand"
-)  # should be 'inefficient, skipped'
-make(
-    d + "/over.com", 52000, "OVER-MARK-H8", "text"
-)  # expected: too big / would not fit
+
+# near 0xBDFF ceiling
+make(d + "/big46.com", 46848, "BIG46-MARK-F6", "text")
+
+# should be 'inefficient, skipped'
+make(d + "/incomp.com", 4096, "INCOMP-MARK-G7", "rand")
+
+# expected: too big / would not fit
+make(d + "/over.com", 52000, "OVER-MARK-H8", "text")

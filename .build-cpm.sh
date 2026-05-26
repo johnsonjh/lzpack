@@ -4,23 +4,22 @@
 # scspell-id: c6be098c-58d5-11f1-ad23-80ee73e9b8e7
 # shellcheck disable=SC1007
 
-# Build the CP/M-80 (z88dk) version of lzpack in Docker, and -- if the tnylpo
-# emulator is available -- run a quick self-extract smoke test.
+# Build the CP/M-80 (z88dk) version of lzpack in Docker.
 #
 # The CP/M build uses the streaming compressor (-DPOPCOM_STREAM): the input is
 # read from disk through a sliding window (sized dynamically at runtime to the
 # largest the host's heap allows) and the payload is staged in a temp file, so
-# working RAM is fixed and large executables pack on a 48-64K host.
+# working RAM is fixed and large executables pack on 8080 48K TPA CP/M systems.
 #
 # Tunables (override via the environment):
-#   CLIB    z88dk library: 'ixiy' (Z80, default) or '8080' (8080/8085).
-#   HSZ     hash-table entries (power of two).
-#   MZXFILE maximum input size accepted (the 65535-byte header limit).
-#   STACKSZ stack reserve; the rest of RAM becomes the heap (and the window).
-#   PACK    1 (default) = ship .COMs packed with the host -e self-extractor.
-#   DOCKER  docker command (e.g. "sudo docker" if you are not in the group).
-#   IMAGE   z88dk image to use.
-#   TNYLPO  path to the tnylpo binary for the optional smoke test.
+#   CLIB     z88dk library: 'ixiy' (Z80, default) or '8080' (8080/8085).
+#   HSZ      hash-table entries (power of two).
+#   MZXFILE  maximum input size accepted (the 65535-byte header limit).
+#   STACKSZ  stack reserve; the rest of RAM becomes the heap (and the window).
+#   PACK     1 (default) = ship .COMs packed with the host -e self-extractor.
+#   DOCKER   docker command (e.g. "sudo docker" if you are not in the group).
+#   IMAGE    z88dk image to use.
+#   TNYLPO   path to the tnylpo binary for the optional smoke test.
 
 set -eu
 
@@ -66,9 +65,9 @@ run_zcc()
   ${DOCKER} run --rm -v "${here}":/src -w /src "${IMAGE}" "$@"
 }
 
-# z88dk's +cpm appmake writes the (zeroed) BSS into the .COM, but the CP/M crt
+# z88dk's +cpm appmake writes the (zeroed) BSS into the .COM, but the CP/M CRT
 # zeroes BSS at startup, so the file only needs CODE+DATA -- everything below
-# __BSS_head.  Trimming it shrinks the image without changing what runs.
+# __BSS_head.  Trimming it shrinks the image on disk without changing what runs.
 trim_bss()
 { # $1 = .com   $2 = .map
   bss= keep= cur=
@@ -139,10 +138,11 @@ check_48k()
   fi
 }
 
-# Build both tools for one z88dk library into $2 (".": repo root).  -m emits the
-# maps used for the 48K check and BSS trimming.  CRT_STACK_SIZE (not -DAMALLOC,
-# which caps the heap at 3/4 of free RAM) leaves all RAM but a small stack to the
-# heap, so the runtime-sized window grows as large as the TPA allows.
+# Build both tools with requested z88dk C library into "$2", using -m to emit
+# the maps used for 48K limit check and BSS trimming.  For lzpack builds, set
+# CRT_STACK_SIZE (and not -DAMALLOC, which caps the heap at 3/4 of free RAM!)
+# which leaves all of the RAM (except a small stack) for the heap so that the
+# (runtime auto-sized) compression window will be as large as the TPA allows.
 build_arch()
 { # $1 = clib   $2 = outdir
   clib=$1
@@ -157,8 +157,8 @@ build_arch()
     -DPOPCOM_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
   printf '%s\n' ">> [${clib}] building ${sc}"
-  run_zcc zcc +cpm -O2 -m stubasm.c -clib="${clib}" -o "${sc}" -DAMALLOC \
-    -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768
+  run_zcc zcc +cpm -O3 --opt-code-size -m stubasm.c -clib="${clib}" -o "${sc}" \
+    -DAMALLOC -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768
   # shellcheck disable=SC2249
   case "${DOCKER}" in
   sudo*) sudo chown "$(id -u):$(id -g)" "${lc}" "${lm}" "${sc}" "${sm}" 2> /dev/null || : ;;
@@ -174,13 +174,13 @@ build_arch()
   printf '%s\n' ""
 }
 
-# 1. Host build: stub tables (cs8080.h) and the native lzpack used for packing.
+# 1. Host build: stub tables (cs8080.h) and the native lzpack used for packing
 printf '%s\n' ""
 printf '%s\n' ">> building host tools (cs8080.h + ./lzpack)"
 make lzpack
 printf '%s\n' ""
 
-# 2. Build each requested architecture (Z80 -> repo root, 8080 -> cpm-8080/).
+# 2. Build each requested architecture
 FITFAIL=0
 for arch in ${ARCHS}; do
   case "${arch}" in
@@ -195,7 +195,7 @@ if [ "${FITFAIL}" = 1 ]; then
   exit 1
 fi
 
-# 4. Optional smoke test: confirm the .COM loads and prints its usage banner.
+# 3. Optional smoke test: confirm the .COM loads and prints its usage banner
 if command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '%s\n' ">> tnylpo z80 smoke test"
   "${TNYLPO}" -n ./cpm-z80/lzpack.com || :

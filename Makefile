@@ -48,20 +48,19 @@ cpm: cs8080.h
 
 cpm86 cpm-86: cs8080.h
 	@rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd
-	aztec42_cc -B "+CA" -L19 -Z450 stubasm.c
+	aztec42_cc -B "+CA" -L19 -Z450 -D__AZTEC_C_42T__=1 -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768 stubasm.c
 	aztec42_sqz stubasm.o
 	aztec42_link -o stubasm.cmd stubasm.o -lc86
-	test -f stubasm.cmd
 	pcdev_cmdinfo stubasm.cmd
 	aztec42_cc -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 -DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c
 	aztec42_sqz lzpack.o
 	aztec42_link -o lzpack.cmd lzpack.o -lc86
-	test -f lzpack.cmd
 	pcdev_cmdinfo lzpack.cmd
 
 cpm-test test-cpm:
 	@printf '\n%s\n' "==========================================="
 	@$$(command -v python3) ./tests/harness.py cpm
+	@printf '%s\n' ""
 
 lint:
 	@./.lint.sh

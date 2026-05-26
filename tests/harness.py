@@ -6,8 +6,8 @@
 """End-to-end test harness for lzpack.
 
 Tests both correctness of the C round-trip (-R) AND real self-extraction of the
-produced .COM on the tnylpo CP/M-80 emulator (the only thing that proves the
-Z80/8080 stub works).
+produced .COM on CP/M-80 (using the tnylpo emulator).  Running CP/M tests is
+the only way we can actually prove the Z80 and 8080 decompressiom stubs work.
 
 Usage:
   harness.py native            # exercise the host ./lzpack binary
@@ -21,11 +21,11 @@ import os, sys, shutil, subprocess, glob, tempfile
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(ROOT, "corpus")
 PROJECT = os.path.dirname(ROOT)
+
 # Emulators: a name on PATH by default; set TNYLPO/CPMEMU to a path otherwise.
 TNYLPO = os.environ.get("TNYLPO", "tnylpo")
 CPMEMU = os.environ.get("CPMEMU", "cpm")
 NATIVE = os.path.join(PROJECT, "lzpack")
-# .build-cpm.sh emits the CP/M binaries into cpm-z80/ and cpm-8080/.
 CPMCOM = os.environ.get("CPMCOM", os.path.join(PROJECT, "cpm-z80", "lzpack.com"))
 
 # corpus file -> (expected_marker_substring, expectation)
@@ -73,8 +73,8 @@ def run_cpmemu(workdir, comname, args=None):
     return p.stdout.decode("latin-1", "replace")
 
 
-# emulator used to *run* .COMs (set per command in main); native still uses
-# tnylpo to self-extract its .pop output.
+# Emulator used to *run* .COMs (set per command in main)
+# The native testsnstill use tnylpo to self-extract .pop outputs!
 EMU = run_tnylpo
 
 
@@ -177,11 +177,10 @@ def test_file(runner, fname, marker, expect, results):
             se_out = EMU(wd, "run.com")
             se_ok = marker.decode("ascii") in se_out
 
-            # C round-trip via -R.  Use the default .unp name (the -o flag is
-            # upper-cased to -O by CP/M's CCP and not recognized).  -R streams
-            # via malloc, so it may legitimately refuse a file too big for the
-            # heap -- a clean refusal is acceptable, but any output it DOES
-            # produce must match the original exactly.
+            # C round-trip via -R.  Uses the default .unp name.  Because -R
+            # streams via malloc, it may legitimately refuse a file too big
+            # for the heap - a refusal is acceptable, but any output it DOES
+            # produce must match the original exactly for the test to pass.
             shutil.copy(pop, os.path.join(wd, "in.pop"))
             rrc, rlog = runner(wd, ["-R", "in.pop"])
             outb = find_one(wd, "in.unp", "IN.unp", "IN.UNP")
@@ -235,7 +234,7 @@ def main():
         )
         return 2
 
-    # The corpus .com files are git-ignored; regenerate them if absent.
+    # The test corpus .com files will be regenerated if they are missing.
     if not os.path.exists(os.path.join(CORPUS, CORPUS_FILES[0][0])):
         subprocess.run([sys.executable, os.path.join(ROOT, "gen.py")], check=True)
     print("===== Using %s for CP/M emulation =====" % env, flush=True)
