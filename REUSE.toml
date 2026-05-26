@@ -1,0 +1,14 @@
+# Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+# SPDX-License-Identifier: MIT-0
+# scspell-id: 651ce3e8-58f7-11f1-a93a-80ee73e9b8e7
+
+version = 1
+SPDX-PackageName = "lzpack"
+SPDX-PackageSupplier = "Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
+SPDX-PackageDownloadLocation = "https://github.com/johnsonjh/lzpack"
+
+[[annotations]]
+path = "tests/corpus/*.com"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
+SPDX-License-Identifier = "MIT-0"
