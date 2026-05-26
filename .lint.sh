@@ -16,7 +16,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
 
 (
   set -x
-  make distclean > /dev/null 2>&1 || :
+  make distclean > /dev/null
 )
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
