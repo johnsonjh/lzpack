@@ -144,7 +144,7 @@ check_48k()
 # which leaves all of the RAM (except a small stack) for the heap so that the
 # (runtime auto-sized) compression window will be as large as the TPA allows.
 build_arch()
-{ # $1 = clib   $2 = outdir
+{
   clib=$1
   out=$2
   [ "${out}" = "." ] || mkdir -p "${out}"
