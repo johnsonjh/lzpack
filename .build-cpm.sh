@@ -169,7 +169,7 @@ fi
 if command -v "${TNYLPO}" >/dev/null 2>&1; then
   printf '%s\n' ">> tnylpo smoke test"
   "${TNYLPO}" -n lzpack.com || :
-  printf '%s\n' ">> for full self-extract tests: python3 tests/harness.py cpm"
+  printf '%s\n' ">> for full self-extract tests: 'make test-cpm'"
 else
   printf '%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
 fi
