@@ -479,7 +479,7 @@ e_match (int dist, int L)
     }
   else
     {
-      int b0 = (L == 3) ? 0 : 1;
+      int b0 = ((L == 3) ? 0 : 1);
 
       e_bit (1);
       e_byte (0xC0 | ((off >> 7) & 0x3f));
@@ -529,7 +529,7 @@ hinsert (long i)
 static int
 mlen_min (int dist)
 {
-  return (dist <= 128) ? 2 : 3;
+  return ((dist <= 128) ? 2 : 3);
 }
 
 /******************************************************************************/
@@ -1619,8 +1619,8 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   pllen = compress (data, n, LITCNT, pl, 1024);
 #  else
-  pllen = optimal ? compress_opt (data, n, LITCNT, pl, 4096)
-                  : compress (data, n, LITCNT, pl, 1024);
+  pllen = (optimal ? compress_opt (data, n, LITCNT, pl, 4096)
+                   : compress (data, n, LITCNT, pl, 1024));
 #  endif
   outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
@@ -1629,8 +1629,8 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (ming < 1)
     pl_dst_top += (1 - ming);
 
-  body = use8080 ? build_8080 (outf, data, pllen, pl, outlen, pl_dst_top)
-                 : build_z80 (outf, data, pllen, pl, outlen, pl_dst_top);
+  body = (use8080 ? build_8080 (outf, data, pllen, pl, outlen, pl_dst_top)
+                  : build_z80 (outf, data, pllen, pl, outlen, pl_dst_top));
 
   if (body < 0)
     {
@@ -1677,7 +1677,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       (void)fprintf (stderr,
                      "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n",
                      fn, n, total, p10 / 10, p10 % 10,
-                     use8080 ? "8080" : "Z80", oname);
+                     (use8080 ? "8080" : "Z80"), oname);
     }
 
   return 0;
@@ -2479,8 +2479,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-  body = use8080 ? (LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN)
-                 : (LITCNT + pllen + LITCNT + STUBLEN);
+  body = (use8080 ? (LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN)
+                  : (LITCNT + pllen + LITCNT + STUBLEN));
   pad = (128 - (body % 128)) % 128;
   total = body + pad;
 
@@ -2547,7 +2547,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
       (void)fprintf (stderr,
                      "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
-                     total, p10 / 10, p10 % 10, use8080 ? "8080" : "Z80",
+                     total, p10 / 10, p10 % 10, (use8080 ? "8080" : "Z80"),
                      oname);
     }
 
@@ -2843,7 +2843,7 @@ do_list (const char *fn)
     }
 
   {
-    long p10 = outlen ? (n * 1000L + outlen / 2) / outlen : 0;
+    long p10 = (outlen ? (n * 1000L + outlen / 2) / outlen : 0);
 
     (void)printf ("  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)\n",
                   fn, n, outlen, p10 / 10, p10 % 10);
@@ -3010,7 +3010,7 @@ main (int argc, char **argv)
   (void)use8080;
   (void)optimal;
 
-  return rc ? 1 : 0;
+  return (rc ? 1 : 0);
 }
 
 /******************************************************************************/

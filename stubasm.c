@@ -55,7 +55,7 @@ xstrtol (const char *nptr, const char **endptr, int base)
     if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
       s += 2;
 
-  cutoff = neg ? max_neg : max_pos;
+  cutoff = (neg ? max_neg : max_pos);
   cutlim = (int)(cutoff % (unsigned long)base);
   cutoff /= (unsigned long)base;
 
@@ -86,7 +86,7 @@ xstrtol (const char *nptr, const char **endptr, int base)
         {
           overflow = 1;
           errno = ERANGE;
-          acc = neg ? max_neg : max_pos;
+          acc = (neg ? max_neg : max_pos);
 
           for (s++;; s++)
             {
@@ -112,13 +112,13 @@ xstrtol (const char *nptr, const char **endptr, int base)
     }
 
   if (endptr)
-    *endptr = any ? s : nptr;
+    *endptr = (any ? s : nptr);
 
   if (!any)
     return 0L;
 
   if (overflow)
-    return neg ? LONG_MIN : LONG_MAX;
+    return (neg ? LONG_MIN : LONG_MAX);
 
   if (neg)
     return -(long)acc;
@@ -348,7 +348,7 @@ evals (const char *s, int pass, long loc)
           if (c == 0)
             break;
 
-          sign = (c == '+') ? 1 : -1;
+          sign = ((c == '+') ? 1 : -1);
         }
       else if (!isspace ((unsigned char)c))
         {
@@ -755,7 +755,7 @@ assemble (const char *path)
                   else
                     emit ((int)evals (tok, pass, loc));
 
-                  tok = cm ? cm + 1 : (char *)0;
+                  tok = (cm ? cm + 1 : (char *)0);
                 }
 
               continue;
@@ -1011,7 +1011,7 @@ emit_bytes (const char *name, const unsigned char *b, int n)
         (void)printf ("    ");
 
       (void)printf ("0x%02x,%s",
-                    b[i], (i % 12 == 11 || i == n - 1) ? "\n" : " ");
+                    b[i], ((i % 12 == 11 || i == n - 1) ? "\n" : " "));
     }
 
   (void)printf ("};\n");
