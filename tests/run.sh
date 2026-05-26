@@ -38,7 +38,7 @@ fi
 
 if [ -f "./cpm-z80/lzpack.com" ] \
   && command -v "${CPMEMU}" > /dev/null 2>&1; then
-  printf '\n%s\n' "=============== 8080 TNYLPO ==============="
+  printf '\n%s\n' "================ Z80 CPMEMU ==============="
   CPMEMU="${CPMEMU}" CPMCOM="./cpm-z80/lzpack.com" \
     $(command -v python3) tests/harness.py cpm2 || rc=1
 fi
