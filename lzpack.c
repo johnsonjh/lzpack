@@ -1476,8 +1476,12 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
     }
 
   if (verbose)
-    fprintf (stderr, "  %-12s %6ld => %6ld  (%.1f%%)  [%s]  -> %s\n", fn, n,
-             total, 100.0 * total / n, use8080 ? "8080" : "Z80", oname);
+    {
+      long p10 = n ? (total * 1000L + n / 2) / n : 0;
+
+      fprintf (stderr, "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
+               total, p10 / 10, p10 % 10, use8080 ? "8080" : "Z80", oname);
+    }
 
   return 0;
 }
@@ -1609,8 +1613,12 @@ do_list (const char *fn)
       return 0;
     }
 
-  printf ("  %-16s compressed %6ld   original %6ld   (%.1f%%)\n", fn, n,
-          outlen, 100.0 * n / (double)outlen);
+  {
+    long p10 = outlen ? (n * 1000L + outlen / 2) / outlen : 0;
+
+    printf ("  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)\n", fn, n,
+            outlen, p10 / 10, p10 % 10);
+  }
 
   return 0;
 }
