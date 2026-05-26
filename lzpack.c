@@ -1152,7 +1152,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           int b0;
 
-          (void)(a & 0x3f);
+          /* original 8080 stub masks a & 0x3f here; length comes from b0 below */
           b0 = (pl[pi++]) & 1;
           a = 2;
 
@@ -2558,7 +2558,7 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
-  (void)decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen,
+  (void)decode (data + pstart, (long)lit_src - TPA - pstart, out, outlen,
                 LITCNT, data + ((long)lit_src - TPA));
 
   if (!oname)
@@ -2670,7 +2670,7 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
-  (void)decode (data + pstart, (long)((lit_src - TPA) - pstart), out, outlen,
+  (void)decode (data + pstart, (long)lit_src - TPA - pstart, out, outlen,
                 LITCNT, data + ((long)lit_src - TPA));
 
   if (!oname)

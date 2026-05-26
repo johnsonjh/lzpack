@@ -20,7 +20,7 @@
 /******************************************************************************/
 
 static long
-xstrtol (const char *nptr, char **endptr, int base)
+xstrtol (const char *nptr, const char **endptr, int base)
 {
   const char *s = nptr;
   unsigned long acc = 0;
@@ -35,7 +35,7 @@ xstrtol (const char *nptr, char **endptr, int base)
   if (base != 10 && base != 16)
     {
       if (endptr)
-        *endptr = (char *)nptr;
+        *endptr = nptr;
 
       return 0L;
     }
@@ -112,7 +112,7 @@ xstrtol (const char *nptr, char **endptr, int base)
     }
 
   if (endptr)
-    *endptr = (char *)(any ? s : nptr);
+    *endptr = any ? s : nptr;
 
   if (!any)
     return 0L;
@@ -538,7 +538,7 @@ assemble (const char *path)
           exit (1);
         }
 
-      while (fgets (line, sizeof (line), f))
+      while (fgets (line, (int)sizeof (line), f))
         {
           char *s, *semi, *a0, *colon;
           const char *op, *a1;
