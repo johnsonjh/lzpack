@@ -14,6 +14,7 @@ azstub*
 *.CMD
 *.com
 *.COM
+compile_commands.events.json
 compile_commands.json
 *.core
 core
