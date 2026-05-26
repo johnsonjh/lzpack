@@ -4,8 +4,9 @@
 
 # LZPACK
 
-LZPACK is a PopCom!-compatible CP/M-80 executable compressor that
-runs on CP/M-80, CP/M-86, MS-DOS, UNIX, and many other platforms.
+LZPACK is a PopCom!-compatible CP/M-80 executable compressor.
+
+It runs on 48K CP/M-80, CP/M-86, MS-DOS, UNIX, and other platforms.
 
 ```
 LZPACK v0.3 - PopCom!-compatible 48K CP/M-80 executable compressor
@@ -17,6 +18,3 @@ Usage:
   lzpack -L <file>         list stored sizes
   lzpack -o <name>         set output name
 ```
-
-* [StubASM](stubasm.c), *The Worst 8080 Assembler Ever™*, is also included,
-  as it is utilized during the build process.
