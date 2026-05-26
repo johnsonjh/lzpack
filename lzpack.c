@@ -894,7 +894,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
   int ctrl, a, b, c, bit, i;
   unsigned off, ml;
 
-  (void)memcpy (out, litsrc, (size_t)litcnt);   /* seed the literal prefix */
+  (void)memcpy (out, litsrc, (size_t)litcnt); /* seed the literal prefix */
 
   ip = pl;
   ip_end = pl + (size_t)pllen;
@@ -1359,7 +1359,7 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
   size_t base;
 
   if (dot && (!slash || dot > slash))
-    base = strlen (in) - strlen (dot);   /* offset of dot within in */
+    base = strlen (in) - strlen (dot); /* offset of dot within in */
   else
     base = strlen (in);
 
@@ -1512,7 +1512,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
         && (long)r_litsrc - TPA >= LITCNT
         && (long)r_litsrc - TPA + LITCNT <= n)
       {
-        long lit_off = (long)r_litsrc - TPA;  /* in [LITCNT, n - LITCNT] */
+        long lit_off = (long)r_litsrc - TPA; /* in [LITCNT, n - LITCNT] */
 
         (void)decode (data + LITCNT, lit_off - LITCNT, g_c, r_outlen, LITCNT,
                       data + lit_off);
@@ -1611,7 +1611,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (verbose)
     {
-      long p10 = (total * 1000L + n / 2) / n;  /* n > LITCNT + 32 here */
+      long p10 = (total * 1000L + n / 2) / n; /* n > LITCNT + 32 here */
 
       (void)fprintf (stderr,
                      "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n",
@@ -2349,6 +2349,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
   /* Grab the largest window the heap allows, after the file buffers exist. */
+
   if (win_alloc ())
     {
       (void)fclose (in);
@@ -2364,7 +2365,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
                    fn, s_winsz, s_maxback);
 
   pllen = compress_stream (in, n, LITCNT, tmp, 1024, first16);
-  win_free ();                 /* release the window before reopening files */
+  win_free (); /* release the window before reopening files */
   (void)fclose (in);
   (void)fclose (tmp);
 
@@ -2372,6 +2373,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   pl_dst_top = (long)(TPA + outlen) - 1;
 
   /* CP/M stdio cannot reliably read a file back through "w+b"; reopen "rb". */
+
   tmp = fopen (LZTMP, "rb");
 
   if (!tmp)
@@ -2457,7 +2459,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (verbose)
     {
-      long p10 = (total * 1000L + n / 2) / n;  /* n > LITCNT + 32 here */
+      long p10 = (total * 1000L + n / 2) / n; /* n > LITCNT + 32 here */
 
       (void)fprintf (stderr,
                      "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
@@ -2799,6 +2801,7 @@ main (int argc, char **argv)
    * count the input files.  CP/M's CCP upper-cases the command tail, so each
    * flag is accepted in either case.
    */
+
   for (i = 1; i < argc; i++)
     {
       if (argv[i][0] == '-' && argv[i][1])
@@ -2858,6 +2861,7 @@ main (int argc, char **argv)
     }
 
   /* Second pass: process each input file (skipping options). */
+
   for (i = 1; i < argc; i++)
     {
       if (argv[i][0] == '-' && argv[i][1])

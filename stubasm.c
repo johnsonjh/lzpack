@@ -147,7 +147,7 @@ xstrtol (const char *nptr, char **endptr, int base)
 #endif
 
 #ifndef NAMELEN
-# define NAMELEN 24 /* longest stub symbol is ~12 chars; 23 + NUL fits */
+# define NAMELEN 24 /* longest stub symbol is ~12 chars; 23 + NUL fits! */
 #endif
 
 /******************************************************************************/
