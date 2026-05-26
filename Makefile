@@ -45,6 +45,17 @@ stub: cs8080.h
 cpm: cs8080.h
 	@./.build-cpm.sh
 
+cpm86 cpm-86: cs8080.h
+	@rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd
+	aztec42_cc "+FA" lzpack.c
+	aztec42_sqz lzpack.o
+	aztec42_link -o lzpack.cmd lzpack.o -lc86
+	pcdev_cmdinfo lzpack.cmd
+	aztec42_cc "+FA" stubasm.c
+	aztec42_sqz stubasm.o
+	aztec42_link -o stubasm.cmd stubasm.o -lc86
+	pcdev_cmdinfo stubasm.cmd
+
 cpm-test test-cpm:
 	@printf '\n%s\n' "==========================================="
 	@$$(command -v python3) ./tests/harness.py cpm
@@ -55,4 +66,4 @@ lint:
 test: lzpack
 	@./tests/run.sh
 
-.PHONY: all clean distclean stub cpm cpm-test lint test
+.PHONY: all clean distclean stub cpm cpm-test lint test cpm86 cpm-86
