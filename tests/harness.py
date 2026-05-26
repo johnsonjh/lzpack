@@ -85,6 +85,14 @@ def find_one(workdir, *patterns):
     return None
 
 
+def emit(results, tag, status, size, note):
+    """Record a result row and print it immediately (flushed), so progress
+    streams line-by-line instead of all at once -- tests can be slow, and a
+    piped stdout would otherwise stay fully buffered until the run ends."""
+    results.append((tag, status, size, note))
+    print('  [%s] %-22s size=%-11s %s' % (status, tag, size, note), flush=True)
+
+
 def test_file(runner, fname, marker, expect, results):
     src = os.path.join(CORPUS, fname)
     base = fname[:-4]                     # strip .com
@@ -113,15 +121,23 @@ def test_file(runner, fname, marker, expect, results):
             if expect == 'skip':
                 # success == no output file produced
                 ok = pop is None
-                results.append((tag, 'PASS' if ok else 'FAIL',
-                                '-', 'correctly refused' if ok
-                                else 'UNEXPECTED OUTPUT ' + os.path.basename(pop)))
+                emit(results, tag, 'PASS' if ok else 'FAIL',
+                     '-', 'correctly refused' if ok
+                     else 'UNEXPECTED OUTPUT ' + os.path.basename(pop))
                 continue
 
             if pop is None:
-                results.append((tag, 'FAIL', '-', 'no .pop produced; log=' + log.strip()[:80]))
+                emit(results, tag, 'FAIL', '-', 'no .pop produced; log=' + log.strip()[:80])
                 continue
             psize = os.path.getsize(pop)
+            # CP/M pads the last 128-byte record with NULs.  Strip trailing
+            # NULs, but clamp to the 128-byte boundary so we never count more
+            # than one record of padding (a payload may legitimately end in
+            # NULs).  Report both: on-disk size and, in parens, that figure.
+            with open(pop, 'rb') as f:
+                netsize = len(f.read().rstrip(b'\x00'))
+            netsize = max(netsize, psize - 127)
+            sizestr = '%d(%d)' % (psize, netsize)
 
             # self-extract: run the .pop as a .COM
             shutil.copy(pop, os.path.join(wd, 'run.com'))
@@ -149,7 +165,7 @@ def test_file(runner, fname, marker, expect, results):
             # corruption) or a missing/garbled restore is a hard failure.
             ok = se_ok and ref_ok and rt in ('OK', 'refused(too-big)')
             note = 'self-extract=%s roundtrip=%s' % ('OK' if se_ok else 'BAD', rt)
-            results.append((tag, 'PASS' if ok else 'FAIL', psize, note))
+            emit(results, tag, 'PASS' if ok else 'FAIL', sizestr, note)
         finally:
             shutil.rmtree(wd, ignore_errors=True)
 
@@ -184,14 +200,13 @@ def main():
     # The corpus .com files are git-ignored; regenerate them if absent.
     if not os.path.exists(os.path.join(CORPUS, CORPUS_FILES[0][0])):
         subprocess.run([sys.executable, os.path.join(ROOT, 'gen.py')], check=True)
+    print('===== Using %s for CP/M emulation =====' % env, flush=True)
+    print('===========================================\n', flush=True)
     results = []
     for fname, marker, expect in CORPUS_FILES:
         test_file(runner, fname, marker, expect, results)
-    print('\n=== %s ===' % which)
     npass = sum(1 for r in results if r[1] == 'PASS')
-    for tag, status, size, note in results:
-        print('  [%s] %-22s size=%-7s %s' % (status, tag, size, note))
-    print('  %d/%d passed' % (npass, len(results)))
+    print('  %d/%d passed' % (npass, len(results)), flush=True)
     return 0 if npass == len(results) else 1
 
 
