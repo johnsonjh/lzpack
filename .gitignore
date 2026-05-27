@@ -19,6 +19,9 @@ compile_commands.json
 *.core
 core
 core-*
+/cpm-8080/
+/cpm-86/
+/cpm-z80/
 /cs8080.h
 *.exe
 *.EXE
@@ -44,6 +47,7 @@ pvsreport
 *.tmp
 *.TMP
 *.unp
+*.UNP
 
 # keep the test programs in-repo
 !tests/corpus/
