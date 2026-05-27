@@ -191,7 +191,7 @@ lxmalloc (size_t n)
 
 #ifndef POPCOM_DECODE_ONLY
 
-# include "cz80.h"
+# include "csz80.h"
 # include "cs8080.h"
 
 /******************************************************************************/
