@@ -85,15 +85,6 @@ F3LONG:
         MVI  C,1             ; c = 1
         JMP  LC
 
-FORM1:
-        ; off = first byte (0..127) ; a=0
-        MOV  A,B
-        STA  OFFV
-        XRA  A
-        STA  OFFV+1
-        MVI  D,0             ; a = 0
-        JMP  LF
-
 FORM2:
         ; a = first & 7f ; 4 bits -> {E:D} ; off = (E + carry)<<8 | (D+80h)
         MOV  A,B
@@ -119,6 +110,14 @@ F2L:
         STA  OFFV+1          ; off high
         MVI  D,1             ; a = 1
         JMP  LF
+
+FORM1:
+        ; off = first byte (0..127) ; a=0
+        MOV  A,B
+        STA  OFFV
+        XRA  A
+        STA  OFFV+1
+        MVI  D,0             ; a = 0
 
 ; ---- length grammar ; D=a, C=c ----
 LF:
