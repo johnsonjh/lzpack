@@ -1119,8 +1119,11 @@ main (int argc, char **argv)
   (void)memcpy (decomp, code, (size_t)clen);
   collect (DECOMP_PATCH);
 
-  (void)printf ("#define S8_SLEN %d\n", slen);
-  (void)printf ("#define S8_DLEN %d\n\n", dlen);
+  (void)printf ("#ifndef STUBASM_CS8080_H\n");
+  (void)printf ("# define STUBASM_CS8080_H\n\n");
+
+  (void)printf ("# define S8_SLEN %d\n", slen);
+  (void)printf ("# define S8_DLEN %d\n\n", dlen);
 
   emit_bytes ("setup8080", setup, slen);
   emit_bytes ("decomp8080", decomp, dlen);
@@ -1128,15 +1131,15 @@ main (int argc, char **argv)
   (void)printf ("static const unsigned short setup8080_fix[][2] = {\n");
 
   for (i = 0; i < s_nfx; i++)
-    (void)printf ("    { 0x%x, 0x%x },\n", s_fx_off[i], s_fx_tgt[i]);
+    (void)printf ("    { %#4x, %#4x },\n", s_fx_off[i], s_fx_tgt[i]);
 
-  (void)printf ("};\n\n#define SETUP8080_FIX_N %d\n", s_nfx);
+  (void)printf ("};\n\n# define SETUP8080_FIX_N %d\n", s_nfx);
   (void)printf ("\nstatic const unsigned short decomp8080_fix[][2] = {\n");
 
   for (i = 0; i < nfx; i++)
-    (void)printf ("    { 0x%x, 0x%x },\n", fx_off[i], fx_tgt[i]);
+    (void)printf ("    { %#4x, %#5x },\n", fx_off[i], fx_tgt[i]);
 
-  (void)printf ("};\n#define DECOMP8080_FIX_N %d\n", nfx);
+  (void)printf ("};\n# define DECOMP8080_FIX_N %d\n", nfx);
 
   {
     int p;
@@ -1144,7 +1147,7 @@ main (int argc, char **argv)
     for (p = 0; SETUP_PATCH[p]; p++)
       for (i = 0; i < s_nsl; i++)
         if (!strcmp (s_sl_name[i], SETUP_PATCH[p]))
-          (void)printf ("#define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
+          (void)printf ("# define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
   }
 
   {
@@ -1153,8 +1156,10 @@ main (int argc, char **argv)
     for (p = 0; DECOMP_PATCH[p]; p++)
       for (i = 0; i < nsl; i++)
         if (!strcmp (sl_name[i], DECOMP_PATCH[p]))
-          (void)printf ("#define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
+          (void)printf ("# define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
   }
+
+  (void)printf ("\n#endif\n");
 
   return 0;
 }
