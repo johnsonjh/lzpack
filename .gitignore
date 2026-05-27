@@ -56,3 +56,8 @@ pvsreport
 # keep the test programs in-repo
 !tests/corpus/
 !tests/corpus/*.com
+
+# binary releases
+!bindist/
+!bindist/*.ARC
+!bindist/*.ZIP
