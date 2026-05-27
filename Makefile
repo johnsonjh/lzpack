@@ -95,13 +95,6 @@ cpm86 cpm-86: cs8080.h
 
 ################################################################################
 
-cpm-test test-cpm:
-	@printf '\n%s\n' "==========================================="
-	@$$(command -v python3) ./tests/harness.py cpm
-	@printf '%s\n' ""
-
-################################################################################
-
 lint:
 	@./.lint.sh
 
@@ -113,7 +106,7 @@ test: lzpack
 ################################################################################
 
 .PHONY: all build clean distclean stub strip cpm cpm-auto cpm-local \
-	cpm-docker cpm-test test-cpm lint test cpm86 cpm-86
+	cpm-docker lint test cpm86 cpm-86
 
 ################################################################################
 
