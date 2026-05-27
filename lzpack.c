@@ -2379,7 +2379,14 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)fwrite (hdr, 1, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
-    (void)putc (getc (pl), outf);
+    {
+      int c = getc (pl);
+
+      if (c == EOF)
+        break;
+
+      (void)putc (c, outf);
+    }
 
   (void)fwrite (first16, 1, LITCNT, outf);
 
@@ -2424,7 +2431,14 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)fwrite (hdr, 1, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
-    (void)putc (getc (pl), outf);
+    {
+      int c = getc (pl);
+
+      if (c == EOF)
+        break;
+
+      (void)putc (c, outf);
+    }
 
   (void)fwrite (first16, 1, LITCNT, outf);
 
@@ -2473,8 +2487,22 @@ count_file (const char *fn)
   if (!f)
     return -1;
 
-  while ((r = fread (buf, 1, sizeof (buf), f)) > 0)
-    n += (long)r;
+  for (;;)
+    {
+      r = fread (buf, 1, sizeof (buf), f);
+
+      n += (long)r;
+
+      if (r < sizeof (buf))
+        break;
+    }
+
+  if (ferror (f))
+    {
+      (void)fclose (f);
+
+      return -1;
+    }
 
   (void)fclose (f);
 
