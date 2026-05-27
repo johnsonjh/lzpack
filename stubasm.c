@@ -486,8 +486,497 @@ lookup (const OpB *t, const char *n)
 
 /******************************************************************************/
 
+static int
+z8 (const char *t)
+{
+  static const char *T[] = { "B", "C", "D", "E", "H", "L", "(HL)", "A", 0 };
+  int i;
+
+  if (!t)
+    return -1;
+
+  for (i = 0; T[i]; i++)
+    if (!strcmp (T[i], t))
+      return i;
+
+  return -1;
+}
+
+/******************************************************************************/
+
+static int
+zrp (const char *t)
+{
+  static const char *T[] = { "BC", "DE", "HL", "SP", 0 };
+  int i;
+
+  if (!t)
+    return -1;
+
+  for (i = 0; T[i]; i++)
+    if (!strcmp (T[i], t))
+      return i;
+
+  return -1;
+}
+
+/******************************************************************************/
+
+static int
+zrp2 (const char *t)
+{
+  static const char *T[] = { "BC", "DE", "HL", "AF", 0 };
+  int i;
+
+  if (!t)
+    return -1;
+
+  for (i = 0; T[i]; i++)
+    if (!strcmp (T[i], t))
+      return i;
+
+  return -1;
+}
+
+/******************************************************************************/
+
+static int
+zcc (const char *t)
+{
+  static const char *T[] = { "NZ", "Z", "NC", "C", "PO", "PE", "P", "M", 0 };
+  int i;
+
+  if (!t)
+    return -1;
+
+  for (i = 0; T[i]; i++)
+    if (!strcmp (T[i], t))
+      return i;
+
+  return -1;
+}
+
+/******************************************************************************/
+
 static void
-assemble (const char *path)
+enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
+{
+  int r, p, cc, rot, cbase;
+  long w;
+
+  if (!strcmp (op, "NOP" )) { emit (0x00); return; }
+  if (!strcmp (op, "HALT")) { emit (0x76); return; }
+  if (!strcmp (op, "EXX" )) { emit (0xD9); return; }
+  if (!strcmp (op, "DI"  )) { emit (0xF3); return; }
+  if (!strcmp (op, "EI"  )) { emit (0xFB); return; }
+  if (!strcmp (op, "SCF" )) { emit (0x37); return; }
+  if (!strcmp (op, "CCF" )) { emit (0x3F); return; }
+  if (!strcmp (op, "CPL" )) { emit (0x2F); return; }
+  if (!strcmp (op, "DAA" )) { emit (0x27); return; }
+  if (!strcmp (op, "RLCA")) { emit (0x07); return; }
+  if (!strcmp (op, "RRCA")) { emit (0x0F); return; }
+  if (!strcmp (op, "RLA" )) { emit (0x17); return; }
+  if (!strcmp (op, "RRA" )) { emit (0x1F); return; }
+  if (!strcmp (op, "NEG" )) { emit (0xED); emit (0x44); return; }
+  if (!strcmp (op, "LDIR")) { emit (0xED); emit (0xB0); return; }
+  if (!strcmp (op, "LDDR")) { emit (0xED); emit (0xB8); return; }
+  if (!strcmp (op, "LDI" )) { emit (0xED); emit (0xA0); return; }
+  if (!strcmp (op, "LDD" )) { emit (0xED); emit (0xA8); return; }
+
+  if (!strcmp (op, "RET"))
+    {
+      cc = zcc (a0);
+
+      if (!a0)        { emit (0xC9); return; }
+      if (cc >= 0)    { emit (0xC0 | (cc << 3)); return; }
+
+      die ("bad RET");
+    }
+
+  if (!strcmp (op, "EX"))
+    {
+      if (a0 && a1 && !strcmp (a0, "DE") && !strcmp (a1, "HL"))
+        { emit (0xEB); return; }
+
+      if (a0 && a1 && !strcmp (a0, "AF") && !strcmp (a1, "AF'"))
+        { emit (0x08); return; }
+
+      if (a0 && a1 && !strcmp (a0, "(SP)") && !strcmp (a1, "HL"))
+        { emit (0xE3); return; }
+
+      die ("bad EX");
+    }
+
+  if (!strcmp (op, "RST"))
+    {
+      w = evals (a0, pass, loc);
+
+      emit (0xC7 | ((int)w & 0x38));
+
+      return;
+    }
+
+  if (!strcmp (op, "PUSH"))
+    {
+      p = zrp2 (a0);
+
+      if (p < 0)
+        die ("bad PUSH");
+
+      emit (0xC5 | (p << 4));
+
+      return;
+    }
+
+  if (!strcmp (op, "POP"))
+    {
+      p = zrp2 (a0);
+
+      if (p < 0)
+        die ("bad POP");
+
+      emit (0xC1 | (p << 4));
+
+      return;
+    }
+
+  if (!strcmp (op, "DJNZ"))
+    {
+      w = evals (a0, pass, loc);
+
+      emit (0x10);
+      emit ((int)((w - (loc + 2)) & 0xff));
+
+      return;
+    }
+
+  if (!strcmp (op, "JR"))
+    {
+      static const int o[4] = { 0x20, 0x28, 0x30, 0x38 };
+
+      cc = zcc (a0);
+
+      if (a1)
+        {
+          if (cc < 0 || cc > 3)
+            die ("bad JR cc");
+
+          w = evals (a1, pass, loc);
+          emit (o[cc]);
+        }
+      else
+        {
+          w = evals (a0, pass, loc);
+          emit (0x18);
+        }
+
+      emit ((int)((w - (loc + 2)) & 0xff));
+
+      return;
+    }
+
+  if (!strcmp (op, "JP"))
+    {
+      if (a1)
+        {
+          cc = zcc (a0);
+
+          if (cc < 0)
+            die ("bad JP cc");
+
+          rec (a1, 2);
+          w = evals (a1, pass, loc);
+          emit (0xC2 | (cc << 3));
+        }
+      else if (a0 && !strcmp (a0, "(HL)"))
+        {
+          emit (0xE9);
+
+          return;
+        }
+      else
+        {
+          rec (a0, 2);
+          w = evals (a0, pass, loc);
+          emit (0xC3);
+        }
+
+      emit ((int)(w & 0xff));
+      emit ((int)((w >> 8) & 0xff));
+
+      return;
+    }
+
+  if (!strcmp (op, "CALL"))
+    {
+      if (a1)
+        {
+          cc = zcc (a0);
+
+          if (cc < 0)
+            die ("bad CALL cc");
+
+          rec (a1, 2);
+          w = evals (a1, pass, loc);
+          emit (0xC4 | (cc << 3));
+        }
+      else
+        {
+          rec (a0, 2);
+          w = evals (a0, pass, loc);
+          emit (0xCD);
+        }
+
+      emit ((int)(w & 0xff));
+      emit ((int)((w >> 8) & 0xff));
+
+      return;
+    }
+
+  if (!strcmp (op, "INC"))
+    {
+      if ((p = zrp (a0)) >= 0) { emit (0x03 | (p << 4)); return; }
+      if ((r = z8 (a0)) >= 0)  { emit (0x04 | (r << 3)); return; }
+
+      die ("bad INC");
+    }
+
+  if (!strcmp (op, "DEC"))
+    {
+      if ((p = zrp (a0)) >= 0) { emit (0x0B | (p << 4)); return; }
+      if ((r = z8 (a0)) >= 0)  { emit (0x05 | (r << 3)); return; }
+
+      die ("bad DEC");
+    }
+
+  if (!strcmp (op, "ADD"))
+    {
+      if (a0 && !strcmp (a0, "HL"))
+        {
+          p = zrp (a1);
+
+          if (p < 0)
+            die ("bad ADD HL");
+
+          emit (0x09 | (p << 4));
+
+          return;
+        }
+
+      if (a0 && !strcmp (a0, "A"))
+        {
+          if ((r = z8 (a1)) >= 0) { emit (0x80 | r); return; }
+
+          rec (a1, 1);
+          emit (0xC6);
+          emit ((int)(evals (a1, pass, loc) & 0xff));
+
+          return;
+        }
+
+      die ("bad ADD");
+    }
+
+  if (!strcmp (op, "ADC"))
+    {
+      if (a0 && !strcmp (a0, "HL"))
+        {
+          p = zrp (a1);
+
+          if (p < 0)
+            die ("bad ADC HL");
+
+          emit (0xED);
+          emit (0x4A | (p << 4));
+
+          return;
+        }
+
+      if (a0 && !strcmp (a0, "A"))
+        {
+          if ((r = z8 (a1)) >= 0) { emit (0x88 | r); return; }
+
+          rec (a1, 1);
+          emit (0xCE);
+          emit ((int)(evals (a1, pass, loc) & 0xff));
+
+          return;
+        }
+
+      die ("bad ADC");
+    }
+
+  if (!strcmp (op, "SBC"))
+    {
+      if (a0 && !strcmp (a0, "HL"))
+        {
+          p = zrp (a1);
+
+          if (p < 0)
+            die ("bad SBC HL");
+
+          emit (0xED);
+          emit (0x42 | (p << 4));
+
+          return;
+        }
+
+      if (a0 && !strcmp (a0, "A"))
+        {
+          if ((r = z8 (a1)) >= 0) { emit (0x98 | r); return; }
+
+          rec (a1, 1);
+          emit (0xDE);
+          emit ((int)(evals (a1, pass, loc) & 0xff));
+
+          return;
+        }
+
+      die ("bad SBC");
+    }
+
+  if (!strcmp (op, "SUB"))
+    {
+      const char *rt = (a1 ? a1 : a0);
+
+      if ((r = z8 (rt)) >= 0) { emit (0x90 | r); return; }
+
+      rec (rt, 1);
+      emit (0xD6);
+      emit ((int)(evals (rt, pass, loc) & 0xff));
+
+      return;
+    }
+
+  cbase = -1;
+
+  if      (!strcmp (op, "AND")) cbase = 0xA0;
+  else if (!strcmp (op, "XOR")) cbase = 0xA8;
+  else if (!strcmp (op, "OR"))  cbase = 0xB0;
+  else if (!strcmp (op, "CP"))  cbase = 0xB8;
+
+  if (cbase >= 0)
+    {
+      const char *rt = (a1 ? a1 : a0);
+
+      if ((r = z8 (rt)) >= 0) { emit (cbase | r); return; }
+
+      rec (rt, 1);
+      emit ((cbase & 0x38) | 0xC6);
+      emit ((int)(evals (rt, pass, loc) & 0xff));
+
+      return;
+    }
+
+  if (!strcmp (op, "LD"))
+    {
+      int rd = z8 (a0), rs = z8 (a1);
+
+      if (rd >= 0 && rs >= 0)
+        {
+          if (rd == 6 && rs == 6)
+            die ("LD (HL),(HL)");
+
+          emit (0x40 | (rd << 3) | rs);
+
+          return;
+        }
+
+      if (rd >= 0 && a1)
+        {
+          rec (a1, 1);
+          emit (0x06 | (rd << 3));
+          emit ((int)(evals (a1, pass, loc) & 0xff));
+
+          return;
+        }
+
+      if ((p = zrp (a0)) >= 0 && a1)
+        {
+          rec (a1, 2);
+          emit (0x01 | (p << 4));
+          w = evals (a1, pass, loc);
+          emit ((int)(w & 0xff));
+          emit ((int)((w >> 8) & 0xff));
+
+          return;
+        }
+
+      if (a0 && a1)
+        {
+          if (!strcmp (a0, "A"   )
+	      && !strcmp (a1, "(BC)")) { emit (0x0A); return; }
+
+          if (!strcmp (a0, "A"   )
+	      && !strcmp (a1, "(DE)")) { emit (0x1A); return; }
+
+          if (!strcmp (a0, "(BC)")
+	      && !strcmp (a1, "A"))    { emit (0x02); return; }
+
+          if (!strcmp (a0, "(DE)")
+	      && !strcmp (a1, "A"))    { emit (0x12); return; }
+
+          if (!strcmp (a0, "SP"  )
+	      && !strcmp (a1, "HL"))   { emit (0xF9); return; }
+        }
+
+      die ("bad LD");
+    }
+
+  rot = -1;
+
+  if      (!strcmp (op, "RLC")) rot = 0;
+  else if (!strcmp (op, "RRC")) rot = 1;
+  else if (!strcmp (op, "RL" )) rot = 2;
+  else if (!strcmp (op, "RR" )) rot = 3;
+  else if (!strcmp (op, "SLA")) rot = 4;
+  else if (!strcmp (op, "SRA")) rot = 5;
+  else if (!strcmp (op, "SLL")) rot = 6;
+  else if (!strcmp (op, "SRL")) rot = 7;
+
+  if (rot >= 0)
+    {
+      r = z8 (a0);
+
+      if (r < 0)
+        die ("bad rotate reg");
+
+      emit (0xCB);
+      emit ((rot << 3) | r);
+
+      return;
+    }
+
+  cbase = -1;
+
+  if      (!strcmp (op, "BIT")) cbase = 0x40;
+  else if (!strcmp (op, "RES")) cbase = 0x80;
+  else if (!strcmp (op, "SET")) cbase = 0xC0;
+
+  if (cbase >= 0)
+    {
+      int bit = (int)evals (a0, pass, loc);
+
+      r = z8 (a1);
+
+      if (r < 0)
+        die ("bad bit reg");
+
+      emit (0xCB);
+      emit (cbase | ((bit & 7) << 3) | r);
+
+      return;
+    }
+
+  (void)fprintf (stderr, "stubasm: bad Z80 op '%s'\n", op);
+
+  exit (1);
+}
+
+/******************************************************************************/
+
+static void
+assemble (const char *path, int z80)
 {
   static const OpB simple[] =
     { { "NOP",  0x00 }, { "HLT",  0x76 }, { "XCHG", 0xEB }, { "XTHL", 0xE3 },
@@ -771,6 +1260,13 @@ assemble (const char *path)
 
               emit ((int)(v2 & 0xff));
               emit ((int)((v2 >> 8) & 0xff));
+
+              continue;
+            }
+
+          if (z80)
+            {
+              enc_z80 (opU, a0, a1, pass, loc);
 
               continue;
             }
@@ -1074,6 +1570,78 @@ static int s_fx_off[MAXREF], s_fx_tgt[MAXREF];
 static char s_sl_name[MAXREF][NAMELEN];
 static int s_sl_off[MAXREF];
 
+/******************************************************************************/
+
+static int
+zoff (const char *name)
+{
+  int j;
+
+  for (j = 0; j < nref; j++)
+    if (!strcmp (refs[j].name, name))
+      return refs[j].off;
+
+  (void)fprintf (stderr, "stubasm: patch symbol '%s' not referenced\n", name);
+
+  exit (1);
+
+  /*NOTREACHED*/ /* unreachable */
+  return -1;
+}
+
+/******************************************************************************/
+
+static unsigned char z80blob[2 * MAXCODE];
+
+static void
+emit_z80 (const char *setup_path, const char *decomp_path)
+{
+  int slen, dlen, total;
+  int o_lit, o_ssrc, o_sdst, o_psrc, o_pdst, o_plen, o_run;
+  int o_chi, o_clo, o_loop;
+
+  assemble (setup_path, 1);
+  slen = clen;
+  (void)memcpy (z80blob, code, (size_t)clen);
+
+  o_lit  = zoff ("LIT_SRC");
+  o_ssrc = zoff ("DCMP_SRCTOP");
+  o_sdst = zoff ("DCMP_DSTTOP");
+  o_psrc = zoff ("PL_SRCTOP");
+  o_pdst = zoff ("PL_DSTTOP");
+  o_plen = zoff ("PL_LEN");
+  o_run  = zoff ("DCMP_RUN");
+
+  assemble (decomp_path, 1);
+  dlen = clen;
+  (void)memcpy (z80blob + slen, code, (size_t)clen);
+
+  o_chi  = zoff ("OUT_END_HI") + slen;
+  o_clo  = zoff ("OUT_END_LO") + slen;
+  o_loop = zoff ("LOOP") + slen;
+
+  total = slen + dlen;
+
+  (void)printf ("#ifndef STUBASM_CZ80_H\n# define STUBASM_CZ80_H\n\n");
+
+  emit_bytes ("z80_stub", z80blob, total);
+
+  (void)printf ("# define P_LIT_SRC 0x%02x\n", o_lit);
+  (void)printf ("# define P_STUB_SRCTOP 0x%02x\n", o_ssrc);
+  (void)printf ("# define P_STUB_DSTTOP 0x%02x\n", o_sdst);
+  (void)printf ("# define P_PL_SRCTOP 0x%02x\n", o_psrc);
+  (void)printf ("# define P_PL_DSTTOP 0x%02x\n", o_pdst);
+  (void)printf ("# define P_PL_LEN 0x%02x\n", o_plen);
+  (void)printf ("# define P_JP_RELOC 0x%02x\n", o_run);
+  (void)printf ("# define P_CP_HI 0x%02x\n", o_chi);
+  (void)printf ("# define P_CP_LO 0x%02x\n", o_clo);
+  (void)printf ("# define P_JP_LOOP 0x%02x\n", o_loop);
+
+  (void)printf ("\n#endif\n");
+}
+
+/******************************************************************************/
+
 int
 main (int argc, char **argv)
 {
@@ -1086,14 +1654,23 @@ main (int argc, char **argv)
   (void)memset (s_sl_name, 0, sizeof (s_sl_name));
   (void)memset (s_sl_off, 0, sizeof (s_sl_off));
 
+  if (argc == 4 && !strcmp (argv[1], "-z80"))
+    {
+      emit_z80 (argv[2], argv[3]);
+
+      return 0;
+    }
+
   if (argc < 3)
     {
-      (void)fprintf (stderr, "usage: stubasm setup.asm decomp.asm > stub.h\n");
+      (void)fprintf (stderr,
+                     "usage: stubasm setup.asm decomp.asm > stub.h\n"
+                     "       stubasm -z80 sz80s.asm sz80d.asm > cz80.h\n");
 
       return 2;
     }
 
-  assemble (argv[1]);
+  assemble (argv[1], 0);
   slen = clen;
   (void)memcpy (setup, code, (size_t)clen);
   collect (SETUP_PATCH);
@@ -1114,7 +1691,7 @@ main (int argc, char **argv)
       s_sl_off[i] = sl_off[i];
     }
 
-  assemble (argv[2]);
+  assemble (argv[2], 0);
   dlen = clen;
   (void)memcpy (decomp, code, (size_t)clen);
   collect (DECOMP_PATCH);
