@@ -2478,7 +2478,6 @@ count_file (const char *fn)
 {
   FILE *f = fopen (fn, "rb");
   long n = 0;
-  size_t r;
   unsigned char buf[128];
 
   if (!f)
@@ -2487,9 +2486,10 @@ count_file (const char *fn)
   if (!f)
     return -1;
 
+
   for (;;)
     {
-      r = fread (buf, 1, sizeof (buf), f);
+      size_t r = fread (buf, 1, sizeof (buf), f);
 
       n += (long)r;
 
