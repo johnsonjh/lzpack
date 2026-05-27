@@ -22,11 +22,13 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(ROOT, "corpus")
 PROJECT = os.path.dirname(ROOT)
 
-# Emulators: a name on PATH by default; set TNYLPO/CPMEMU to a path otherwise.
+# Emulators: a name on PATH by default; set TNYLPO/CPMEMU/EMU2 to a path otherwise.
 TNYLPO = os.environ.get("TNYLPO", "tnylpo")
 CPMEMU = os.environ.get("CPMEMU", "cpm")
+EMU2 = os.environ.get("EMU2", "emu2")
 NATIVE = os.path.join(PROJECT, "lzpack")
 CPMCOM = os.environ.get("CPMCOM", os.path.join(PROJECT, "cpm-z80", "lzpack.com"))
+CPMCMD = os.environ.get("CPMCMD", os.path.join(PROJECT, "cpm-86", "lzpack.cmd"))
 
 # corpus file -> (expected_marker_substring, expectation)
 # expectation: 'ok' = must self-extract; 'skip' = compressor should refuse
@@ -73,6 +75,20 @@ def run_cpmemu(workdir, comname, args=None):
     return p.stdout.decode("latin-1", "replace")
 
 
+def run_emu2_cpm86(workdir, cmdname, args=None):
+    """Run a native CP/M-86 .cmd under emu2-cpm86 in workdir; return decoded stdout."""
+    cmd = [EMU2, cmdname] + (args or [])
+    p = subprocess.run(
+        cmd,
+        cwd=workdir,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=120,
+    )
+    return p.stdout.decode("latin-1", "replace")
+
+
 # Emulator used to *run* .COMs (set per command in main)
 # The native testsnstill use tnylpo to self-extract .pop outputs!
 EMU = run_tnylpo
@@ -95,6 +111,15 @@ def lzpack_cpm(workdir, args):
     shutil.copy(CPMCOM, os.path.join(workdir, "lzpack.com"))
     out = EMU(workdir, "lzpack.com", args)
     return 0, out
+
+
+def lzpack_cpm86(workdir, args):
+    # The packer is a native CP/M-86 program, so it runs under emu2-cpm86.  Its
+    # self-extracting .pop output is still CP/M-80 (a Z80/8080 stub) which emu2
+    # cannot execute, so EMU (tnylpo) self-extracts the .pop, exactly as for the
+    # CP/M-80 runs.  emu2 maps CP/M's upper-cased names to lowercase Unix files.
+    shutil.copy(CPMCMD, os.path.join(workdir, "lzpack.cmd"))
+    return 0, run_emu2_cpm86(workdir, "lzpack.cmd", args)
 
 
 def find_one(workdir, *patterns):
@@ -216,34 +241,53 @@ def main():
         "native": (lzpack_native, run_tnylpo),  # self-extract under tnylpo
         "cpm": (lzpack_cpm, run_tnylpo),  # CP/M lzpack.com via tnylpo
         "cpm2": (lzpack_cpm, run_cpmemu),  # CP/M lzpack.com via cpm
+        "cpm86": (lzpack_cpm86, run_tnylpo),  # CP/M-86 lzpack.cmd via emu2
     }
     if which not in table:
-        print("usage: harness.py native|cpm|cpm2")
+        print("usage: harness.py native|cpm|cpm2|cpm86")
         return 2
     runner, EMU = table[which]
 
-    # Fail cleanly (no traceback) when the needed emulator or CP/M binary is
-    # absent.  Emulators default to a name on PATH; set TNYLPO/CPMEMU otherwise.
-    emu = CPMEMU if which == "cpm2" else TNYLPO
-    env = "CPMEMU" if which == "cpm2" else "TNYLPO"
-    if (
-        not (os.access(emu, os.X_OK) and os.path.isfile(emu))
-        and shutil.which(emu) is None
-    ):
-        sys.stderr.write(
-            "error: emulator %r not found; put it on PATH or set %s\n" % (emu, env)
-        )
-        return 2
+    # Fail cleanly (no traceback) when a needed emulator or CP/M binary is
+    # absent.  Emulators default to a name on PATH; set TNYLPO/CPMEMU/EMU2
+    # otherwise.  cpm86 needs two: the CP/M-86-capable fork of emu2 to run
+    # the packer, and tnylpo to run the CP/M-80 .pop files that it emits.
+    needed = {
+        "native": [(TNYLPO, "TNYLPO")],
+        "cpm": [(TNYLPO, "TNYLPO")],
+        "cpm2": [(CPMEMU, "CPMEMU")],
+        "cpm86": [(EMU2, "EMU2"), (TNYLPO, "TNYLPO")],
+    }[which]
+
+    def have(e):
+        return (os.access(e, os.X_OK) and os.path.isfile(e)) or shutil.which(e)
+
+    for e, ev in needed:
+        if not have(e):
+            sys.stderr.write(
+                "error: emulator %r not found; put it on PATH or set %s\n" % (e, ev)
+            )
+            return 2
     if which in ("cpm", "cpm2") and not os.path.isfile(CPMCOM):
         sys.stderr.write(
             "error: %s not found; run 'make cpm' first (or set CPMCOM)\n" % CPMCOM
         )
         return 2
+    if which == "cpm86" and not os.path.isfile(CPMCMD):
+        sys.stderr.write(
+            "error: %s not found; run 'make cpm86' first (or set CPMCMD)\n" % CPMCMD
+        )
+        return 2
+    env = " + ".join(ev for _, ev in needed)
+    cpm8680 = env == "EMU2 + TNYLPO"
 
     # The test corpus .com files will be regenerated if they are missing.
     if not os.path.exists(os.path.join(CORPUS, CORPUS_FILES[0][0])):
         subprocess.run([sys.executable, os.path.join(ROOT, "gen.py")], check=True)
-    print("===== Using %s for CP/M emulation =====" % env, flush=True)
+    if cpm8680:
+        print("===== Using EMU2-86+TNYLPO Combo Mode =====", flush=True)
+    else:
+        print("===== Using %s for CP/M emulation =====" % env, flush=True)
     print("===========================================\n", flush=True)
     results = []
     for fname, marker, expect in CORPUS_FILES:

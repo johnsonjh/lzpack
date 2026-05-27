@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 
 TNYLPO="${TNYLPO:-tnylpo}"
 CPMEMU="${CPMEMU:-cpm}"
+EMU2="${EMU2:-emu2}"
 rc=0
 
 printf '\n%s\n' "================= NATIVE =================="
@@ -41,6 +42,15 @@ if [ -f "./cpm-z80/lzpack.com" ] \
   printf '\n%s\n' "================ Z80 CPMEMU ==============="
   CPMEMU="${CPMEMU}" CPMCOM="./cpm-z80/lzpack.com" \
     $(command -v python3) tests/harness.py cpm2 || rc=1
+fi
+
+if [ -f "./cpm-86/lzpack.cmd" ] \
+  && command -v "${EMU2}" > /dev/null 2>&1 \
+  && "${EMU2}" -h 2>&1 | grep -q "DOS and CP/M-86 Emulator" \
+  && command -v "${TNYLPO}" > /dev/null 2>&1; then
+  printf '\n%s\n' "============== EMU2-CP/M-86 ==============="
+  EMU2="${EMU2}" TNYLPO="${TNYLPO}" CPMCMD="./cpm-86/lzpack.cmd" \
+    $(command -v python3) tests/harness.py cpm86 || rc=1
 fi
 
 exit "${rc}"
