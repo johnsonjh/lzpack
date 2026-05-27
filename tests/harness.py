@@ -163,13 +163,19 @@ def test_file(runner, fname, marker, expect, results):
                 )
                 continue
             psize = os.path.getsize(pop)
-            # CP/M pads the last 128-byte record with NULs.  Strip trailing
-            # NULs, but clamp to the 128-byte boundary so we never count more
-            # than one record of padding (a payload may legitimately end in
-            # NULs).  Report both: on-disk size and, in parens, that figure.
-            with open(pop, "rb") as f:
-                netsize = len(f.read().rstrip(b"\x00"))
-            netsize = max(netsize, psize - 127)
+            # lzpack writes the self-extracting file at its exact length.  The
+            # native build (and any LRBC-aware CP/M target) therefore produces a
+            # file that is *not* a multiple of 128 -- that size is already exact.
+            # A plain CP/M target still stores whole 128-byte records and pads
+            # the final one (NUL on some runtimes and 0x1A from most everything),
+            # so only there do we recover the logical size by stripping the last
+            # record's fill, clamped to one record so a payload that legitimately
+            # ends in fill bytes is never undercounted.
+            if psize % 128:
+                netsize = psize
+            else:
+                with open(pop, "rb") as f:
+                    netsize = max(len(f.read().rstrip(b"\x00\x1a")), psize - 127)
             sizestr = "%d(%d)" % (psize, netsize)
 
             # self-extract: run the .pop as a .COM

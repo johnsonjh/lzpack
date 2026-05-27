@@ -1481,6 +1481,38 @@ cpm_file_size (const char *fn)
   return records * 128L;
 }
 
+/******************************************************************************/
+
+static int
+cpm_set_byte_count (const char *fn, long nbytes)
+{
+  unsigned char fcb[36];
+  long records, last_ext;
+  int lrbc;
+
+  if (nbytes <= 0)
+    return -1;
+
+  if ((bdos (12, 0) & 0x00ff) < 0x30)
+    return -1;
+
+  records = (nbytes + 127L) / 128L;
+  last_ext = (records - 1L) / 128L;
+  lrbc = (int)(nbytes - (records - 1L) * 128L);
+
+  cpm_setfcb (fcb, fn);
+  fcb[12] = (unsigned char)(last_ext & 0x1f);
+  fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
+
+  if ((bdos (15, (int)fcb) & 0x00ff) == 0xff)
+    return -1;
+
+  fcb[13] = (unsigned char)(lrbc & 0x7f);
+  (void)bdos (16, (int)fcb);
+
+  return 0;
+}
+
 #endif
 
 /******************************************************************************/
@@ -1540,6 +1572,10 @@ writefile (const char *fn, const unsigned char *buf, long n)
 
   (void)fwrite (buf, 1, (size_t)n, f);
   (void)fclose (f);
+
+#ifdef LZ_CPM
+  (void)cpm_set_byte_count (fn, n);
+#endif
 
   return 0;
 }
@@ -1707,7 +1743,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
              int optimal)
 {
   unsigned char *data = g_a, *pl = g_b, *outf = g_c;
-  long n, pllen, outlen, pl_dst_top, ming, pad, total, body;
+  long n, pllen, outlen, pl_dst_top, ming, total, body;
   char nb[1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
@@ -1796,12 +1832,6 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
     }
 
   total = body;
-  pad = (128 - (total % 128)) % 128;
-
-  if (pad)
-    (void)memset (outf + total, 0, (size_t)pad);
-
-  total += pad;
 
   if (total >= n)
     {
@@ -2496,11 +2526,10 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
                     int use8080, int optimal)
 {
   FILE *in, *tmp, *outf;
-  long n, pllen, outlen, pl_dst_top, ming, pad, total, body;
+  long n, pllen, outlen, pl_dst_top, ming, total, body;
   long stub_dst_top, dcmp_dsttop;
   unsigned char first16[LITCNT];
   char nb[64];
-  long k;
 
   n = count_file (fn);
 
@@ -2524,6 +2553,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       if (in)
         {
           unsigned char hdr[LITCNT];
+          long k;
 
           k = (long)fread (hdr, 1, LITCNT, in);
           (void)fclose (in);
@@ -2652,8 +2682,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   body = (use8080 ? (LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN)
                   : (LITCNT + pllen + LITCNT + STUBLEN));
-  pad = (128 - (body % 128)) % 128;
-  total = body + pad;
+
+  total = body;
 
   if (total >= n)
     {
@@ -2705,12 +2735,13 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   else
     assemble_z80_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
 
-  for (k = 0; k < pad; k++)
-    putc (0, outf);
-
   (void)fclose (outf);
   (void)fclose (tmp);
   remove (LZTMP);
+
+#  ifdef LZ_CPM
+  (void)cpm_set_byte_count (oname, total);
+#  endif
 
   if (verbose)
     {
