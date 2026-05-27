@@ -16,12 +16,12 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
 
 (
   set -x
-  make distclean > /dev/null
+  "${MAKE:-make}" distclean > /dev/null
 )
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
-make cs8080.h > /dev/null
+"${MAKE:-make}" cs8080.h > /dev/null
 
 for f in ./cs8080.h ./stubasm.c ./lzpack.c; do
   if (
@@ -38,7 +38,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  cppcheck \
+  "${CPPCHECK:-cppcheck}" \
     --enable=warning,style,performance,portability,unusedFunction \
     --force --check-level=exhaustive --std=c89 --platform=unix64 \
     --inline-suppr --inconclusive --quiet --error-exitcode=2 \
@@ -51,12 +51,12 @@ fi
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer <<<<<<<<<<<<<<<<"
 
-make distclean > /dev/null 2>&1 || :
+"${MAKE:-make}" distclean > /dev/null 2>&1 || :
 
 if (
   set -x
-  make \
-    CC="gcc" \
+  "${MAKE:-make}" \
+    CC="${GCC_CMD:-gcc}" \
     CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fanalyzer"
 ); then
   :
@@ -66,14 +66,14 @@ fi
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build <<<<<<<<<<<<<<<<"
 
-make distclean > /dev/null 2>&1 || :
+"${MAKE:-make}" distclean > /dev/null 2>&1 || :
 TMPID=$$$$
 
 if (
   set -x
-  scan-build \
+  "${SCAN_BUILD_CMD:-scan-build}" \
     --status-bugs \
-    -o /tmp/"lzpack-scan.${TMPID}" make all > /dev/null 2>&1
+    -o /tmp/"lzpack-scan.${TMPID}" "${MAKE:-make}" all > /dev/null 2>&1
 ); then
   :
 else
@@ -85,11 +85,11 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio <<<<<<<<<<<<<<<<"
 
 rm -f compile_commands.json log.pvs 2> /dev/null
 rm -f -r ./pvsreport 2> /dev/null 2>&1
-make distclean > /dev/null 2>&1 || :
+"${MAKE:-make}" distclean > /dev/null 2>&1 || :
 
 (
   set -x
-  bear -- make > /dev/null
+  "${BEAR_CMD:-bear}" -- "${MAKE:-make}" > /dev/null
 )
 
 (
@@ -111,7 +111,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  ch -n ./stubasm.c
+  "${CH_CMD:-ch}" -n ./stubasm.c
 ); then
   :
 else
@@ -120,7 +120,7 @@ fi
 
 if (
   set -x
-  ch -n ./lzpack.c
+  "${CH_CMD:-ch}" -n ./lzpack.c
 ); then
   :
 else
@@ -155,7 +155,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  reuse lint -q || reuse lint
+  "${REUSE_CMD:-reuse}" lint -q || "${REUSE_CMD:-reuse}" lint
 ); then
   :
 else
@@ -166,7 +166,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  shellcheck -o any,all \
+  "${SHELLCHECK_CMD:-shellcheck}" -o any,all \
     ./.build-cpm.sh \
     ./.lint.sh \
     ./tests/run.sh
@@ -180,7 +180,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  shfmt -bn -sr -fn -i 2 -s -d \
+  "${SHFMT_CMD:-shfmt}" -bn -sr -fn -i 2 -s -d \
     ./.build-cpm.sh \
     ./.lint.sh \
     ./tests/run.sh
@@ -194,7 +194,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> black <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  black --quiet --check \
+  "${BLACK_CMD:-black}" --quiet --check \
     ./tests/gen.py \
     ./tests/harness.py
 ); then
@@ -205,10 +205,10 @@ fi
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch <<<<<<<<<<<<<<<<"
 
-make clean > /dev/null 2>&1 || :
+"${MAKE:-make}" clean > /dev/null 2>&1 || :
 if (
   set -x
-  make \
+  "${MAKE:-make}" \
     CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
     CC="${HOME}/src/smatch/cgcc"
 ); then
@@ -218,7 +218,7 @@ else
 fi
 
 if [ "${rc}" = 0 ]; then
-  make distclean > /dev/null 2>&1 || :
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   printf '\n%s\n' ">>>>>>>>>>>>>>>> lint SUCCESSFUL <<<<<<<<<<<<<<<<"
 else
   printf '\n%s\n' ">>>>>>>>>>>>>>>> lint FAILED!!!! <<<<<<<<<<<<<<<<"
