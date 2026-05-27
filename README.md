@@ -24,9 +24,9 @@ Usage:
 
 |                                                                                          File  | Platform                     |
 |-----------------------------------------------------------------------------------------------:|:-----------------------------|
-| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | **CP/M‑86**&nbsp;(8086/8088) |
 | [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | **CP/M‑80**&nbsp;(8080)      |
 | [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | **CP/M‑80**&nbsp;(Z80)       |
+| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | **CP/M‑86**&nbsp;(8086/8088) |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | **MS‑DOS**&nbsp;(8086/8088)  |
 | [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | **MS‑DOS**&nbsp;(80386 DPMI) |
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | **Windows**&nbsp;(32-bit)    |
