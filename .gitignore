@@ -25,6 +25,8 @@ core-*
 /cs8080.h
 /csz80.h
 /djgpp
+/djgpp/
+/elks/
 *.exe
 *.EXE
 log.pvs
@@ -34,6 +36,7 @@ log.pvs
 *.MAP
 /mkstub
 /msdos
+/msdos/
 *.o
 *.O
 *.obj
@@ -52,6 +55,7 @@ pvsreport
 *.TMP
 *.unp
 *.UNP
+/windows/
 
 # keep the test programs in-repo
 !tests/corpus/
@@ -61,3 +65,4 @@ pvsreport
 !bindist/
 !bindist/*.ARC
 !bindist/*.ZIP
+!bindist/*.Z
