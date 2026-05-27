@@ -123,6 +123,18 @@ static unsigned char g_b[BUFSZ];
 
 /******************************************************************************/
 
+#ifdef FREE
+# undef FREE
+#endif
+
+#define FREE(p) \
+  do {          \
+    free((p));  \
+    (p) = NULL; \
+  } while(0)
+
+/******************************************************************************/
+
 /*
  * Default self-extracting stub architecture.  z88dk predefines __8080 when its
  * 8080 library is in use (-clib=8080) and __Z80 for a Z80 build; on an 8080
@@ -1920,8 +1932,8 @@ win_alloc (void)
       if (s_win && s_lnk)
         break;
 
-      free (s_win);
-      free (s_lnk);
+      FREE (s_win);
+      FREE (s_lnk);
       s_win = 0;
       s_lnk = 0;
     }
@@ -1943,10 +1955,8 @@ win_alloc (void)
 static void
 win_free (void)
 {
-  free (s_win);
-  free (s_lnk);
-  s_win = 0;
-  s_lnk = 0;
+  FREE (s_win);
+  FREE (s_lnk);
 }
 
 /******************************************************************************/
@@ -2904,7 +2914,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (!f)
     {
-      free (data);
+      FREE (data);
       (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
 
       return 1;
@@ -2915,7 +2925,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if ((long)r != n || parse_header (data, n, &stubv, &lit_src, &outlen))
     {
-      free (data);
+      FREE (data);
       (void)fprintf (stderr, "FATAL: %s is not a POPCOM/LZPACK file\n", fn);
 
       return 1;
@@ -2925,7 +2935,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (outlen > MZXFILE)
     {
-      free (data);
+      FREE (data);
       (void)fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
 
@@ -2935,7 +2945,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if ((long)lit_src - TPA < 0 ||
       (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
-      free (data);
+      FREE (data);
       (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
 
       return 1;
@@ -2945,7 +2955,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (!out)
     {
-      free (data);
+      FREE (data);
       (void)fprintf (stderr,
                      "FATAL: %s too large to restore (out of memory)\n", fn);
 
@@ -2963,8 +2973,8 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (writefile (oname, out, outlen))
     {
-      free (data);
-      free (out);
+      FREE (data);
+      FREE (out);
       (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
 
       return 1;
@@ -2974,8 +2984,8 @@ do_restore (const char *fn, const char *oname, int verbose)
     (void)fprintf (stderr,
                    "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
 
-  free (data);
-  free (out);
+  FREE (data);
+  FREE (out);
 
   return 0;
 }
