@@ -780,7 +780,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 {
   long i;
   long *cost;
-  int *tlen, *tdist, *head2;
+  int *tlen, *tdist;
   static int l2d[MAXLEN + 1];
 
   D = data;
@@ -790,23 +790,16 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
   cost = (long *)lxmalloc (sizeof (long) * (size_t)(n + 1));
   tlen = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
   tdist = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
-  head2 = (int *)lxmalloc (sizeof (int) * (size_t)65536U);
 
   {
     long j;
 
     for (j = 0; j < HSZ; j++)
       head[j] = -1;
-
-    for (j = 0; j < 65536; j++)
-      head2[j] = -1;
   }
 
   for (i = 0; i < start && i + 2 < n; i++)
-    {
-      hinsert (i);
-      head2[data[i] | (data[i + 1] << 8)] = (int)i;
-    }
+    hinsert (i);
 
   for (i = start; i <= n; i++)
     {
@@ -886,26 +879,27 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
           if (i + 1 < n)
             {
-              int p2 = head2[data[i] | (data[i + 1] << 8)];
+              long lo = (i > 128) ? (i - 128) : 0;
+              long p;
 
-              if (p2 >= 0 && (i - p2) <= 128)
-                {
-                  long c2 = cost[i] + match_bits ((int)(i - p2), 2);
+              for (p = i - 1; p >= lo; p--)
+                if (data[p] == data[i] && data[p + 1] == data[i + 1])
+                  {
+                    long c2 = cost[i] + match_bits ((int)(i - p), 2);
 
-                  if (c2 < cost[i + 2])
-                    {
-                      cost[i + 2] = c2;
-                      tlen[i + 2] = 2;
-                      tdist[i + 2] = (int)(i - p2);
-                    }
-                }
+                    if (c2 < cost[i + 2])
+                      {
+                        cost[i + 2] = c2;
+                        tlen[i + 2] = 2;
+                        tdist[i + 2] = (int)(i - p);
+                      }
+
+                    break;
+                  }
             }
         }
 
       hinsert (i);
-
-      if (i + 1 < n)
-        head2[data[i] | (data[i + 1] << 8)] = (int)i;
     }
 
   {
@@ -938,7 +932,6 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
   free (cost);
   free (tlen);
   free (tdist);
-  free (head2);
 
   return ol;
 }
