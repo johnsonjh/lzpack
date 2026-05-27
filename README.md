@@ -9,12 +9,13 @@ LZPACK is a PopCom!-compatible CP/M-80 executable compressor.
 It runs on 48K CP/M-80, CP/M-86, MS-DOS, UNIX, and other platforms.
 
 ```
-LZPACK v0.7 - PopCom!-compatible 48K CP/M-80 executable compressor
+LZPACK v0.8-dev - PopCom!-compatible 48K CP/M-80 executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
   lzpack [-e] [-8] <file>  compress (-e: extra, -8: use 8080 stub)
   lzpack -R <file>         restore (decompress)
   lzpack -L <file>         list stored sizes
-  lzpack -o <name>         set output name
+  lzpack -O <name>         set output name
+  lzpack -V                show LZPACK information
 ```

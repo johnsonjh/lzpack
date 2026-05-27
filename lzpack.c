@@ -16,13 +16,11 @@
 
 /******************************************************************************/
 
-/*
- * Preprocessor definitions:
- *   MZXFILE            - input/output file max size (bytes); lower it for
- *                          very small memory targets (e.g., -DMZXFILE=49152L).
- *   HSZ                - compressor hash table size (power of two).
- *   POPCOM_DECODE_ONLY - build a restore/list-only utility
- */
+#ifdef LZPACK_VER
+# undef LZPACK_VER
+#endif
+
+#define LZPACK_VER "v0.8-dev"
 
 /******************************************************************************/
 
@@ -62,27 +60,66 @@
 
 /******************************************************************************/
 
-#ifndef POPCOM_STREAM
-static unsigned char g_a[BUFSZ];
-static unsigned char g_b[BUFSZ];
-#endif
-
-/******************************************************************************/
-
-#if 0
-# ifdef __Z88DK
-#  pragma output CLIB_MALLOC_HEAP_SIZE = 2048
-#  include <malloc.h>
+#ifndef LZ_CPM
+# ifdef CPM
+#  define LZ_CPM
 # endif
 #endif
 
 /******************************************************************************/
 
-#ifdef LZVER
-# undef LZVER
+#ifndef LZ_CPM
+# ifdef __CPM__
+#  define LZ_CPM
+# endif
 #endif
 
-#define LZVER "v0.7"
+/******************************************************************************/
+
+#ifndef LZ_CPM
+# ifdef CPM80
+#  define LZ_CPM
+# endif
+#endif
+
+/******************************************************************************/
+
+#ifndef LZ_CPM
+# ifdef __CPM80__
+#  define LZ_CPM
+# endif
+#endif
+
+/******************************************************************************/
+
+#ifndef LZ_CPM
+# ifdef CPM86
+#  define LZ_CPM
+# endif
+#endif
+
+/******************************************************************************/
+
+#ifndef LZ_CPM
+# ifdef __CPM86__
+#  define LZ_CPM
+# endif
+#endif
+
+/******************************************************************************/
+
+#ifndef LZ_CPM
+# ifdef __AZTEC_C_42T__
+#  define LZ_CPM
+# endif
+#endif
+
+/******************************************************************************/
+
+#ifndef POPCOM_STREAM
+static unsigned char g_a[BUFSZ];
+static unsigned char g_b[BUFSZ];
+#endif
 
 /******************************************************************************/
 
@@ -1347,6 +1384,107 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
 /******************************************************************************/
 
+#ifdef LZ_CPM
+# ifdef __Z88DK
+#  include <cpm.h>
+# else
+extern int bdos ();
+# endif
+#endif
+
+/******************************************************************************/
+
+#ifdef LZ_CPM
+
+static void
+cpm_setfcb (unsigned char *fcb, const char *fn)
+{
+  const char *p = fn;
+  int i;
+
+  for (i = 0; i < 36; i++)
+    fcb[i] = 0;
+
+  for (i = 1; i <= 11; i++)
+    fcb[i] = ' ';
+
+  if (p[0] && p[1] == ':')
+    p += 2;
+
+  i = 1;
+
+  while (*p && *p != '.' && i <= 8)
+    {
+      char c = *p++;
+
+      if (c >= 'a' && c <= 'z')
+        c = (char)(c - 32);
+
+      fcb[i++] = (unsigned char)c;
+    }
+
+  while (*p && *p != '.')
+    p++;
+
+  if (*p == '.')
+    p++;
+
+  i = 9;
+
+  while (*p && i <= 11)
+    {
+      char c = *p++;
+
+      if (c >= 'a' && c <= 'z')
+        c = (char)(c - 32);
+
+      fcb[i++] = (unsigned char)c;
+    }
+}
+
+/******************************************************************************/
+
+static long
+cpm_file_size (const char *fn)
+{
+  unsigned char fcb[36];
+  long records, last_ext;
+  int lrbc;
+
+  if ((bdos (12, 0) & 0x00ff) < 0x30)
+    return -1;
+
+  cpm_setfcb (fcb, fn);
+  (void)bdos (35, (int)fcb);
+  records = ((long)fcb[33])
+          | ((long)fcb[34] << 8)
+          | ((long)fcb[35] << 16);
+
+  if (records <= 0)
+    return -1;
+
+  last_ext = (records - 1L) / 128L;
+
+  cpm_setfcb (fcb, fn);
+  fcb[12] = (unsigned char)(last_ext & 0x1f);
+  fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
+
+  if ((bdos (15, (int)fcb) & 0x00ff) == 0xff)
+    return -1;
+
+  lrbc = fcb[13] & 0xff;
+  (void)bdos (16, (int)fcb);
+
+  if (lrbc > 0 && lrbc <= 128)
+    return (records - 1L) * 128L + lrbc;
+
+  return records * 128L;
+}
+
+#endif
+
+/******************************************************************************/
+
 static long
 readfile (const char *fn, unsigned char *buf, size_t max)
 {
@@ -1374,6 +1512,15 @@ readfile (const char *fn, unsigned char *buf, size_t max)
     }
 
   (void)fclose (f);
+
+#ifdef LZ_CPM
+  {
+    long exact = cpm_file_size (fn);
+
+    if (exact > 0 && exact <= (long)n && (long)n - exact < 128)
+      return exact;
+  }
+#endif
 
   return (long)n;
 }
@@ -2330,6 +2477,15 @@ count_file (const char *fn)
 
   (void)fclose (f);
 
+#  ifdef LZ_CPM
+  {
+    long exact = cpm_file_size (fn);
+
+    if (exact > 0 && exact <= n && n - exact < 128)
+      n = exact;
+  }
+#  endif
+
   return n;
 }
 
@@ -2870,6 +3026,17 @@ do_list (const char *fn)
 /******************************************************************************/
 
 static void
+herald (FILE *f)
+{
+  (void)fprintf (f,
+    "LZPACK %s - PopCom!-compatible 48K CP/M-80 executable compressor\n"
+    "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n",
+    LZPACK_VER);
+}
+
+/******************************************************************************/
+
+static void
 usage (void)
 {
 #ifdef POPCOM_NO_OPT
@@ -2884,9 +3051,9 @@ usage (void)
 # endif
 #endif
 
+  herald (stderr);
+
   (void)fprintf (stderr,
-    "LZPACK %s - PopCom!-compatible 48K CP/M-80 executable compressor\n"
-    "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n"
     "\n"
     "Usage:\n"
 #ifndef POPCOM_DECODE_ONLY
@@ -2900,12 +3067,38 @@ usage (void)
     "  lzpack -R <file>         restore (decompress)\n"
 #endif
     "  lzpack -L <file>         list stored sizes\n"
-    "  lzpack -o <name>         set output name\n",
-    LZVER
+    "  lzpack -O <name>         set output name\n"
+    "  lzpack -V                show LZPACK information\n"
 #ifndef POPCOM_DECODE_ONLY
     , exopt, expad, extra
 #endif
     );
+}
+
+/******************************************************************************/
+
+static void
+version (void)
+{
+  herald (stdout);
+
+#ifdef LZ_CPM
+  {
+    unsigned w = (unsigned)bdos (12, 0);
+    int sys = (int)((w >> 8) & 0xff);
+    int ver = (int)(w & 0xff);
+    const char *os = (sys >= 2) ? "CP/NET" : (sys == 1) ? "MP/M" : "CP/M";
+
+    (void)printf ("%s %d.%d (BDOS %02Xh, system %02Xh)%s\n",
+      os, (ver >> 4) & 0xf, ver & 0xf, ver, sys,
+      ((ver >= 0x30) ? "; Last Record Byte Count supported."
+                     : "; no Last Record Byte Count support."));
+  }
+#endif
+
+  (void)printf (
+    "The LZPACK canonical homepage is https://github.com/johnsonjh/lzpack\n"
+    "This program is distributed under the terms of the MIT-0 license.\n");
 }
 
 /******************************************************************************/
@@ -2917,6 +3110,7 @@ main (int argc, char **argv)
   int i, rc = 0, nfiles = 0;
   const char *oname = 0;
   int use8080 = DEFAULT_USE8080, optimal = 0;
+  int showver = 0;
 
   /*
    * First pass: gather options (which may appear anywhere on the line) and
@@ -2951,7 +3145,9 @@ main (int argc, char **argv)
 
               oname = argv[++i];
             }
-          else if (c == 'h')
+          else if (c == 'V' || c == 'v')
+            showver = 1;
+          else if (c == 'h' || c == 'H')
             {
               usage ();
 
@@ -2966,6 +3162,13 @@ main (int argc, char **argv)
         }
       else
         nfiles++;
+    }
+
+  if (showver)
+    {
+      version ();
+
+      return 0;
     }
 
   if (!nfiles)
