@@ -1683,8 +1683,7 @@ main (int argc, char **argv)
   if (argc < 3)
     {
       (void)fprintf (stderr,
-                     "usage: stubasm setup.asm decomp.asm > stub.h\n"
-                     "       stubasm -z80 sz80s.asm sz80d.asm > cz80.h\n");
+                     "Usage: stubasm [-z80] setup.asm decomp.asm > stub.h\n");
 
       return 2;
     }
