@@ -232,7 +232,7 @@ build_arch()
   printf '%s\n' ""
 }
 
-# Host build: Stub tables (cs8080.h) and the native lzpack used for packing
+# Host build: Stub tables (cs8080.h, cz80.h) and the native lzpack used for packing
 printf '%s\n' ""
 printf '%s\n\n' ">> building native host lzpack"
 "${MAKE:-make}" lzpack

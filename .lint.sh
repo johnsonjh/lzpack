@@ -21,9 +21,9 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
-"${MAKE:-make}" cs8080.h > /dev/null
+"${MAKE:-make}" cs8080.h cz80.h > /dev/null
 
-for f in ./cs8080.h ./stubasm.c ./lzpack.c; do
+for f in ./cs8080.h ./cz80.h ./stubasm.c ./lzpack.c; do
   if (
     set -x
     cppi -a --check "${f}"

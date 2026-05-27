@@ -23,6 +23,7 @@ core-*
 /cpm-86/
 /cpm-z80/
 /cs8080.h
+/cz80.h
 *.exe
 *.EXE
 log.pvs

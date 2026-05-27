@@ -18,13 +18,18 @@ build: all
 
 ################################################################################
 
-lzpack: lzpack.c cs8080.h
+lzpack: lzpack.c cs8080.h cz80.h
 	$(CC) $(CFLAGS) -I. -o $@ lzpack.c
 
 ################################################################################
 
 cs8080.h: s8080s.asm s8080d.asm stubasm
 	./stubasm s8080s.asm s8080d.asm > $@
+
+################################################################################
+
+cz80.h: sz80s.asm sz80d.asm stubasm
+	./stubasm -z80 sz80s.asm sz80d.asm > $@
 
 ################################################################################
 
@@ -47,9 +52,9 @@ clean:
 ################################################################################
 
 distclean: clean
-	rm -f cs8080.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map ./*.t
+	rm -f cs8080.h cz80.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
 	rm -f compile_commands.json compile_commands.events.json log.pvs
-	rm -f ./*.pop ./*.unp a.out a.exe core core-*
+	rm -f ./*.pop ./*.unp ./*.t a.out a.exe core core-*
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
@@ -58,26 +63,26 @@ distclean: clean
 
 ################################################################################
 
-stub: cs8080.h
+stub: cs8080.h cz80.h
 
 ################################################################################
 
-cpm cpm80 cpm-auto cpm80-auto: cs8080.h
+cpm cpm80 cpm-auto cpm80-auto: cs8080.h cz80.h
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
 ################################################################################
 
-cpm-local cpm80-local: cs8080.h
+cpm-local cpm80-local: cs8080.h cz80.h
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
 ################################################################################
 
-cpm-docker cpm80-docker: cs8080.h
+cpm-docker cpm80-docker: cs8080.h cz80.h
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
 ################################################################################
 
-cpm86 cpm-86: cs8080.h
+cpm86 cpm-86: cs8080.h cz80.h
 	@mkdir -p ./cpm-86/
 	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
 	aztec42_cc -B "+CA" -L19 -Z450 -D__AZTEC_C_42T__=1 \
