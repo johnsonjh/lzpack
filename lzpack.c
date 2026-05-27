@@ -6,13 +6,13 @@
 
 /******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/* //-V::707 */
 
 /******************************************************************************/
 
-/* //-V::707 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /******************************************************************************/
 
@@ -48,14 +48,27 @@
 
 /******************************************************************************/
 
+#ifdef POPCOM_STREAM
+static const int never =0;
+# define FREE(p) \
+  do {          \
+    free((p));  \
+    (p) = NULL; \
+  } while(never)
+#endif
+
+/******************************************************************************/
+
 /*
  * BUFSZ sizes the in-RAM whole-file buffers used by the non-streaming build.
  * The streaming build does not use it: -R/-L allocate exactly what they need
  * and compression streams through the dynamically-sized window.
  */
 
-#ifndef BUFSZ
-# define BUFSZ (MZXFILE + 512)
+#ifndef POPCOM_STREAM
+# ifndef BUFSZ
+#  define BUFSZ (MZXFILE + 512)
+# endif
 #endif
 
 /******************************************************************************/
@@ -120,18 +133,6 @@
 static unsigned char g_a[BUFSZ];
 static unsigned char g_b[BUFSZ];
 #endif
-
-/******************************************************************************/
-
-#ifdef FREE
-# undef FREE
-#endif
-
-#define FREE(p) \
-  do {          \
-    free((p));  \
-    (p) = NULL; \
-  } while(0)
 
 /******************************************************************************/
 
@@ -315,7 +316,7 @@ obuf_flush (long upto)
       off = (int)cnt;
       len = (unsigned int)(ol - upto);
 
-      memmove((char *)s_obuf, (const char *)(s_obuf + off), len);
+      (void)memmove((char *)s_obuf, (const char *)(s_obuf + off), len);
 
       s_obase = upto;
     }
@@ -1487,6 +1488,7 @@ cpm_set_byte_count (const char *fn, long nbytes)
 
 /******************************************************************************/
 
+#ifndef POPCOM_STREAM
 static long
 readfile (const char *fn, unsigned char *buf, size_t max)
 {
@@ -1515,17 +1517,18 @@ readfile (const char *fn, unsigned char *buf, size_t max)
 
   (void)fclose (f);
 
-#ifdef LZ_CPM
+# ifdef LZ_CPM
   {
     long exact = cpm_file_size (fn);
 
     if (exact > 0 && exact <= (long)n && (long)n - exact < 128)
       return exact;
   }
-#endif
+# endif
 
   return (long)n;
 }
+#endif
 
 /******************************************************************************/
 
@@ -2231,7 +2234,7 @@ min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
 
           if (!b0)
             {
-              ml = a + 1;
+              ml = (unsigned)a + 1U;
 
               goto cpx;
             }
@@ -2257,7 +2260,7 @@ min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned)a + 1U;
 
           goto cpx;
         }
@@ -2277,7 +2280,7 @@ min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned)a + 1U;
 
           goto cpx;
         }
@@ -2296,7 +2299,7 @@ min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
 
       if (!bit)
         {
-          ml = a + 1;
+          ml = (unsigned)a + 1U;
 
           goto cpx;
         }
@@ -2343,7 +2346,7 @@ min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
       while (--b);
 
       a = (a + c) & 0xff;
-      ml = a + 1;
+      ml = (unsigned)a + 1U;
 
     cpx:
       for (k = 0; k < (long)ml; k++)
@@ -2376,7 +2379,7 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)fwrite (hdr, 1, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
-    putc (getc (pl), outf);
+    (void)putc (getc (pl), outf);
 
   (void)fwrite (first16, 1, LITCNT, outf);
 
@@ -2421,7 +2424,7 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)fwrite (hdr, 1, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
-    putc (getc (pl), outf);
+    (void)putc (getc (pl), outf);
 
   (void)fwrite (first16, 1, LITCNT, outf);
 
@@ -2598,7 +2601,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     {
       (void)fclose (in);
       (void)fclose (tmp);
-      remove (LZTMP);
+      (void)remove (LZTMP);
       (void)fprintf (stderr, "FATAL: out of memory for compression window\n");
 
       return 1;
@@ -2625,7 +2628,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (!tmp)
     {
-      remove (LZTMP);
+      (void)remove (LZTMP);
       (void)fprintf (stderr, "FATAL: cannot reopen temp file %s\n", LZTMP);
 
       return 1;
@@ -2642,7 +2645,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (use8080 ? (dcmp_dsttop > MEMTOP) : (stub_dst_top > MEMTOP))
     {
-      remove (LZTMP);
+      (void)remove (LZTMP);
       (void)fprintf (stderr, "FATAL: %s would not fit in memory\n", fn);
 
       return 1;
@@ -2660,7 +2663,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
                        "  %-12s -- inefficient (%ld => %ld), skipped\n",
                        fn, n, total);
 
-      remove (LZTMP);
+      (void)remove (LZTMP);
 
       return 2;
     }
@@ -2678,7 +2681,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (!outf)
     {
-      remove (LZTMP);
+      (void)remove (LZTMP);
       (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
 
       return 1;
@@ -2692,20 +2695,20 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!tmp)
     {
       (void)fclose (outf);
-      remove (LZTMP);
+      (void)remove (LZTMP);
       (void)fprintf (stderr, "FATAL: cannot reopen temp file %s\n", LZTMP);
 
       return 1;
     }
 
   if (use8080)
-    assemble_8080_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
+    (void)assemble_8080_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
   else
-    assemble_z80_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
+    (void)assemble_z80_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
 
   (void)fclose (outf);
   (void)fclose (tmp);
-  remove (LZTMP);
+  (void)remove (LZTMP);
 
 #  ifdef LZ_CPM
   (void)cpm_set_byte_count (oname, total);

@@ -246,6 +246,9 @@ is_ident (const char *s)
 static int
 is_symbol (const char *s)
 {
+  if (!s)
+    return 0;
+
   if (!is_ident (s))
     return 0;
 
@@ -564,6 +567,13 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
   int r, p, cc, rot, cbase;
   long w;
 
+  /*
+   * a0 always points at a (possibly empty) string supplied by the caller; only
+   * a1 can be a null pointer (single-operand instruction).  The register and
+   * expression helpers all tolerate "" and null, so operand presence is tested
+   * via a1, never a0.
+   */
+
   if (!strcmp (op, "NOP" )) { emit (0x00); return; }
   if (!strcmp (op, "HALT")) { emit (0x76); return; }
   if (!strcmp (op, "EXX" )) { emit (0xD9); return; }
@@ -595,13 +605,13 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
   if (!strcmp (op, "EX"))
     {
-      if (a0 && a1 && !strcmp (a0, "DE") && !strcmp (a1, "HL"))
+      if (a1 && !strcmp (a0, "DE") && !strcmp (a1, "HL"))
         { emit (0xEB); return; }
 
-      if (a0 && a1 && !strcmp (a0, "AF") && !strcmp (a1, "AF'"))
+      if (a1 && !strcmp (a0, "AF") && !strcmp (a1, "AF'"))
         { emit (0x08); return; }
 
-      if (a0 && a1 && !strcmp (a0, "(SP)") && !strcmp (a1, "HL"))
+      if (a1 && !strcmp (a0, "(SP)") && !strcmp (a1, "HL"))
         { emit (0xE3); return; }
 
       die ("bad EX");
@@ -688,7 +698,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           w = evals (a1, pass, loc);
           emit (0xC2 | (cc << 3));
         }
-      else if (a0 && !strcmp (a0, "(HL)"))
+      else if (!strcmp (a0, "(HL)"))
         {
           emit (0xE9);
 
@@ -751,7 +761,10 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
   if (!strcmp (op, "ADD"))
     {
-      if (a0 && !strcmp (a0, "HL"))
+      if (!a1)
+        die ("bad ADD");
+
+      if (!strcmp (a0, "HL"))
         {
           p = zrp (a1);
 
@@ -763,7 +776,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           return;
         }
 
-      if (a0 && !strcmp (a0, "A"))
+      if (!strcmp (a0, "A"))
         {
           if ((r = z8 (a1)) >= 0) { emit (0x80 | r); return; }
 
@@ -779,7 +792,10 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
   if (!strcmp (op, "ADC"))
     {
-      if (a0 && !strcmp (a0, "HL"))
+      if (!a1)
+        die ("bad ADC");
+
+      if (!strcmp (a0, "HL"))
         {
           p = zrp (a1);
 
@@ -792,7 +808,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           return;
         }
 
-      if (a0 && !strcmp (a0, "A"))
+      if (!strcmp (a0, "A"))
         {
           if ((r = z8 (a1)) >= 0) { emit (0x88 | r); return; }
 
@@ -808,7 +824,10 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
   if (!strcmp (op, "SBC"))
     {
-      if (a0 && !strcmp (a0, "HL"))
+      if (!a1)
+        die ("bad SBC");
+
+      if (!strcmp (a0, "HL"))
         {
           p = zrp (a1);
 
@@ -821,7 +840,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           return;
         }
 
-      if (a0 && !strcmp (a0, "A"))
+      if (!strcmp (a0, "A"))
         {
           if ((r = z8 (a1)) >= 0) { emit (0x98 | r); return; }
 
@@ -902,7 +921,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           return;
         }
 
-      if (a0 && a1)
+      if (a1)
         {
           if (!strcmp (a0, "A"   )
 	      && !strcmp (a1, "(BC)")) { emit (0x0A); return; }
@@ -947,7 +966,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
       return;
     }
 
-  cbase = -1;
+  /* cbase is already -1 here: the ALU-immediate group above returns on a hit */
 
   if      (!strcmp (op, "BIT")) cbase = 0x40;
   else if (!strcmp (op, "RES")) cbase = 0x80;
@@ -1716,7 +1735,7 @@ main (int argc, char **argv)
   for (i = 0; i < nfx; i++)
     (void)printf ("    { %#4x, %#5x },\n", fx_off[i], fx_tgt[i]);
 
-  (void)printf ("};\n# define DECOMP8080_FIX_N %d\n", nfx);
+  (void)printf ("};\n\n# define DECOMP8080_FIX_N %d\n", nfx);
 
   {
     int p;

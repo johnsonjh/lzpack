@@ -30,6 +30,7 @@ for f in ./cs8080.h ./cz80.h ./stubasm.c ./lzpack.c; do
   ); then
     :
   else
+    printf '%s\n' "****** FAILURE DETECTED ******"
     rc=1
   fi
 done
@@ -46,10 +47,11 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
 
 "${MAKE:-make}" distclean > /dev/null 2>&1 || :
 
@@ -61,10 +63,27 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer streaming <<<<<<<<<<<<<<<<"
+
+"${MAKE:-make}" distclean > /dev/null 2>&1 || :
+
+if (
+  set -x
+  "${MAKE:-make}" \
+    CC="${GCC_CMD:-gcc}" \
+    CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -DPOPCOM_STREAM -fanalyzer"
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build standard <<<<<<<<<<<<<<<<"
 
 "${MAKE:-make}" distclean > /dev/null 2>&1 || :
 TMPID=$$$$
@@ -81,7 +100,7 @@ else
   rc=1
 fi
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio standard <<<<<<<<<<<<<<<<"
 
 rm -f compile_commands.json log.pvs 2> /dev/null
 rm -f -r ./pvsreport 2> /dev/null 2>&1
@@ -104,6 +123,52 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build stream <<<<<<<<<<<<<<<<"
+
+"${MAKE:-make}" distclean > /dev/null 2>&1 || :
+TMPID=$$$$
+
+if (
+  set -x
+  "${SCAN_BUILD_CMD:-scan-build}" \
+    --status-bugs \
+    -o /tmp/"lzpack-scan.${TMPID}" "${MAKE:-make}" \
+    CFLAGS="-O -DPOPCOM_STREAM" all > /dev/null 2>&1
+); then
+  :
+else
+  printf '\n%s\n' "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
+  rc=1
+fi
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio stream <<<<<<<<<<<<<<<<"
+
+rm -f compile_commands.json log.pvs 2> /dev/null
+rm -f -r ./pvsreport 2> /dev/null 2>&1
+"${MAKE:-make}" distclean > /dev/null 2>&1 || :
+
+(
+  set -x
+  "${BEAR_CMD:-bear}" -- "${MAKE:-make}" > /dev/null
+)
+
+(
+  set -x
+  pvs-studio-analyzer analyze -q --intermodular -j 1 -o log.pvs
+)
+
+if (
+  set -x
+  plog-converter -a "GA:1,2,3" -t fullhtml log.pvs \
+    -o pvsreport --indicateWarnings
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -115,6 +180,7 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -124,6 +190,7 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -132,11 +199,12 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
 if (
   set -x
   /opt/oracle/developerstudio12.6/bin/lint \
-    -O -fd -std=c89 -err=warn -XCC=no \
-    -errchk=structarg,parentheses,locfmtchk stubasm.c
+    -DPOPCOM_STREAM -O -fd -std=c89 -err=warn -XCC=no \
+    -errchk=structarg,parentheses,locfmtchk lzpack.c
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -148,6 +216,19 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+if (
+  set -x
+  /opt/oracle/developerstudio12.6/bin/lint \
+    -O -fd -std=c89 -err=warn -XCC=no \
+    -errchk=structarg,parentheses,locfmtchk stubasm.c
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -159,6 +240,7 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -173,6 +255,7 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -187,6 +270,7 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
@@ -200,13 +284,14 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   ("${BLACK_CMD:-black}" --check \
     ./tests/gen.py \
     ./tests/harness.py || :)
   rc=1
 fi
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch <<<<<<<<<<<<<<<<"
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch standard <<<<<<<<<<<<<<<<"
 
 "${MAKE:-make}" clean > /dev/null 2>&1 || :
 if (
@@ -217,6 +302,22 @@ if (
 ); then
   :
 else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch stream <<<<<<<<<<<<<<<<"
+
+"${MAKE:-make}" clean > /dev/null 2>&1 || :
+if (
+  set -x
+  "${MAKE:-make}" \
+    CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
+    CFLAGS="-O -DPOPCOM_STREAM" CC="${HOME}/src/smatch/cgcc"
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
 
