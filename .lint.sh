@@ -200,6 +200,9 @@ if (
 ); then
   :
 else
+  ("${BLACK_CMD:-black}" --check \
+    ./tests/gen.py \
+    ./tests/harness.py || :)
   rc=1
 fi
 
