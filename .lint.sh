@@ -21,9 +21,9 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
-"${MAKE:-make}" cs8080.h cz80.h > /dev/null
+"${MAKE:-make}" cs8080.h csz80.h > /dev/null
 
-for f in ./cs8080.h ./cz80.h ./stubasm.c ./lzpack.c; do
+for f in ./cs8080.h ./csz80.h ./stubasm.c ./lzpack.c; do
   if (
     set -x
     cppi -a --check "${f}"
@@ -323,9 +323,9 @@ fi
 
 if [ "${rc}" = 0 ]; then
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
-  printf '\n%s\n' ">>>>>>>>>>>>>>>> lint SUCCESSFUL <<<<<<<<<<<<<<<<"
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> lint SUCCESSFUL <<<<<<<<<<<<<<<<"
 else
-  printf '\n%s\n' ">>>>>>>>>>>>>>>> lint FAILED!!!! <<<<<<<<<<<<<<<<"
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> lint FAILED!!!! <<<<<<<<<<<<<<<<"
 fi
 
 exit "${rc}"
