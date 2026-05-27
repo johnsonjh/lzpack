@@ -4,12 +4,21 @@
 # scspell-id: c6be098c-58d5-11f1-ad23-80ee73e9b8e7
 # shellcheck disable=SC1007
 
-# Build the CP/M-80 (z88dk) version of lzpack in Docker.
+# Build the CP/M-80 (z88dk) version of lzpack (and stubasm).
+#
+# Builds are supported using either a locally installed z88dk or with Docker.
 #
 # The CP/M build uses the streaming compressor (-DPOPCOM_STREAM): the input is
 # read from disk through a sliding window (sized dynamically at runtime to the
 # largest the host's heap allows) and the payload is staged in a temp file, so
 # working RAM is fixed and large executables pack on 8080 48K TPA CP/M systems.
+#
+# Build backend (CPM_BACKEND environment variable):
+#   auto    (default) use the local 'zcc' if found in PATH, otherwise fall
+#           back to attempting Docker.  A local install must have the full
+#           and very recent z88dk toolchain including having ZCCCFG set up.
+#   local   require a local 'zcc'; fail if it is not in PATH.
+#   docker  always build using the z88dk Docker image, ignore local 'zcc'.
 #
 # Tunables (override via the environment):
 #   CLIB     z88dk library: 'ixiy' (Z80, default) or '8080' (8080/8085).
@@ -17,12 +26,17 @@
 #   MZXFILE  maximum input size accepted (the 65535-byte header limit).
 #   STACKSZ  stack reserve; the rest of RAM becomes the heap (and the window).
 #   PACK     1 (default) = ship .COMs packed with the host -e self-extractor.
+#   ZCC      local z88dk compiler driver (default 'zcc'; Docker mode ignores it).
 #   DOCKER   docker command (e.g. "sudo docker" if you are not in the group).
-#   IMAGE    z88dk image to use.
+#   IMAGE    z88dk image to use (Docker mode only).
 #   TNYLPO   path to the tnylpo binary for the optional smoke test.
 
 set -eu
 
+printf '\n%s\n' ">>>>>>>>>>> Starting CP/M-80 build <<<<<<<<<<<"
+
+CPM_BACKEND="${CPM_BACKEND:-auto}"
+ZCC="${ZCC:-zcc}"
 IMAGE="${IMAGE:-z88dk/z88dk:latest}"
 DOCKER="${DOCKER:-docker}"
 TNYLPO="${TNYLPO:-tnylpo}"
@@ -49,28 +63,68 @@ WINMIN="${WINMIN:-1024}"
 cd "$(dirname "$0")"
 here="$(pwd -P)"
 
-# Fall back to sudo if the user cannot reach the Docker daemon directly.
-if ! ${DOCKER} info > /dev/null 2>&1; then
-  # shellcheck disable=SC2086
-  if command -v sudo > /dev/null 2>&1 && sudo ${DOCKER} info > /dev/null 2>&1; then
-    printf '%s\n' "note: using 'sudo docker' (current user cannot reach the daemon)"
-    DOCKER="sudo ${DOCKER}"
+# Choose a build backend.
+zccpath=
+case "${CPM_BACKEND}" in
+auto)
+  if zccpath="$(command -v "${ZCC}" 2> /dev/null)"; then
+    CPM_BACKEND=local
   else
-    printf '%s\n' "error: cannot talk to the Docker daemon; set DOCKER or join the group" >&2
+    CPM_BACKEND=docker
+  fi
+  ;;
+local)
+  if ! zccpath="$(command -v "${ZCC}" 2> /dev/null)"; then
+    printf '\n%s\n' "FATAL: CPM_BACKEND='local' but '${ZCC}' is not in PATH (override with ZCC variable)" >&2
+    printf '\n%s\n\n' ">> Dockerized build mode also available: try '${MAKE:-make} cpm-docker'"
     exit 1
   fi
+  ;;
+docker) : ;;
+*)
+  printf '\n%s\n\n' "FATAL: CPM_BACKEND must be 'auto', 'local', or 'docker' (got '${CPM_BACKEND}')" >&2
+  exit 1
+  ;;
+esac
+
+if [ "${CPM_BACKEND}" = docker ]; then
+  # Fall back to sudo if the user cannot reach the Docker daemon directly.
+  if ! ${DOCKER} info > /dev/null 2>&1; then
+    # shellcheck disable=SC2086
+    if command -v sudo > /dev/null 2>&1 && sudo ${DOCKER} info > /dev/null 2>&1; then
+      printf '\n%s\n' "NOTE: Trying 'sudo docker' - the current user could not reach the daemon."
+      DOCKER="sudo ${DOCKER}"
+    else
+      printf '\n%s\n' "FATAL: Failed to talk to the Docker daemon; set DOCKER variable (or join the 'docker' group)" >&2
+      printf '\n%s\n\n' ">> Standard build mode also available: try '${MAKE:-make} cpm-local'"
+      exit 1
+    fi
+  fi
+  printf '\n%s\n' ">>>>>>>>>>> Build mode: Docker (zcc from '${IMAGE}') <<<<<<<<<<<"
+  printf '\n%s\n' ">> Standard build mode also available: try '${MAKE:-make} cpm-local'"
+else
+  printf '\n%s\n' ">>>>>>>>>>> Build mode: local (zcc from '${zccpath}') <<<<<<<<<<<"
+  printf '\n%s\n' ">> Dockerized build mode also available: try '${MAKE:-make} cpm-docker'"
 fi
 
+# Run a z88dk tool.  Call sites pass 'zcc' as the first word; in local mode we
+# drop it and invoke the resolved local driver (${ZCC}), in Docker mode we run
+# the whole command inside the image with the source tree bind-mounted at /src.
 run_zcc()
 {
-  ${DOCKER} run --rm -v "${here}":/src -w /src "${IMAGE}" "$@"
+  if [ "${CPM_BACKEND}" = docker ]; then
+    ${DOCKER} run --rm -v "${here}":/src -w /src "${IMAGE}" "$@"
+  else
+    shift
+    "${ZCC}" "$@"
+  fi
 }
 
 # z88dk's +cpm appmake writes the (zeroed) BSS into the .COM, but the CP/M CRT
 # zeroes BSS at startup, so the file only needs CODE+DATA -- everything below
 # __BSS_head.  Trimming it shrinks the image on disk without changing what runs.
 trim_bss()
-{ # $1 = .com   $2 = .map
+{
   bss= keep= cur=
   [ -f "$2" ] || return 0
   bss=$(sed -n 's/^__BSS_head *= *\$\([0-9A-Fa-f]*\).*/\1/p' "$2" | head -1)
@@ -83,10 +137,10 @@ trim_bss()
   fi
 }
 
-# Pack a CP/M .COM into a smaller self-extracting one with the host's optimal
-# (-e) compressor.  Leaves the file raw on any failure (e.g. incompressible).
+# Pack a CP/M-80 .COM into a smaller self-extracting one with the host's optimal
+# size (-e) compressor.  Leaves the file on any failures (i.e., incompressible).
 pack()
-{ # $1 = .com
+{
   before= after=
   [ "${PACK}" = 0 ] && return 0
   [ -x ./lzpack ] || {
@@ -109,7 +163,7 @@ pack()
 # window (3*WINMIN), stdio buffers, and the stack.  Fails the build if that peak
 # would run past the 48K ceiling -- catching any future z88dk size regression.
 check_48k()
-{ # $1=label  $2=.map  $3=extra heap (0=none)  $4=fatal?
+{
   end= peak= ceil= avail= win=
   if [ ! -f "$2" ]; then
     printf '%s\n' ">> [$1] no map ($2); cannot size-check"
@@ -164,10 +218,13 @@ build_arch()
   case "${DOCKER}" in
   sudo*) sudo chown "$(id -u):$(id -g)" "${lc}" "${lm}" "${sc}" "${sm}" 2> /dev/null || : ;;
   esac
+  printf '%s\n' ""
   check_48k "${clib} lzpack" "${lm}" "$((3 * WINMIN))" 1
   check_48k "${clib} stubasm" "${sm}" 0 0
+  printf '%s\n' ""
   trim_bss "${lc}" "${lm}"
   trim_bss "${sc}" "${sm}"
+  printf '%s\n' ""
   pack "${lc}"
   pack "${sc}"
   printf '%s\n' ""
@@ -175,13 +232,13 @@ build_arch()
   printf '%s\n' ""
 }
 
-# 1. Host build: stub tables (cs8080.h) and the native lzpack used for packing
+# Host build: Stub tables (cs8080.h) and the native lzpack used for packing
 printf '%s\n' ""
 printf '%s\n' ">> building host tools (cs8080.h + ./lzpack)"
-make lzpack
+"${MAKE:-make}" lzpack
 printf '%s\n' ""
 
-# 2. Build each requested architecture
+# Build each requested architecture
 FITFAIL=0
 for arch in ${ARCHS}; do
   case "${arch}" in
@@ -192,17 +249,19 @@ for arch in ${ARCHS}; do
 done
 
 if [ "${FITFAIL}" = 1 ]; then
-  printf '%s\n' "FATAL: a tool's runtime footprint will not fit a 48K CP/M-80 system" >&2
+  printf '\n%s\n\n' "FATAL: a tool's runtime footprint will not fit a 48K CP/M-80 system" >&2
   exit 1
 fi
 
-# 3. Optional smoke test: confirm the .COM loads and prints its usage banner
+printf '%s\n' ">>>>>>>>>>> Finished CP/M-80 build <<<<<<<<<<<"
+
+# Optional smoke test: Confirm the .COM loads and prints its usage banner
 if command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '%s\n' ">> tnylpo z80 smoke test"
   "${TNYLPO}" -n ./cpm-z80/lzpack.com || :
   printf '\n%s\n' ">> tnylpo 8080 smoke test"
   "${TNYLPO}" -n ./cpm-8080/lzpack.com || :
-  printf '\n%s\n' ">> for full self-extract tests: 'make test && make test-cpm'"
+  printf '\n%s\n' ">> for full self-extract tests: '${MAKE:-make} test && ${MAKE:-make} test-cpm'"
 else
   printf '\n%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
 fi
