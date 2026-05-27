@@ -272,6 +272,19 @@ xmemmove(char *dst, const char *src, unsigned int n)
 /******************************************************************************/
 
 #  ifdef __AZTEC_C_42T__
+#   ifndef NEED_REMOVE
+#    define NEED_REMOVE
+#   endif
+#  endif
+
+#  ifdef __IA16_SYS_ELKS
+#  include <unistd.h>
+#   ifndef NEED_REMOVE
+#    define NEED_REMOVE
+#   endif
+#  endif
+
+#  ifdef NEED_REMOVE
 static int
 xremove (const char *filename)
 {
