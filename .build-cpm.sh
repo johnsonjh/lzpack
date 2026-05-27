@@ -234,7 +234,7 @@ build_arch()
 
 # Host build: Stub tables (cs8080.h) and the native lzpack used for packing
 printf '%s\n' ""
-printf '%s\n' ">> building host tools (cs8080.h + ./lzpack)"
+printf '%s\n\n' ">> building native host lzpack"
 "${MAKE:-make}" lzpack
 printf '%s\n' ""
 
@@ -253,15 +253,15 @@ if [ "${FITFAIL}" = 1 ]; then
   exit 1
 fi
 
-printf '%s\n' ">>>>>>>>>>> Finished CP/M-80 build <<<<<<<<<<<"
+printf '%s\n\n' ">>>>>>>>>>> Finished CP/M-80 build <<<<<<<<<<<"
 
 # Optional smoke test: Confirm the .COM loads and prints its usage banner
 if command -v "${TNYLPO}" > /dev/null 2>&1; then
-  printf '%s\n' ">> tnylpo z80 smoke test"
-  "${TNYLPO}" -n ./cpm-z80/lzpack.com || :
-  printf '\n%s\n' ">> tnylpo 8080 smoke test"
-  "${TNYLPO}" -n ./cpm-8080/lzpack.com || :
-  printf '\n%s\n' ">> for full self-extract tests: '${MAKE:-make} test'"
+  printf '%s\n\n' ">> tnylpo z80 smoke test"
+  "${TNYLPO}" -n ./cpm-z80/lzpack.com -v || :
+  printf '\n%s\n\n' ">> tnylpo 8080 smoke test"
+  "${TNYLPO}" -n ./cpm-8080/lzpack.com -v || :
+  printf '\n%s\n' ">> for full round-trip self-extraction tests: '${MAKE:-make} test'"
 else
   printf '\n%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
 fi
