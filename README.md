@@ -6,7 +6,7 @@
 
 LZPACK is a PopCom!-compatible CP/M-80 executable compressor.
 
-It runs on 48K CP/M-80, CP/M-86, MS-DOS, UNIX, and other platforms.
+It runs on 48K CP/M-80, CP/M-86, MS-DOS, ELKS, UNIX, and other platforms.
 
 ```
 LZPACK v0.8-dev - PopCom!-compatible 48K CP/M-80 executable compressor
