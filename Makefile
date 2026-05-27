@@ -42,56 +42,56 @@ strip:
 ################################################################################
 
 clean:
-	rm -f a.out lzpack stubasm
-	rm -f lzpack.o stubasm.o
-	rm -f lzpack.obj stubasm.obj
-	rm -f lzpack.cmd stubasm.cmd
-	rm -f lzpack.com stubasm.com
-	rm -f lzpack.exe stubasm.exe
+	rm -f lzpack stubasm lzpack.o stubasm.o lzpack.exe stubasm.exe
 
 ################################################################################
 
 distclean: clean
 	rm -f cs8080.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map ./*.t
 	rm -f compile_commands.json compile_commands.events.json log.pvs
-	rm -f ./*.pop ./*.unp core core-*
+	rm -f ./*.pop ./*.unp a.out a.exe core core-*
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
+	rm -f -r ./cpm-86 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
+
 stub: cs8080.h
 
 ################################################################################
 
-cpm cpm-auto: cs8080.h
+cpm cpm80 cpm-auto cpm80-auto: cs8080.h
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
 ################################################################################
 
-cpm-local: cs8080.h
+cpm-local cpm80-local: cs8080.h
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
 ################################################################################
 
-cpm-docker: cs8080.h
+cpm-docker cpm80-docker: cs8080.h
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
 ################################################################################
 
 cpm86 cpm-86: cs8080.h
-	@rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd
+	@mkdir -p ./cpm-86/
+	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
 	aztec42_cc -B "+CA" -L19 -Z450 -D__AZTEC_C_42T__=1 -DMAXSYM=96 \
-		-DMAXREF=96 -DMAXCODE=768 stubasm.c
-	aztec42_sqz stubasm.o
-	aztec42_link -o stubasm.cmd stubasm.o -lc86
-	pcdev_cmdinfo stubasm.cmd
+		-DMAXREF=96 -DMAXCODE=768 stubasm.c \
+		-o cpm-86/stubasm.o
+	aztec42_sqz cpm-86/stubasm.o
+	aztec42_link -o cpm-86/stubasm.cmd cpm-86/stubasm.o -lc86
+	pcdev_cmdinfo cpm-86/stubasm.cmd
 	aztec42_cc -I. -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 \
-		-DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c
-	aztec42_sqz lzpack.o
-	aztec42_link -o lzpack.cmd lzpack.o -lc86
-	pcdev_cmdinfo lzpack.cmd
+		-DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c \
+		-o cpm-86/lzpack.o
+	aztec42_sqz cpm-86/lzpack.o
+	aztec42_link -o cpm-86/lzpack.cmd cpm-86/lzpack.o -lc86
+	pcdev_cmdinfo cpm-86/lzpack.cmd
 
 ################################################################################
 
@@ -105,8 +105,8 @@ test: lzpack
 
 ################################################################################
 
-.PHONY: all build clean distclean stub strip cpm cpm-auto cpm-local \
-	cpm-docker lint test cpm86 cpm-86
+.PHONY: all build clean distclean stub strip cpm cpm80 cpm80-auto cpm-auto \
+	cpm-local cpm80-local cpm-docker cpm80-docler lint test cpm86 cpm-86
 
 ################################################################################
 
