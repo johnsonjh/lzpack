@@ -278,7 +278,7 @@ xmemmove(char *dst, const char *src, unsigned int n)
 #  endif
 
 #  ifdef __IA16_SYS_ELKS
-#  include <unistd.h>
+#   include <unistd.h>
 #   ifndef NEED_REMOVE
 #    define NEED_REMOVE
 #   endif
