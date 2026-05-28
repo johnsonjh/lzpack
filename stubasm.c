@@ -597,7 +597,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
     {
       cc = zcc (a0);
 
-      if (!a0)        { emit (0xC9); return; }
+      if (!a0 || !*a0) { emit (0xC9); return; } /* no operand (a0 is "" here) */
       if (cc >= 0)    { emit (0xC0 | (cc << 3)); return; }
 
       die ("bad RET");
@@ -1503,7 +1503,7 @@ static const char *SETUP_PATCH[] =
 
 static const char *DECOMP_PATCH[] =
   { "OUT_END_HI", "OUT_END_LO", "PL_SRCTOP",
-    "PL_DSTTOP",  "PL_LEN",     "PL_DSTBOT", 0 };
+    "PL_DSTTOP",  "PL_LEN", 0 };
 
 /******************************************************************************/
 
@@ -1655,6 +1655,26 @@ emit_z80 (const char *setup_path, const char *decomp_path)
   (void)printf ("# define P_CP_HI 0x%02x\n", o_chi);
   (void)printf ("# define P_CP_LO 0x%02x\n", o_clo);
   (void)printf ("# define P_JP_LOOP 0x%02x\n", o_loop);
+
+  /* GETBIT is a CALLed subroutine; its operand is absolute, so every call site
+   * needs per-file relocation.  Emit GETBIT's decomp-relative offset and the
+   * stub offset of every CALL GETBIT operand. */
+  {
+    int gj, ng = 0, kg = sym_find ("GETBIT"), ks = sym_find ("START");
+
+    if (kg < 0 || ks < 0)
+      die ("GETBIT/START label missing from decompressor");
+
+    (void)printf ("# define Z80_GETBIT_OFF 0x%02x\n",
+                  (int)(sym_val[kg] - sym_val[ks]));
+    (void)printf ("static const unsigned short z80_getbit_fix[] = {");
+
+    for (gj = 0; gj < nref; gj++)
+      if (!strcmp (refs[gj].name, "GETBIT"))
+        (void)printf ("%s0x%02x", ng++ ? ", " : " ", refs[gj].off + slen);
+
+    (void)printf (" };\n# define Z80_GETBIT_FIX_N %d\n", ng);
+  }
 
   (void)printf ("\n#endif\n");
 }

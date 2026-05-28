@@ -18,22 +18,16 @@
 ;                          D' = current stream byte being shifted out
 ;                          C' = 'c' length base / FORM2 high accumulator
 ;
-; GETBIT idiom (runs in bank P), inlined at each use:
-;
-;       RLC  E          ; rotate reservoir; CY = next data bit
-;       JR   NC,$+4     ; reservoir not yet empty -> keep D'
-;       LD   D,(HL)     ; else refill: D' = *SRC++
-;       INC  HL
-;       RLC  D          ; CY = bit (MSB first)
-;
+; GETBIT (runs in bank P) is a subroutine at the end of this block (see there).
 ;   E' is seeded with 80h so the very first GETBIT triggers a refill; the marker
 ;   bit then walks 01h,02h,..,80h and wraps every 8 bits, refilling D' again.
 ;
-; All control flow inside this block is PC-relative (JR/DJNZ) except the single
-; long back-edge "JP LOOP"; that operand plus the two CP out_end immediates are
-; the only per-file patch slots (P_JP_LOOP / P_CP_HI / P_CP_LO).  ORG 016B2h is
-; the placeholder address baked into the verbatim blob; lzpack relocates "JP
-; LOOP" per file.
+; Control flow inside this block is PC-relative (JR/DJNZ) except the absolute
+; "JP LOOP" back-edge and the five "CALL GETBIT" sites.  Those operands, plus the
+; two CP out_end immediates, are the per-file patch slots: P_JP_LOOP, P_CP_HI,
+; P_CP_LO, and z80_getbit_fix[] (all CALL GETBIT operands, retargeted to the
+; relocated GETBIT at run_base + Z80_GETBIT_OFF).  ORG 016B2h is the placeholder
+; address baked into the verbatim blob; lzpack relocates these per file.
 
 OUT_END_HI EQU 016h      ; patch: (out_end>>8)
 OUT_END_LO EQU 080h      ; patch: (out_end&0ffh)
@@ -53,16 +47,10 @@ LOOP:                        ; main token loop, bank M (HL = DST)
         JR   NZ,TOK
         LD   A,L
         CP   OUT_END_LO
-        JR   C,TOK
-        JP   Z,0100h         ; DST == out_end -> run decompressed program
-        RST  0               ; overrun guard (warm boot); never reached
+        JP   Z,0100h         ; DST == out_end -> run decompressed program; else fall
 
 TOK:    EXX                  ; -> bank P (SRC/reservoir)
-        RLC  E               ; GETBIT: CY = control bit
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
+        CALL GETBIT          ; CY = control bit
         LD   A,(HL)          ; GETRAW: A = next stream byte
         INC  HL
         JR   C,ISMTCH        ; control bit 1 -> match
@@ -87,11 +75,7 @@ NOTF1:  BIT  6,A
         ; FORM2: 7-bit field + 4 streamed bits -> 12-bit offset; a = 1
         RES  7,A             ; A = first & 7fh
         LD   BC,0400h        ; B = 4 (bits to read), C = 0 (high accumulator)
-F2L:    RLC  E               ; GETBIT
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
+F2L:    CALL GETBIT
         RLA                  ; A = (A<<1)|bit; CY = overflow
         RL   C               ; C = (C<<1)|CY
         DJNZ F2L
@@ -122,63 +106,49 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         LD   A,2             ; a = 2
         JR   NC,COPY         ; b0 = 0 -> length 3
         LD   C,1             ; c = 1
-        JR   LC              ; b0 = 1 -> extended length
+        LD   B,2             ; FORM3: up to 2 unary length slots (a already = 2)
+        JR   ULOOP           ; b0 = 1 -> extended length
 
 ; ---- length grammar: a in A, c in C', bank P ----
 LF:     LD   C,A             ; c = a
-        INC  A               ; a++
-        RLC  E               ; GETBIT
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
+        LD   B,3             ; FORM1/FORM2: up to 3 unary length slots
+ULOOP:  INC  A
+        CALL GETBIT
         JR   NC,COPY
-LC:     INC  A
-        RLC  E               ; GETBIT
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
-        JR   NC,COPY
-        INC  A
-        RLC  E               ; GETBIT
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
-        JR   NC,COPY
+        DJNZ ULOOP
         LD   A,2             ; a = 2; decode extended bit length b in A
-LEXT:   RLC  E               ; GETBIT
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
+LEXT:   CALL GETBIT
         JR   NC,LEXTD
         INC  A
         CP   7
         JR   NZ,LEXT
 LEXTD:  LD   B,A             ; B = b (number of value bits)
         LD   A,1             ; a = 1 (implicit leading 1)
-LRD:    RLC  E               ; GETBIT
-        JR   NC,$+4
-        LD   D,(HL)
-        INC  HL
-        RLC  D
+LRD:    CALL GETBIT
         RLA                  ; a = (a<<1)|bit
         DJNZ LRD
         ADD  A,C             ; a = (a + c) & ffh
 
 ; ---- copy a+1 bytes from DST-offset-1 to DST ----
 COPY:   EXX                  ; -> bank M (HL = DST, DE = offset)
-        LD   B,H
-        LD   C,L             ; BC = DST
+        PUSH HL              ; save DST
         SCF
         SBC  HL,DE           ; HL = DST - offset - 1 = match source
-        LD   D,B
-        LD   E,C             ; DE = DST (destination)
+        POP  DE              ; DE = DST (destination)
         LD   B,0
         LD   C,A             ; BC = a
         INC  BC              ; BC = a + 1 = byte count
         LDIR
         EX   DE,HL           ; HL = DST advanced past the copy
         JP   LOOP
+
+; ---- GETBIT: next stream bit -> CY (bank P).  Clobbers D' (and HL' on refill).
+; The reservoir marker E' rotates; when it wraps (CY set) D' is refilled from
+; *SRC++.  Rotating D' then yields the next data bit (MSB first) in CY.  CALL is
+; absolute, so lzpack relocates each call operand per file (z80_getbit_fix[]).
+GETBIT: RLC  E               ; rotate marker; CY set on wrap (reservoir empty)
+        JR   NC,GBROT        ; still bits buffered -> just rotate D'
+        LD   D,(HL)          ; refill: D' = *SRC++
+        INC  HL
+GBROT:  RLC  D               ; CY = next data bit
+        RET

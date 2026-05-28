@@ -9,8 +9,7 @@
 
 SRCV    EQU 0040h        ; (2) compressed source pointer
 DSTV    EQU 0042h        ; (2) output pointer
-BITDAT  EQU 0044h        ; (1) bit reservoir
-BITCNT  EQU 0045h        ; (1) bits remaining in reservoir
+BITDAT  EQU 0044h        ; (1) bit reservoir (sentinel-marked; see GETBIT)
 OFFV    EQU 0046h        ; (2) match offset
 
 OUT_END_HI EQU 0         ; patch: (out_end>>8)
@@ -18,7 +17,6 @@ OUT_END_LO EQU 0         ; patch: (out_end&0xff)
 PL_SRCTOP  EQU 0         ; patch: top vaddr of file-resident payload
 PL_DSTTOP  EQU 0         ; patch: top vaddr of relocated payload
 PL_LEN     EQU 0         ; patch: payload length
-PL_DSTBOT  EQU 0         ; patch: bottom vaddr of relocated payload (SRCV start)
 
         ORG 0
 START:
@@ -34,20 +32,20 @@ PRL:    MOV  A,M
         MOV  A,B
         ORA  C
         JNZ  PRL
-        LXI  H, PL_DSTBOT
+        INX  D               ; DE now = relocated payload bottom (= SRC start)
+        XCHG
         SHLD SRCV
         LXI  H, 0110h
         SHLD DSTV
-        XRA  A
-        STA  BITCNT
-LOOP:
-        LHLD DSTV
+        MVI  A,80h            ; seed reservoir empty (sentinel; forces refill on 1st bit)
+        STA  BITDAT
+LOOP:                         ; entered only with HL = DST (init / literal / COPY)
         MOV  A,H
         CPI  OUT_END_HI
         JNZ  TOK
         MOV  A,L
         CPI  OUT_END_LO
-        JZ   DONE
+        JZ   0100h            ; DST == out_end -> run the decompressed program
 TOK:
         CALL GETBIT          ; CY = control bit
         CALL GETRAW          ; A  = raw byte
@@ -58,32 +56,27 @@ TOK:
         INX  H
         SHLD DSTV
         JMP  LOOP
-DONE:
-        JMP  0100h           ; run the decompressed program
 
 ; ---- match: A = first byte ----
 ISMTCH:
-        MOV  B,A             ; B = first byte (preserved across GETBIT)
-        ANI  80h
-        JZ   FORM1
-        MOV  A,B
-        ANI  40h
-        JZ   FORM2
+        MOV  B,A             ; B = first byte (preserved; each form reloads A from B)
+        ADD  A               ; CY = bit7
+        JNC  FORM1
+        ADD  A               ; CY = bit6 (of original first byte)
+        JNC  FORM2
         ; ---- FORM3: 13-bit offset, second raw byte ----
         MOV  A,B
-        ANI  3Fh
-        ORA  A               ; clear carry
+        ANI  3Fh             ; (ANI clears CY on 8080 and Z80)
         RAR                  ; A = (first&3f)>>1 = off high ; CY = (first&3f)&1
         STA  OFFV+1
         CALL GETRAW          ; A = second byte (GETRAW keeps CY)
         RAR                  ; A = (cy<<7)|(second>>1) ; CY = second&1 = b0
         STA  OFFV
         MVI  D,2             ; a = 2
-        JC   F3LONG          ; b0=1 -> extended length
-        JMP  COPY            ; b0=0 -> length 3
-F3LONG:
-        MVI  C,1             ; c = 1
-        JMP  LC
+        JNC  COPY            ; b0=0 -> length 3 (CY still = b0 here)
+        MVI  C,1             ; b0=1 -> extended length: c = 1
+        MVI  B,2             ; FORM3: up to 2 unary length slots (a already = 2)
+        JMP  ULOOP
 
 FORM2:
         ; a = first & 7f ; 4 bits -> {E:D} ; off = (E + carry)<<8 | (D+80h)
@@ -122,16 +115,13 @@ FORM1:
 ; ---- length grammar ; D=a, C=c ----
 LF:
         MOV  C,D             ; c = a
+        MVI  B,3             ; FORM1/FORM2: up to 3 unary length slots
+ULOOP:
         INR  D               ; a++
         CALL GETBIT
         JNC  COPY
-LC:
-        INR  D
-        CALL GETBIT
-        JNC  COPY
-        INR  D
-        CALL GETBIT
-        JNC  COPY
+        DCR  B
+        JNZ  ULOOP
         MVI  D,2             ; a = 2
 LEXT:
         CALL GETBIT
@@ -180,20 +170,19 @@ CPL:
         JMP  LOOP
 
 ; ---- GETBIT: returns next stream bit in CY. Clobbers A, HL. ----
+; Sentinel reservoir: BITDAT holds the live bits left-justified with a single
+; marker '1' bit below them.  ADD A shifts the MSB into CY; when the marker
+; falls out (A becomes 0) we refill and RAL re-seeds the marker into bit 0.
 GETBIT:
-        LDA  BITCNT
-        DCR  A
-        JP   GB1
+        LDA  BITDAT
+        ADD  A               ; A<<=1 ; CY = next bit (MSB) ; Z when marker gone
+        JNZ  GBST
         LHLD SRCV
-        MOV  A,M
+        MOV  A,M             ; A = *SRC++
         INX  H
         SHLD SRCV
-        STA  BITDAT
-        MVI  A,7
-GB1:
-        STA  BITCNT
-        LDA  BITDAT
-        RLC
+        RAL                  ; A = (byte<<1)|1 ; CY = bit7 (the marker enters bit 0)
+GBST:
         STA  BITDAT
         RET
 

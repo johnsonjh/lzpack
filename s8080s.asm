@@ -26,17 +26,17 @@ SL1:    MOV  A,M
         INX  D
         DCR  B
         JNZ  SL1
-        ; 2. relocate decompressor block high (backward copy, dest > src)
+        ; 2. relocate decompressor block high (backward copy, dest > src).
+        ;    8-bit count: the decompressor is <= 256 bytes, so B alone counts it
+        ;    (lzpack patches MVI B with DCMP_LEN & 0xff; 256 wraps to 0 = full page).
         LXI  H, DCMP_SRCTOP
         LXI  D, DCMP_DSTTOP
-        LXI  B, DCMP_LEN
+        MVI  B, DCMP_LEN
 SL3:    MOV  A,M
         STAX D
         DCX  H
         DCX  D
-        DCX  B
-        MOV  A,B
-        ORA  C
+        DCR  B
         JNZ  SL3
         ; 3. enter the relocated decompressor
         JMP  DCMP_RUN

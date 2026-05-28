@@ -20,7 +20,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9"
+#define LZPACK_VER "v0.95"
 
 /******************************************************************************/
 
@@ -182,7 +182,13 @@ lxmalloc (size_t n)
 
 #define TPA 0x100
 #define LITCNT 16
-#define STUBLEN 230
+
+#define Z80_SETUP_LEN 34
+#define Z80_DCMP_LEN 159
+#define Z80_HEADROOM 51
+#define Z80_LOOP_OFF 0x0a
+#define STUBLEN (Z80_SETUP_LEN + Z80_DCMP_LEN)
+
 #define MAXDIST 8192
 #define MAXLEN 256
 #define MEMTOP 0xBDFF
@@ -193,6 +199,10 @@ lxmalloc (size_t n)
 
 # include "csz80.h"
 # include "cs8080.h"
+
+# if S8_DLEN > 256
+#  error "8080 decompressor exceeds 256 bytes; widen SL3 counter in s8080s.asm"
+# endif
 
 /******************************************************************************/
 
@@ -1234,7 +1244,6 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           int b0;
 
-          /* original 8080 stub masks a & 0x3f here; length comes from b0 below */
           b0 = (pl[pi++]) & 1;
           a = 2;
 
@@ -1632,7 +1641,7 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
 {
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
-  long stub_dst_top = pl_dst_top + 246;
+  long stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
   unsigned char *stub;
 
   if (stub_dst_top > MEMTOP)
@@ -1648,17 +1657,26 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   (void)memcpy (stub, z80_stub, STUBLEN);
 
   put16 (stub + P_LIT_SRC, (unsigned)lit_src);
-  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + 0xe5));
+  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + (STUBLEN - 1)));
   put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
   put16 (stub + P_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (stub + P_PL_LEN, (unsigned)pllen);
-  put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - 195));
+  put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1)));
 
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
 
-  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - 195 + 0x0a));
+  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
+
+  {
+    /* GETBIT is CALLed; retarget every call operand to the relocated routine. */
+    long getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
+    int gi;
+
+    for (gi = 0; gi < Z80_GETBIT_FIX_N; gi++)
+      put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
+  }
 
   return LITCNT + pllen + LITCNT + STUBLEN;
 }
@@ -1674,7 +1692,6 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   long decomp_file_v = stub_v + S8_SLEN;
   long stub_run = pl_dst_top + 51;
   long dcmp_dsttop = stub_run + S8_DLEN - 1;
-  long pl_dstbot = pl_dst_top + 1 - pllen;
   unsigned char *su, *de;
   int i;
 
@@ -1699,7 +1716,7 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
   put16 (su + S8S_DCMP_DSTTOP, (unsigned)dcmp_dsttop);
-  put16 (su + S8S_DCMP_LEN, (unsigned)S8_DLEN);
+  su[S8S_DCMP_LEN] = (unsigned char)S8_DLEN; /* 8-bit reloc count; see guard */
   put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
 
   for (i = 0; i < DECOMP8080_FIX_N; i++)
@@ -1712,7 +1729,6 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (de + S8D_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (de + S8D_PL_LEN, (unsigned)pllen);
-  put16 (de + S8D_PL_DSTBOT, (unsigned)pl_dstbot);
 
   return LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN;
 }
@@ -2379,7 +2395,7 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
 {
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
-  long stub_dst_top = pl_dst_top + 246;
+  long stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
   unsigned char hdr[LITCNT], stub[STUBLEN];
   long k;
 
@@ -2405,15 +2421,24 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
 
   (void)memcpy (stub, z80_stub, STUBLEN);
   put16 (stub + P_LIT_SRC, (unsigned)lit_src);
-  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + 0xe5));
+  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + (STUBLEN - 1)));
   put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
   put16 (stub + P_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (stub + P_PL_LEN, (unsigned)pllen);
-  put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - 195));
+  put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1)));
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
-  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - 195 + 0x0a));
+  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
+
+  {
+    /* GETBIT is CALLed; retarget every call operand to the relocated routine. */
+    long getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
+    int gi;
+
+    for (gi = 0; gi < Z80_GETBIT_FIX_N; gi++)
+      put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
+  }
   (void)fwrite (stub, 1, STUBLEN, outf);
 
   return LITCNT + pllen + LITCNT + STUBLEN;
@@ -2430,7 +2455,6 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   long decomp_file_v = stub_v + S8_SLEN;
   long stub_run = pl_dst_top + 51;
   long dcmp_dsttop = stub_run + S8_DLEN - 1;
-  long pl_dstbot = pl_dst_top + 1 - pllen;
   unsigned char hdr[LITCNT], su[S8_SLEN], de[S8_DLEN];
   long k;
   int i;
@@ -2464,7 +2488,7 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
   put16 (su + S8S_DCMP_DSTTOP, (unsigned)dcmp_dsttop);
-  put16 (su + S8S_DCMP_LEN, (unsigned)S8_DLEN);
+  su[S8S_DCMP_LEN] = (unsigned char)S8_DLEN; /* 8-bit reloc count; see guard */
   put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
 
   for (i = 0; i < DECOMP8080_FIX_N; i++)
@@ -2476,7 +2500,6 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   put16 (de + S8D_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (de + S8D_PL_LEN, (unsigned)pllen);
-  put16 (de + S8D_PL_DSTBOT, (unsigned)pl_dstbot);
 
   (void)fwrite (su, 1, S8_SLEN, outf);
   (void)fwrite (de, 1, S8_DLEN, outf);
@@ -2681,7 +2704,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (ming < 1)
     pl_dst_top += (1 - ming);
 
-  stub_dst_top = pl_dst_top + 246;
+  stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
   dcmp_dsttop = (pl_dst_top + 51) + S8_DLEN - 1;
 
   if (use8080 ? (dcmp_dsttop > MEMTOP) : (stub_dst_top > MEMTOP))

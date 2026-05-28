@@ -42,6 +42,11 @@ CORPUS_FILES = [
     ("big46.com", b"BIG46-MARK-F6", "ok"),
     ("incomp.com", b"INCOMP-MARK-G7", "skip"),  # random -> inefficient
     ("over.com", b"OVER-MARK-H8", "skip"),  # too big to self-extract
+    # self-checksumming: the marker prints only if the WHOLE decompressed image
+    # sums to the value baked in at build time -> byte-exact decode is verified.
+    ("ckzero.com", b"CKZERO-OK", "ok"),  # long runs -> extended-length codes
+    ("cktext.com", b"CKTEXT-OK", "ok"),  # text -> FORM2/FORM3 mix
+    ("ckrep.com", b"CKREP-OK", "ok"),  # far repeats -> FORM3 + extended length
 ]
 MODES = [[], ["-e"], ["-8"], ["-e", "-8"]]
 

@@ -10,6 +10,7 @@ A.OUT
 azstub*
 *.bak
 *.BAK
+/.cache/
 *.cmd
 *.CMD
 *.com
@@ -48,6 +49,7 @@ log.pvs
 *.POP
 /popcom
 pvsreport
+__pycache__/
 /README.wip
 /stubasm
 /*.t
