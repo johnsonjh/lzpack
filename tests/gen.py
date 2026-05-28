@@ -56,19 +56,59 @@ def make_cksum(name, target, tag, fill):
     expect = sum(filler) & 0xFFFF
     code = bytes(
         [
-            0x21, sumdata_addr & 0xFF, sumdata_addr >> 8,  # LXI H,SUMDATA
-            0x01, count & 0xFF, (count >> 8) & 0xFF,       # LXI B,count
-            0x11, 0x00, 0x00,                              # LXI D,0  (sum)
-            0x7E, 0x83, 0x5F, 0x7A, 0xCE, 0x00, 0x57,      # DE += *HL
-            0x23, 0x0B, 0x78, 0xB1, 0xC2, 0x09, 0x01,      # INX H;DCX B;..;JNZ 0109
-            0x2A, 0x35, 0x01,                              # LHLD 0135 (expected)
-            0x7B, 0xBD, 0xC2, 0x2A, 0x01,                  # MOV A,E;CMP L;JNZ BAD
-            0x7A, 0xBC, 0xC2, 0x2A, 0x01,                  # MOV A,D;CMP H;JNZ BAD
-            0x11, 0x37, 0x01,                              # LXI D,MSGOK
-            0xC3, 0x2D, 0x01,                              # JMP PRINT
-            0x11, msgbad_addr & 0xFF, msgbad_addr >> 8,    # BAD: LXI D,MSGBAD
-            0x0E, 0x09, 0xCD, 0x05, 0x00,                  # PRINT: MVI C,9;CALL 5
-            0xC3, 0x00, 0x00,                              # JMP 0
+            0x21,
+            sumdata_addr & 0xFF,
+            sumdata_addr >> 8,  # LXI H,SUMDATA
+            0x01,
+            count & 0xFF,
+            (count >> 8) & 0xFF,  # LXI B,count
+            0x11,
+            0x00,
+            0x00,  # LXI D,0  (sum)
+            0x7E,
+            0x83,
+            0x5F,
+            0x7A,
+            0xCE,
+            0x00,
+            0x57,  # DE += *HL
+            0x23,
+            0x0B,
+            0x78,
+            0xB1,
+            0xC2,
+            0x09,
+            0x01,  # INX H;DCX B;..;JNZ 0109
+            0x2A,
+            0x35,
+            0x01,  # LHLD 0135 (expected)
+            0x7B,
+            0xBD,
+            0xC2,
+            0x2A,
+            0x01,  # MOV A,E;CMP L;JNZ BAD
+            0x7A,
+            0xBC,
+            0xC2,
+            0x2A,
+            0x01,  # MOV A,D;CMP H;JNZ BAD
+            0x11,
+            0x37,
+            0x01,  # LXI D,MSGOK
+            0xC3,
+            0x2D,
+            0x01,  # JMP PRINT
+            0x11,
+            msgbad_addr & 0xFF,
+            msgbad_addr >> 8,  # BAD: LXI D,MSGBAD
+            0x0E,
+            0x09,
+            0xCD,
+            0x05,
+            0x00,  # PRINT: MVI C,9;CALL 5
+            0xC3,
+            0x00,
+            0x00,  # JMP 0
         ]
     )
     assert len(code) == 0x35, len(code)
@@ -127,7 +167,6 @@ make(d + "/over.com", 52000, "OVER-MARK-H8", "text")
 # Self-checksumming programs: verify the ENTIRE decompressed image byte-for-byte
 # through the real Z80/8080 stub (prints "<tag>-OK" only on an exact sum match).
 # Cover the long-run/extended-length, text (FORM2/FORM3), and far-match paths.
-# NB: CP/M command names cannot contain '_', so keep these names plain 8.3.
 make_cksum(d + "/ckzero.com", 6144, "CKZERO", "zero")
 make_cksum(d + "/cktext.com", 12288, "CKTEXT", "text")
 make_cksum(d + "/ckrep.com", 9000, "CKREP", "rep")

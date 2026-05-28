@@ -123,7 +123,7 @@ cpm-docker cpm80-docker: cs8080.h csz80.h
 cpm86 cpm-86: cs8080.h csz80.h
 	@mkdir -p ./cpm-86/
 	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
-	aztec42_cc -B "+CA" -L19 -Z503 -D__AZTEC_C_42T__=1 \
+	aztec42_cc -B "+CA" -L19 -Z634 -D__AZTEC_C_42T__=1 \
 		-DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768 stubasm.c \
 		-o ./cpm-86/stubasm.o
 	aztec42_sqz ./cpm-86/stubasm.o
