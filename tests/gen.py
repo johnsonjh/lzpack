@@ -44,6 +44,11 @@ def make_cksum(name, target, tag, fill):
     # the self-extraction test proves byte-exact decode through the real stub --
     # not merely that the entry code ran.  Code is 0x35 bytes; then the expected
     # word (0x135), the two messages (0x137+), then the summed filler.
+    # These programs are always round-trip-tested, and CP/M stores files in
+    # 128-byte records: a restored file is padded up to a record boundary, so a
+    # non-multiple target would fail the byte-exact compare in the CP/M harness.
+    if target % 128:
+        raise SystemExit("%s: cksum target must be a 128-byte multiple" % name)
     msgok = (tag + "-OK").encode("ascii") + b"\r\n$"
     msgbad = (tag + "-BAD").encode("ascii") + b"\r\n$"
     msgok_addr = 0x137
@@ -167,6 +172,8 @@ make(d + "/over.com", 52000, "OVER-MARK-H8", "text")
 # Self-checksumming programs: verify the ENTIRE decompressed image byte-for-byte
 # through the real Z80/8080 stub (prints "<tag>-OK" only on an exact sum match).
 # Cover the long-run/extended-length, text (FORM2/FORM3), and far-match paths.
+# Sizes must be 128-byte-record multiples (see make_cksum) so the restored file
+# matches byte-for-byte under CP/M too: 6144=48*128, 12288=96*128, 9216=72*128.
 make_cksum(d + "/ckzero.com", 6144, "CKZERO", "zero")
 make_cksum(d + "/cktext.com", 12288, "CKTEXT", "text")
-make_cksum(d + "/ckrep.com", 9000, "CKREP", "rep")
+make_cksum(d + "/ckrep.com", 9216, "CKREP", "rep")
