@@ -7,8 +7,39 @@
 # The author doesn't expect every machine to have all these tools,
 # so it's likely this script won't run successfully for anyone else.
 
+if [ -n "${ZSH_VERSION-}" ]; then
+  emulate sh
+  setopt sh_word_split
+fi
+
+test -d "/opt/freeware/bin" && {
+  export PATH="/opt/freeware/bin:${PATH:-}"
+}
+
+test -d "/usr/pkg/gnu/bin" && {
+  export PATH="${PATH:-}:/usr/pkg/gnu/bin"
+}
+
 set -eu
+
 cd "$(dirname "$0")"
+
+# shellcheck disable=SC2065
+test -f "./${0##*/}" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate script in current directory."
+  exit 1
+}
+
+# shellcheck disable=SC2065
+test -f "./.common.sh" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
+  exit 1
+}
+
+export CPE1704TKS=1
+
+# shellcheck disable=SC1091
+. ./.common.sh
 
 rc=0
 
@@ -249,6 +280,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
 if (
   set -x
   "${SHELLCHECK_CMD:-shellcheck}" -o any,all \
+    ./.common.sh \
     ./.build-cpm.sh \
     ./.lint.sh \
     ./tests/run.sh
@@ -264,6 +296,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
 if (
   set -x
   "${SHFMT_CMD:-shfmt}" -bn -sr -fn -i 2 -s -d \
+    ./.common.sh \
     ./.build-cpm.sh \
     ./.lint.sh \
     ./tests/run.sh

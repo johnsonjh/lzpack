@@ -26,7 +26,7 @@ build: all
 
 # Builds the native LZPACK binary.
 
-lzpack: lzpack.c cs8080.h csz80.h
+lzpack: lzpack.c cs8080.h csz80.h lzpack.c
 	$(CC) $(CFLAGS) -I. -o $@ lzpack.c
 
 ################################################################################
@@ -89,14 +89,15 @@ distclean reallyclean: clean
 
 # Builds both decompression stubs from the assembly source code.
 
-stub stubs: cs8080.h csz80.h
+stub stubs: cs8080.h csz80.h stubasm.c
 
 ################################################################################
 
 # CP/M-80 builds (Z80 and 8080) using the z88dk development kit.
 # https://z88dk.org/
 
-cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h
+cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h stubasm.c lzpack.c \
+		.build-cpm.sh .common.sh
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
 ################################################################################
@@ -104,7 +105,8 @@ cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h
 # Local CP/M-80 builds (Z80 and 8080) using the z88dk development kit.
 # https://github.com/z88dk/z88dk
 
-cpm-local cpm80-local: cs8080.h csz80.h
+cpm-local cpm80-local: cs8080.h csz80.h stubasm.c lzpack.c \
+		.build-cpm.sh .common.sh
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
 ################################################################################
@@ -112,7 +114,8 @@ cpm-local cpm80-local: cs8080.h csz80.h
 # Dockerized CP/M-80 builds (Z80 and 8080) using the z88dk development kit.
 # https://hub.docker.com/r/z88dk/z88dk
 
-cpm-docker cpm80-docker: cs8080.h csz80.h
+cpm-docker cpm80-docker: cs8080.h csz80.h stubasm.c lzpack.c \
+		.build-cpm.sh .common.sh
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
 ################################################################################
@@ -120,24 +123,24 @@ cpm-docker cpm80-docker: cs8080.h csz80.h
 # CP/M-86 build using the tsupplis Aztec C v4.2 CP/M-86 cross-toolchain.
 # https://github.com/tsupplis/cpm86-crossdev
 
-cpm86 cpm-86: cs8080.h csz80.h
+cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./cpm-86/
 	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
 	aztec42_cc -B "+CA" -L19 -Z634 -D__AZTEC_C_42T__=1 \
-		-DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768 stubasm.c \
+		-DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768 ./stubasm.c \
 		-o ./cpm-86/stubasm.o
 	aztec42_sqz ./cpm-86/stubasm.o
 	aztec42_link -t -o ./cpm-86/stubasm.cmd ./cpm-86/stubasm.o -lc86
 	@pcdev_cmdinfo ./cpm-86/stubasm.cmd
-	(upx -q -9 ./cpm-86/stubasm.cmd 2> /dev/null | \
+	(upx -q -9 --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	aztec42_cc -I. -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 \
-		-DLZPACK_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c \
+		-DLZPACK_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L ./lzpack.c \
 		-o ./cpm-86/lzpack.o
 	aztec42_sqz ./cpm-86/lzpack.o
 	aztec42_link -t -o ./cpm-86/lzpack.cmd ./cpm-86/lzpack.o -lc86
 	@pcdev_cmdinfo ./cpm-86/lzpack.cmd
-	(upx -q -9 ./cpm-86/lzpack.cmd 2> /dev/null | \
+	(upx -q -9 --8086 ./cpm-86/lzpack.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -145,19 +148,19 @@ cpm86 cpm-86: cs8080.h csz80.h
 # Real-mode MS-DOS build using Open Watcom V2.0's "owcc" compiler driver.
 # https://github.com/open-watcom/open-watcom-v2
 
-msdos: cs8080.h csz80.h
+msdos: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./msdos/
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DMAXSYM=96 -DMAXREF=96 \
-		-DMAXCODE=768 -s -I.. -fm=stubasm.map -o stubasm.com \
+		-DMAXCODE=768 -s -I.. -fm=stubasm.map -o ./stubasm.com \
 		-DNDEBUG ../stubasm.c)
-	(upx -q -9 --8086 msdos/stubasm.com 2> /dev/null | \
+	(upx -q -9 --8086 ./msdos/stubasm.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DLZPACK_STREAM=1 -DHSZ=1024 \
-		-DMZXFILE=65535L -s -I.. -fm=lzpack.map -o lzpack.com \
+		-DMZXFILE=65535L -s -I.. -fm=lzpack.map -o ./lzpack.com \
 		-DNDEBUG ../lzpack.c)
-	(upx -q -9 --8086 msdos/lzpack.com 2> /dev/null | \
+	(upx -q -9 --8086 ./msdos/lzpack.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -165,27 +168,27 @@ msdos: cs8080.h csz80.h
 # Protected-mode (386+) MS-DOS build using DJGPP and embedded CWSDPMI.
 # https://www.delorie.com/djgpp/
 
-djgpp: cs8080.h csz80.h
+djgpp: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./djgpp/
 	"$${DJGPP_GCC:-/opt/djgpp/bin/i586-pc-msdosdjgpp-gcc}" -s \
-		-march=i386 -O3 -o ./djgpp/stubasm.exe stubasm.c
+		-march=i386 -O3 -o ./djgpp/stubasm.exe ./stubasm.c
 	"$${DJGPP_STRIP:-/opt/djgpp/i586-pc-msdosdjgpp/bin/strip}" \
 		./djgpp/stubasm.exe
 	"$${DJGPP_EXE2COFF:-/opt/djgpp/i586-pc-msdosdjgpp/bin/exe2coff}" \
 		./djgpp/stubasm.exe
 	cat "$${CWSDSTUB:-/opt/cwspdmi/cwsdstub.exe}" ./djgpp/stubasm \
 		> ./djgpp/stubasm.exe
-	(upx -q -9 djgpp/stubasm.exe 2> /dev/null | \
+	(upx -q -9 ./djgpp/stubasm.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	"$${DJGPP_GCC:-/opt/djgpp/bin/i586-pc-msdosdjgpp-gcc}" -s \
-		-march=i386 -O3 -o ./djgpp/lzpack.exe lzpack.c
+		-march=i386 -O3 -o ./djgpp/lzpack.exe ./lzpack.c
 	"$${DJGPP_STRIP:-/opt/djgpp/i586-pc-msdosdjgpp/bin/strip}" \
 		./djgpp/lzpack.exe
 	"$${DJGPP_EXE2COFF:-/opt/djgpp/i586-pc-msdosdjgpp/bin/exe2coff}" \
 		./djgpp/lzpack.exe
 	cat "$${CWSDSTUB:-/opt/cwspdmi/cwsdstub.exe}" ./djgpp/lzpack \
 		> ./djgpp/lzpack.exe
-	(upx -q -9 djgpp/lzpack.exe 2> /dev/null | \
+	(upx -q -9 ./djgpp/lzpack.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -193,22 +196,22 @@ djgpp: cs8080.h csz80.h
 # ELKS 8086 (https://github.com/ghaerr/elks) build using IA16-GCC.
 # https://gitlab.com/tkchia/build-ia16
 
-elks: cs8080.h csz80.h
+elks: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./elks/
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
 		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DHSZ=1024 \
-		-DMZXFILE=65535L -maout-heap=24576 -o ./elks/lzpack lzpack.c
+		-DMZXFILE=65535L -maout-heap=24576 -o ./elks/lzpack ./lzpack.c
 
 ################################################################################
 
-windows: cs8080.h csz80.h
+windows: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./windows/
 	"$${MINGW64_GCC:-x86_64-w64-mingw32ucrt-gcc}" -O3 -s \
-		-o ./windows/lzpack64.exe lzpack.c
+		-o ./windows/lzpack64.exe ./lzpack.c
 	(upx -q -9 windows/lzpack64.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	"$${MINGW32_GCC:-i686-w64-mingw32-gcc}" -O3 -s \
-		-o ./windows/lzpack32.exe lzpack.c
+		-o ./windows/lzpack32.exe ./lzpack.c
 	(upx -q -9 windows/lzpack32.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
@@ -216,7 +219,7 @@ windows: cs8080.h csz80.h
 
 # Runs extensive end-to-end tests on the CP/M-80, CP/M-86, and native binaries.
 
-test: lzpack
+test: lzpack tests/run.sh .common.sh
 	@./tests/run.sh
 
 ################################################################################
@@ -224,7 +227,7 @@ test: lzpack
 # Runs extensive source code checks to hopefully ensure high code quality.
 # Not for end users at this time.
 
-lint:
+lint: .lint.sh .common.sh
 	@./.lint.sh
 
 ################################################################################
@@ -232,7 +235,7 @@ lint:
 # Runs the binary release process for CP/M-80, CP/M-86, and MS-DOS binaries.
 # Not for end users.
 
-bindist:
+bindist: .lint.sh .common.sh tests/run.sh
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" lint
 	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows

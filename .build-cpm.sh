@@ -31,6 +31,19 @@
 #   IMAGE    z88dk image to use (Docker mode only).
 #   TNYLPO   path to the tnylpo binary for the optional smoke test.
 
+if [ -n "${ZSH_VERSION-}" ]; then
+  emulate sh
+  setopt sh_word_split
+fi
+
+test -d "/opt/freeware/bin" && {
+  export PATH="/opt/freeware/bin:${PATH:-}"
+}
+
+test -d "/usr/pkg/gnu/bin" && {
+  export PATH="${PATH:-}:/usr/pkg/gnu/bin"
+}
+
 set -eu
 
 printf '\n%s\n' ">>>>>>>>>>> Starting CP/M-80 build <<<<<<<<<<<"
@@ -61,6 +74,24 @@ TPA48="${TPA48:-0xBDFF}"
 WINMIN="${WINMIN:-1024}"
 
 cd "$(dirname "$0")"
+
+# shellcheck disable=SC2065
+test -f "./${0##*/}" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate script in current directory."
+  exit 1
+}
+
+# shellcheck disable=SC2065
+test -f "./.common.sh" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
+  exit 1
+}
+
+export CPE1704TKS=1
+
+# shellcheck disable=SC1091
+. ./.common.sh
+
 here="$(pwd -P)"
 
 # Choose a build backend.
