@@ -1,4 +1,5 @@
 #!/bin/sh
+# .lint.sh
 # Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 # SPDX-License-Identifier: MIT-0
 # scspell-id: be82fe80-58d5-11f1-8fcd-80ee73e9b8e7

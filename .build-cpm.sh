@@ -1,4 +1,5 @@
 #!/bin/sh
+# .build-cpm.sh
 # Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 # SPDX-License-Identifier: MIT-0
 # scspell-id: c6be098c-58d5-11f1-ad23-80ee73e9b8e7
