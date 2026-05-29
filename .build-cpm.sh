@@ -139,12 +139,12 @@ if [ "${CPM_BACKEND}" = docker ]; then
       DOCKER="sudo ${DOCKER}"
     else
       printf '\n%s\n' "FATAL: Failed to talk to the Docker daemon; set DOCKER variable (or join the 'docker' group)" >&2
-      printf '\n%s\n\n' ">> Standard build mode also available: try '${MAKE:-make} cpm-local'"
+      printf '\n%s\n\n' ">> Standard (local) build mode also available: try '${MAKE:-make} cpm-local'"
       exit 1
     fi
   fi
   printf '\n%s\n' ">>>>>>>>>>> Build mode: Docker (zcc from '${IMAGE}') <<<<<<<<<<<"
-  printf '\n%s\n' ">> Standard build mode also available: try '${MAKE:-make} cpm-local'"
+  printf '\n%s\n' ">> Standard (local) build mode also available: try '${MAKE:-make} cpm-local'"
 else
   printf '\n%s\n' ">>>>>>>>>>> Build mode: local (zcc from '${zccpath}') <<<<<<<<<<<"
   printf '\n%s\n' ">> Dockerized build mode also available: try '${MAKE:-make} cpm-docker'"
