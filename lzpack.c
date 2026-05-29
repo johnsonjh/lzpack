@@ -3242,7 +3242,7 @@ usage (void)
     "\n"
     "Usage:\n"
 #ifndef LZPACK_DECODE_ONLY
-    "  lzpack %s[-8|-Z] <file>%s  compress (%s-8/-Z: force stub type)\n"
+    "  lzpack %s[-8|-Z] <file>%s  compress (%s-8/-Z: force 8080/Z80 stub)\n"
 #endif
 #ifndef LZPACK_COMPRESS_ONLY
     "  lzpack -R <file>            restore (decompress)\n"

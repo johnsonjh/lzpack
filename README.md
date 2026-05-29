@@ -13,7 +13,7 @@ LZPACK v0.985 - 48K CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
-  lzpack [-e] [-8|-Z] <file>  compress (-e: extra, -8/-Z: force stub type)
+  lzpack [-e] [-8|-Z] <file>  compress (-e: extra, -8/-Z: force 8080/Z80 stub)
   lzpack -R <file>            restore (decompress)
   lzpack -L <file>            list stored sizes
   lzpack -O <name>            set output name
