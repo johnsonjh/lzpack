@@ -4,22 +4,34 @@
 # SPDX-License-Identifier: MIT-0
 # scspell-id: be82fe80-58d5-11f1-8fcd-80ee73e9b8e7
 
+################################################################################
+
 if [ -n "${ZSH_VERSION-}" ]; then
   emulate sh
   setopt sh_word_split
 fi
 
+################################################################################
+
 test -d "/opt/freeware/bin" && {
   export PATH="/opt/freeware/bin:${PATH:-}"
 }
+
+################################################################################
 
 test -d "/usr/pkg/gnu/bin" && {
   export PATH="${PATH:-}:/usr/pkg/gnu/bin"
 }
 
+################################################################################
+
 set -eu
 
+################################################################################
+
 cd "$(dirname "$0")"
+
+################################################################################
 
 # shellcheck disable=SC2065
 test -f "./${0##*/}" > /dev/null 2>&1 || {
@@ -27,19 +39,27 @@ test -f "./${0##*/}" > /dev/null 2>&1 || {
   exit 1
 }
 
+################################################################################
+
 # shellcheck disable=SC2065
 test -f "./.common.sh" > /dev/null 2>&1 || {
   printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
   exit 1
 }
 
+################################################################################
+
 export CPE1704TKS=1
 
 # shellcheck disable=SC1091
 . ./.common.sh
 
+################################################################################
+
 export FIND_COMMAND_FATAL=1
 find_command "${AWK:-awk}" "${MAKE:-make}" mkdir rm rmdir sleep uname
+
+################################################################################
 
 export FIND_COMMAND_FATAL=0
 
@@ -69,6 +89,8 @@ unset NEED_PAUSE
 if [ "${status:?}" -ne 0 ]; then
   NEED_PAUSE=1
 fi
+
+################################################################################
 
 os="$(uname -s 2> /dev/null)"
 
@@ -102,6 +124,8 @@ if [ "${CHECK_OLINT:-0}" -eq 1 ]; then
   fi
 fi
 
+################################################################################
+
 case ${OVERRIDE_PAUSE:-} in
 '' | *[!0-9]*)
   unset OVERRIDE_PAUSE
@@ -116,7 +140,11 @@ test "${NEED_PAUSE:-0}" -ne 1 || {
   sleep "${OVERRIDE_PAUSE:-10}"
 }
 
+################################################################################
+
 rc=0
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
 
@@ -124,6 +152,8 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
   set -x
   "${MAKE:-make}" distclean > /dev/null
 )
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> make <<<<<<<<<<<<<<<<"
 
@@ -136,6 +166,8 @@ else
   printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
@@ -152,6 +184,8 @@ command -v cppi > /dev/null 2>&1 && {
     fi
   done
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
 
@@ -171,6 +205,8 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
     rc=1
   fi
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
 
@@ -194,6 +230,8 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
   fi
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer streaming <<<<<<<<<<<<<<<<"
 
 aCFLAGS="${aCFLAGS:?} -DLZPACK_STREAM"
@@ -213,6 +251,8 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
   fi
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build standard <<<<<<<<<<<<<<<<"
 
 command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
@@ -229,12 +269,15 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     ); then
       :
     else
+      printf '%s\n' "****** FAILURE DETECTED ******"
       printf \
         '\n%s\n' "*** scan-build reported issues, see '${TMPFILE:?}'"
       rc=1
     fi
   }
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio standard <<<<<<<<<<<<<<<<"
 
@@ -266,6 +309,8 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
   }
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build stream <<<<<<<<<<<<<<<<"
 
 command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
@@ -283,11 +328,14 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     ); then
       :
     else
+      printf '%s\n' "****** FAILURE DETECTED ******"
       printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
       rc=1
     fi
   }
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio stream <<<<<<<<<<<<<<<<"
 
@@ -320,6 +368,8 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
   }
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
 
 command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
@@ -351,6 +401,8 @@ command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
     rc=1
   fi
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
 
@@ -390,6 +442,8 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
   fi
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
 
 command -v "${REUSE_CMD:-reuse}" > /dev/null 2>&1 && {
@@ -403,6 +457,8 @@ command -v "${REUSE_CMD:-reuse}" > /dev/null 2>&1 && {
     rc=1
   fi
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
 
@@ -423,6 +479,8 @@ command -v "${SHELLCHECK_CMD:-shellcheck}" > /dev/null 2>&1 && {
   fi
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
 
 command -v "${SHFMT_CMD:-shfmt}" > /dev/null 2>&1 && {
@@ -441,6 +499,8 @@ command -v "${SHFMT_CMD:-shfmt}" > /dev/null 2>&1 && {
     rc=1
   fi
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> black <<<<<<<<<<<<<<<<"
 
@@ -461,6 +521,8 @@ command -v "${BLACK_CMD:-black}" > /dev/null 2>&1 && {
   fi
 }
 
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch standard <<<<<<<<<<<<<<<<"
 
 command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
@@ -479,6 +541,8 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     fi
   }
 }
+
+################################################################################
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch stream <<<<<<<<<<<<<<<<"
 
@@ -499,6 +563,8 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
   }
 }
 
+################################################################################
+
 if [ "${rc}" = 0 ]; then
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> lint SUCCESSFUL <<<<<<<<<<<<<<<<"
@@ -507,3 +573,20 @@ else
 fi
 
 exit "${rc}"
+
+################################################################################
+
+# Local Variables:
+# mode: shell
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# tab-width: 2
+# fill-column: 80
+# eval: (add-hook 'before-save-hook 'untabify nil t)
+# eval: (setq-local display-fill-column-indicator-column 80)
+# eval: (display-fill-column-indicator-mode 1)
+# End:
+
+################################################################################
+# vim: set ft=sh ts=2 sw=2 tw=0 ai expandtab cc=80 :
+################################################################################

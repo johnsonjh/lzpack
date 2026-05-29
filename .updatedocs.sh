@@ -4,13 +4,19 @@
 # SPDX-License-Identifier: MIT-0
 # scspell-id: 4ba45bfa-5b11-11f1-88d0-80ee73e9b8e7
 
+################################################################################
+
 # For use by the maintainer only - not the general public.
 # This script requires GNU coreutils `du` to work correctly.
+
+################################################################################
 
 if [ -n "${ZSH_VERSION-}" ]; then
   emulate sh
   setopt sh_word_split
 fi
+
+################################################################################
 
 # shellcheck disable=SC2065
 test -f "./${0##*/}" > /dev/null 2>&1 || {
@@ -18,13 +24,19 @@ test -f "./${0##*/}" > /dev/null 2>&1 || {
   exit 1
 }
 
+################################################################################
+
 test -d "/opt/freeware/bin" && {
   export PATH="/opt/freeware/bin:${PATH:-}"
 }
 
+################################################################################
+
 test -d "/usr/pkg/gnu/bin" && {
   export PATH="${PATH:-}:/usr/pkg/gnu/bin"
 }
+
+################################################################################
 
 # shellcheck disable=SC2065
 test -f "./.common.sh" > /dev/null 2>&1 || {
@@ -32,16 +44,24 @@ test -f "./.common.sh" > /dev/null 2>&1 || {
   exit 1
 }
 
+################################################################################
+
 set -e
+
+################################################################################
 
 export CPE1704TKS=1
 
 # shellcheck disable=SC1091
 . ./.common.sh
 
+################################################################################
+
 if [ "${DU:-}x" = "x" ]; then
   DU="$(command -v du 2> /dev/null || printf '%s\n' 'du')"
 fi
+
+################################################################################
 
 export FIND_COMMAND_FATAL=1
 find_command "${AWK:-awk}" "${DU:?}" grep mv mkdir rmdir ./lzpack
@@ -52,16 +72,24 @@ find_command "${AWK:-awk}" "${DU:?}" grep mv mkdir rmdir ./lzpack
     exit 1
   }
 
+################################################################################
+
 if [ ! -d "bindist" ] || [ ! -f "README.md" ]; then
   printf '%s\n' "ERROR: No bindist/ and/or README.md found!" >&2
   exit 1
 fi
 
+################################################################################
+
 SIZES="$("${DU:?}" -Sh --block-size=KiB bindist/*)"
 USAGE="$(./lzpack -h 2>&1)"
 
+################################################################################
+
 # shellcheck disable=SC2119
 TMP_README="$(mktemp 2> /dev/null || mktemp_lzpack)"
+
+################################################################################
 
 # shellcheck disable=SC2016
 "${AWK:-awk}" -v sizes_raw="${SIZES}" -v usage_raw="${USAGE}" '
@@ -127,6 +155,28 @@ BEGIN {
 }
 ' "README.md" > "${TMP_README:?}"
 
+################################################################################
+
 mv -f "${TMP_README:?}" "README.md"
 
-printf '%s\n' "Successfully updated README.md with archive sizes and usage information."
+################################################################################
+
+printf '%s\n' \
+  "Successfully updated README.md with archive sizes and usage information."
+
+################################################################################
+
+# Local Variables:
+# mode: shell
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# tab-width: 2
+# fill-column: 80
+# eval: (add-hook 'before-save-hook 'untabify nil t)
+# eval: (setq-local display-fill-column-indicator-column 80)
+# eval: (display-fill-column-indicator-mode 1)
+# End:
+
+################################################################################
+# vim: set ft=sh ts=2 sw=2 tw=0 ai expandtab cc=80 :
+################################################################################

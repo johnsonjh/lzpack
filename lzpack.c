@@ -1,12 +1,10 @@
 /*
+ * LZPACK - 48K CP/M-80 (8080 and Z80) executable compressor
  * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
  * SPDX-License-Identifier: MIT-0
  * scspell-id: a5653bbc-585c-11f1-954d-80ee73e9b8e7
+ * //-V::707
  */
-
-/******************************************************************************/
-
-/* //-V::707 */
 
 /******************************************************************************/
 
@@ -20,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.99"
+#define LZPACK_VER "v0.991"
 
 /******************************************************************************/
 
@@ -1698,10 +1696,11 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
 
-  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
+  put16 (stub + P_JP_LOOP,
+    (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
 
   {
-    /* GETBIT is CALLed; retarget every call operand to the relocated routine. */
+    /* GETBIT is CALLed; retarget call operands to the relocated routine */
     long getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
     int gi;
 
@@ -2483,6 +2482,7 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)fwrite (first16, 1, LITCNT, outf);
 
   (void)memcpy (stub, z80_stub, STUBLEN);
+
   put16 (stub + P_LIT_SRC, (unsigned)lit_src);
   put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + (STUBLEN - 1)));
   put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
@@ -2490,18 +2490,22 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
   put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (stub + P_PL_LEN, (unsigned)pllen);
   put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1)));
+
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
-  put16 (stub + P_JP_LOOP, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
+
+  put16 (stub + P_JP_LOOP,
+    (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
 
   {
-    /* GETBIT is CALLed; retarget every call operand to the relocated routine. */
+    /* GETBIT is CALLed; retarget call operands to the relocated routine */
     long getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
     int gi;
 
     for (gi = 0; gi < Z80_GETBIT_FIX_N; gi++)
       put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
   }
+
   (void)fwrite (stub, 1, STUBLEN, outf);
 
   return LITCNT + pllen + LITCNT + STUBLEN;
@@ -2900,8 +2904,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 #  endif
 
       (void)fprintf (stderr,
-                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s%s]  -> %s\n", fn, n,
-                     total, p10 / 10, p10 % 10, (use8080 ? "8080" : "Z80"),
+                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s%s]  -> %s\n", fn,
+                     n, total, p10 / 10, p10 % 10, (use8080 ? "8080" : "Z80"),
                      amark, oname);
     }
 
@@ -3418,4 +3422,20 @@ main (int argc, char **argv)
   return (rc ? 1 : 0);
 }
 
+/******************************************************************************/
+
+/*
+ * Local Variables:
+ * mode: c
+ * indent-tabs-mode: nil
+ * tab-width: 2
+ * c-basic-offset: 2
+ * fill-column: 80
+ * eval: (setq-local display-fill-column-indicator-column 80)
+ * eval: (display-fill-column-indicator-mode 1)
+ * End:
+ */
+
+/******************************************************************************/
+/* vim: set ft=c ts=2 sw=2 tw=0 ai expandtab cc=80 : */
 /******************************************************************************/

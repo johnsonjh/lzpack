@@ -1,4 +1,6 @@
 /*
+ * StubASM - Stupid Tiny Unoptimized Backend Assembler (8080/Z80)
+ * 48K CP/M-80 (8080 and Z80) executable compressor
  * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
  * SPDX-License-Identifier: MIT-0
  * scspell-id: aa965896-585c-11f1-8233-80ee73e9b8e7
@@ -1779,4 +1781,20 @@ main (int argc, char **argv)
   return 0;
 }
 
+/******************************************************************************/
+
+/*
+ * Local Variables:
+ * mode: c
+ * indent-tabs-mode: nil
+ * tab-width: 2
+ * c-basic-offset: 2
+ * fill-column: 80
+ * eval: (setq-local display-fill-column-indicator-column 80)
+ * eval: (display-fill-column-indicator-mode 1)
+ * End:
+ */
+
+/******************************************************************************/
+/* vim: set ft=c ts=2 sw=2 tw=0 ai expandtab cc=80 : */
 /******************************************************************************/

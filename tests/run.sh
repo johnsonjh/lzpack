@@ -4,22 +4,34 @@
 # SPDX-License-Identifier: MIT-0
 # scspell-id: 6a9d6f12-58d5-11f1-b371-80ee73e9b8e7
 
+################################################################################
+
 if [ -n "${ZSH_VERSION-}" ]; then
   emulate sh
   setopt sh_word_split
 fi
 
+################################################################################
+
 test -d "/opt/freeware/bin" && {
   export PATH="/opt/freeware/bin:${PATH:-}"
 }
+
+################################################################################
 
 test -d "/usr/pkg/gnu/bin" && {
   export PATH="${PATH:-}:/usr/pkg/gnu/bin"
 }
 
+################################################################################
+
 set -eu
 
+################################################################################
+
 cd "$(dirname "$0")/.."
+
+################################################################################
 
 # shellcheck disable=SC2065
 test -f "./tests/${0##*/}" > /dev/null 2>&1 || {
@@ -27,21 +39,29 @@ test -f "./tests/${0##*/}" > /dev/null 2>&1 || {
   exit 1
 }
 
+################################################################################
+
 # shellcheck disable=SC2065
 test -f "./.common.sh" > /dev/null 2>&1 || {
   printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
   exit 1
 }
 
+################################################################################
+
 export CPE1704TKS=1
 
 # shellcheck disable=SC1091
 . ./.common.sh
 
+################################################################################
+
 CC="$(command -v cc 2> /dev/null || command -v "${GCC_CMD:-gcc}" 2> /dev/null \
   || command -v "${CLANG_CMD:-clang}" 2> /dev/null || printf '%s\n' cc)"
 
 export CC
+
+################################################################################
 
 export FIND_COMMAND_FATAL=1
 find_command "${AWK:-awk}" "${CC:-cc}" grep mkdir python3 rm rmdir sleep
@@ -74,6 +94,8 @@ if [ "${status:?}" -ne 0 ]; then
   NEED_PAUSE=1
 fi
 
+################################################################################
+
 case ${OVERRIDE_PAUSE:-} in
 '' | *[!0-9]*)
   unset OVERRIDE_PAUSE
@@ -88,14 +110,16 @@ test "${NEED_PAUSE:-0}" -ne 1 || {
   sleep "${OVERRIDE_PAUSE:-10}"
 }
 
+################################################################################
+
 printf '\n%s\n' "================== UNIT ==================="
 
-# The autodetector's "stop at the logical (LRBC) length, not at physical EOF"
-# bound cannot be reached through the CP/M 2.2 test emulators (no LRBC, so there
-# the logical length already equals physical EOF).  Exercise it directly: build
-# a small program that #includes lzpack.c and calls the detector -- once as the
-# streaming is_z80_file (), once as the in-RAM is_z80_image () -- and check that
-# both stop at the logical length.  Needs only a working host C compiler.
+# The autodetector "stop at the logical/LRBC length and not at physical EOF"
+# logic cannot be reached through the CP/M 2.2 test emulations (no LRBC, so
+# the logical length already equals physical EOF), so we build a small test
+# program that #includes lzpack.c and calls the detector, once for streaming
+# as is_z80_file(), and once as the in-RAM is_z80_image(), and we check that
+# both stop at the correct logical length.  Needs only a working C compiler.
 
 # shellcheck disable=SC2119
 ut="$(mktemp 2> /dev/null || mktemp_lzpack)"
@@ -111,9 +135,13 @@ done
 
 rm -f "${ut}"
 
+################################################################################
+
 printf '\n%s\n' "================= NATIVE =================="
 
 TNYLPO="${TNYLPO}" $(command -v python3) tests/harness.py native || rc=1
+
+################################################################################
 
 if [ -f "./cpm-8080/lzpack.com" ] \
   && command -v "${TNYLPO}" > /dev/null 2>&1; then
@@ -122,12 +150,16 @@ if [ -f "./cpm-8080/lzpack.com" ] \
     $(command -v python3) tests/harness.py cpm || rc=1
 fi
 
+################################################################################
+
 if [ -f "./cpm-8080/lzpack.com" ] \
   && command -v "${CPMEMU}" > /dev/null 2>&1; then
   printf '\n%s\n' "=============== 8080 CPMEMU ==============="
   CPMEMU="${CPMEMU}" CPMCOM="./cpm-8080/lzpack.com" \
     $(command -v python3) tests/harness.py cpm2 || rc=1
 fi
+
+################################################################################
 
 if [ -f "./cpm-z80/lzpack.com" ] \
   && command -v "${TNYLPO}" > /dev/null 2>&1; then
@@ -136,12 +168,16 @@ if [ -f "./cpm-z80/lzpack.com" ] \
     $(command -v python3) tests/harness.py cpm || rc=1
 fi
 
+################################################################################
+
 if [ -f "./cpm-z80/lzpack.com" ] \
   && command -v "${CPMEMU}" > /dev/null 2>&1; then
   printf '\n%s\n' "================ Z80 CPMEMU ==============="
   CPMEMU="${CPMEMU}" CPMCOM="./cpm-z80/lzpack.com" \
     $(command -v python3) tests/harness.py cpm2 || rc=1
 fi
+
+################################################################################
 
 if [ -f "./cpm-86/lzpack.cmd" ] \
   && command -v "${EMU2}" > /dev/null 2>&1 \
@@ -152,4 +188,23 @@ if [ -f "./cpm-86/lzpack.cmd" ] \
     $(command -v python3) tests/harness.py cpm86 || rc=1
 fi
 
+################################################################################
+
 exit "${rc}"
+
+################################################################################
+
+# Local Variables:
+# mode: shell
+# indent-tabs-mode: nil
+# sh-basic-offset: 2
+# tab-width: 2
+# fill-column: 80
+# eval: (add-hook 'before-save-hook 'untabify nil t)
+# eval: (setq-local display-fill-column-indicator-column 80)
+# eval: (display-fill-column-indicator-mode 1)
+# End:
+
+################################################################################
+# vim: set ft=sh ts=2 sw=2 tw=0 ai expandtab cc=80 :
+################################################################################

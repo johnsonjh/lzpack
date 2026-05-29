@@ -7,8 +7,9 @@
 
 # Compatible defaults.
 
-CC = cc
-CFLAGS = -O
+CC="$$(command -v cc 2> /dev/null || command -v gcc 2> /dev/null || \
+  command -v clang 2> /dev/null || echo cc)"
+CFLAGS?=-O
 
 ################################################################################
 
@@ -27,7 +28,10 @@ build: all
 # Builds the native LZPACK binary.
 
 lzpack: lzpack.c cs8080.h csz80.h lzpack.c
-	$(CC) $(CFLAGS) -I. -o $@ lzpack.c
+	@eval echo \
+		"$${CC-$(CC)}" $(CFLAGS) -I. -o $@ lzpack.c 2> /dev/null || :
+	@eval \
+		"$${CC-$(CC)}" $(CFLAGS) -I. -o $@ lzpack.c
 
 ################################################################################
 
@@ -48,7 +52,10 @@ csz80.h: sz80s.asm sz80d.asm stubasm
 # Builds the stub assembler.
 
 stubasm: stubasm.c
-	$(CC) $(CFLAGS) -o $@ stubasm.c
+	@eval echo \
+		"$${CC-$(CC)}" $(CFLAGS) -o $@ stubasm.c 2> /dev/null || :
+	@eval \
+		"$${CC-$(CC)}" $(CFLAGS) -o $@ stubasm.c
 
 ################################################################################
 
@@ -124,6 +131,10 @@ cpm-docker cpm80-docker: cs8080.h csz80.h stubasm.c lzpack.c \
 # https://github.com/tsupplis/cpm86-crossdev
 
 cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command upx aztec42_cc aztec42_sqz aztec42_link \
+		pcdev_cmdinfo)
 	@mkdir -p ./cpm-86/
 	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
 	aztec42_cc -B "+CA" -L19 -Z634 -D__AZTEC_C_42T__=1 \
@@ -149,6 +160,9 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 # https://github.com/open-watcom/open-watcom-v2
 
 msdos: cs8080.h csz80.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command upx owcc)
 	@mkdir -p ./msdos/
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DMAXSYM=96 -DMAXREF=96 \
@@ -170,6 +184,14 @@ msdos: cs8080.h csz80.h stubasm.c lzpack.c
 
 djgpp: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./djgpp/
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		export DJGPP_TRIP="i586-pc-msdosdjgpp" && \
+		find_command upx \
+		"$${DJGPP_GCC:-/opt/djgpp/bin/$${DJGPP_TRIP}-gcc}" \
+		"$${DJGPP_STRIP:-/opt/djgpp/$${DJGPP_TRIP}/bin/strip}" \
+		"$${DJGPP_EXE2COFF:-/opt/djgpp/$${DJGPP_TRIP}/bin/exe2coff}")
+	test -f "$${CWSDSTUB:-/opt/cwspdmi/cwsdstub.exe}"
 	"$${DJGPP_GCC:-/opt/djgpp/bin/i586-pc-msdosdjgpp-gcc}" -s \
 		-march=i386 -O3 -o ./djgpp/stubasm.exe ./stubasm.c
 	"$${DJGPP_STRIP:-/opt/djgpp/i586-pc-msdosdjgpp/bin/strip}" \
@@ -198,6 +220,9 @@ djgpp: cs8080.h csz80.h stubasm.c lzpack.c
 
 elks: cs8080.h csz80.h stubasm.c lzpack.c
 	@mkdir -p ./elks/
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command "$${IA16_ELF_GCC:-ia16-elf-gcc}")
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
 		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DHSZ=1024 \
 		-DMZXFILE=65535L -maout-heap=24576 -o ./elks/lzpack ./lzpack.c
@@ -205,6 +230,11 @@ elks: cs8080.h csz80.h stubasm.c lzpack.c
 ################################################################################
 
 windows: cs8080.h csz80.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command upx \
+		"$${MINGW64_GCC:-x86_64-w64-mingw32ucrt-gcc}" \
+		"$${MINGW32_GCC:-i686-w64-mingw32-gcc}")
 	@mkdir -p ./windows/
 	"$${MINGW64_GCC:-x86_64-w64-mingw32ucrt-gcc}" -O3 -s \
 		-o ./windows/lzpack64.exe ./lzpack.c
@@ -236,6 +266,10 @@ lint: .lint.sh .common.sh
 # Not for end users.
 
 bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command arc compress "$${GIT_CMD-git}" "$${MAKE:-make}" \
+		pigz)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" lint
 	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
