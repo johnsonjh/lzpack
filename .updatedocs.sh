@@ -40,7 +40,7 @@ export CPE1704TKS=1
 . ./.common.sh
 
 export FIND_COMMAND_FATAL=1
-find_command awk mktemp du mv
+find_command awk mktemp du mv ./lzpack
 
 if [ ! -d "bindist" ] || [ ! -f "README.md" ]; then
   printf '%s\n' "ERROR: No bindist/ and/or README.md found!" >&2

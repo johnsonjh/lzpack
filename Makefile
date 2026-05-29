@@ -282,9 +282,11 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	chmod a-x ./windows/lzpack64.exe.zip
 	mv -f ./windows/lzpack64.exe.zip ./bindist/LZPCKW64.ZIP
 	"$${MAKE:-make}" distclean
-	./.updatedocs.sh
+	"$${MAKE:-make}" all
 	"$${GIT_CMD-git}" add -f ./bindist/ || :
 	"$${GIT_CMD-git}" add -f ./bindist/* || :
+	./.updatedocs.sh
+	"$${MAKE:-make}" distclean
 	"$${GIT_CMD-git}" status || :
 
 ################################################################################
