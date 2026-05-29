@@ -75,7 +75,7 @@ if (
   set -x
   "${MAKE:-make}" \
     CC="${GCC_CMD:-gcc}" \
-    CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -DPOPCOM_STREAM -fanalyzer"
+    CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -DLZPACK_STREAM -fanalyzer"
 ); then
   :
 else
@@ -137,7 +137,7 @@ if (
   "${SCAN_BUILD_CMD:-scan-build}" \
     --status-bugs \
     -o /tmp/"lzpack-scan.${TMPID}" "${MAKE:-make}" \
-    CFLAGS="-O -DPOPCOM_STREAM" all > /dev/null 2>&1
+    CFLAGS="-O -DLZPACK_STREAM" all > /dev/null 2>&1
 ); then
   :
 else
@@ -199,7 +199,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
 if (
   set -x
   /opt/oracle/developerstudio12.6/bin/lint \
-    -DPOPCOM_STREAM -O -fd -std=c89 -err=warn -XCC=no \
+    -DLZPACK_STREAM -O -fd -std=c89 -err=warn -XCC=no \
     -errchk=structarg,parentheses,locfmtchk lzpack.c
 ); then
   :
@@ -313,7 +313,7 @@ if (
   set -x
   "${MAKE:-make}" \
     CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
-    CFLAGS="-O -DPOPCOM_STREAM" CC="${HOME}/src/smatch/cgcc"
+    CFLAGS="-O -DLZPACK_STREAM" CC="${HOME}/src/smatch/cgcc"
 ); then
   :
 else

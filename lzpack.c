@@ -30,16 +30,16 @@
 
 /******************************************************************************/
 
-#ifdef POPCOM_STREAM
-# ifndef POPCOM_NO_OPT
-#  define POPCOM_NO_OPT
+#ifdef LZPACK_STREAM
+# ifndef LZPACK_NO_OPT
+#  define LZPACK_NO_OPT
 # endif
 #endif
 
 /******************************************************************************/
 
 #ifndef HSZ
-# ifdef POPCOM_STREAM
+# ifdef LZPACK_STREAM
 #  define HSZ 1024
 # else
 #  define HSZ 32768
@@ -48,7 +48,7 @@
 
 /******************************************************************************/
 
-#ifdef POPCOM_STREAM
+#ifdef LZPACK_STREAM
 static const int never =0;
 # define FREE(p) \
   do {          \
@@ -65,7 +65,7 @@ static const int never =0;
  * and compression streams through the dynamically-sized window.
  */
 
-#ifndef POPCOM_STREAM
+#ifndef LZPACK_STREAM
 # ifndef BUFSZ
 #  define BUFSZ (MZXFILE + 512)
 # endif
@@ -129,7 +129,7 @@ static const int never =0;
 
 /******************************************************************************/
 
-#ifndef POPCOM_STREAM
+#ifndef LZPACK_STREAM
 static unsigned char g_a[BUFSZ];
 static unsigned char g_b[BUFSZ];
 #endif
@@ -139,17 +139,17 @@ static unsigned char g_b[BUFSZ];
 /*
  * Default self-extracting stub architecture.  z88dk predefines __8080 when its
  * 8080 library is in use (-clib=8080) and __Z80 for a Z80 build; on an 8080
- * host we default to the 8080 stub.  POPCOM_8080 may also be set by the build
+ * host we default to the 8080 stub.  LZPACK_8080 may also be set by the build
  * to force that default.  -8 always selects the 8080 stub and -Z the Z80 stub.
  */
 
 #ifdef __8080
-# ifndef POPCOM_8080
-#  define POPCOM_8080
+# ifndef LZPACK_8080
+#  define LZPACK_8080
 # endif
 #endif
 
-#ifdef POPCOM_8080
+#ifdef LZPACK_8080
 # define DEFAULT_USE8080 1
 #else
 # define DEFAULT_USE8080 0
@@ -157,8 +157,8 @@ static unsigned char g_b[BUFSZ];
 
 /******************************************************************************/
 
-#ifndef POPCOM_DECODE_ONLY
-# ifndef POPCOM_STREAM
+#ifndef LZPACK_DECODE_ONLY
+# ifndef LZPACK_STREAM
 static unsigned char g_c[BUFSZ];
 
 static void *
@@ -195,7 +195,7 @@ lxmalloc (size_t n)
 
 /******************************************************************************/
 
-#ifndef POPCOM_DECODE_ONLY
+#ifndef LZPACK_DECODE_ONLY
 
 # include "csz80.h"
 # include "cs8080.h"
@@ -211,7 +211,7 @@ static int tagcnt;
 
 /******************************************************************************/
 
-# ifndef POPCOM_STREAM
+# ifndef LZPACK_STREAM
 
 static unsigned char *ob;
 
@@ -534,7 +534,7 @@ static int head[HSZ];
 
 /******************************************************************************/
 
-# ifndef POPCOM_STREAM
+# ifndef LZPACK_STREAM
 static int *lnk;
 static const unsigned char *D;
 static long N;
@@ -574,7 +574,7 @@ mlen_min (int dist)
 
 /******************************************************************************/
 
-# ifndef POPCOM_STREAM
+# ifndef LZPACK_STREAM
 
 static int
 findmatch (long i, int *bestdist, int maxdepth)
@@ -706,8 +706,8 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
 /******************************************************************************/
 
-# ifndef POPCOM_NO_OPT
-#  ifndef POPCOM_STREAM
+# ifndef LZPACK_NO_OPT
+#  ifndef LZPACK_STREAM
 
 static int
 extlen_bits (int v)
@@ -943,7 +943,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
 /******************************************************************************/
 
-#ifndef POPCOM_COMPRESS_ONLY
+#ifndef LZPACK_COMPRESS_ONLY
 
 static const unsigned char *ip, *ip_end;
 static int dbc;
@@ -1163,8 +1163,8 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
 /******************************************************************************/
 
-#ifndef POPCOM_DECODE_ONLY
-# ifndef POPCOM_STREAM
+#ifndef LZPACK_DECODE_ONLY
+# ifndef LZPACK_STREAM
 static long
 min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
          long pl_dst_top)
@@ -1510,7 +1510,7 @@ cpm_set_byte_count (const char *fn, long nbytes)
 
 /******************************************************************************/
 
-#ifndef POPCOM_STREAM
+#ifndef LZPACK_STREAM
 static long
 readfile (const char *fn, unsigned char *buf, size_t max)
 {
@@ -1577,7 +1577,7 @@ writefile (const char *fn, const unsigned char *buf, long n)
 
 /******************************************************************************/
 
-#ifndef POPCOM_DECODE_ONLY
+#ifndef LZPACK_DECODE_ONLY
 static void
 put16 (unsigned char *p, unsigned v)
 {
@@ -1618,8 +1618,8 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
 
 /******************************************************************************/
 
-#ifndef POPCOM_DECODE_ONLY
-# ifndef POPCOM_STREAM
+#ifndef LZPACK_DECODE_ONLY
+# ifndef LZPACK_STREAM
 
 static void
 put_header (unsigned char *outf, const unsigned char *data, long stub_v,
@@ -1757,7 +1757,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
-#  ifndef POPCOM_COMPRESS_ONLY
+#  ifndef LZPACK_COMPRESS_ONLY
   {
     unsigned r_stubv, r_litsrc;
     long r_outlen;
@@ -1807,7 +1807,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
-#  ifdef POPCOM_NO_OPT
+#  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
 
@@ -2827,8 +2827,8 @@ parse_header (const unsigned char *data, long n, unsigned *stubv,
 
 /******************************************************************************/
 
-#ifndef POPCOM_COMPRESS_ONLY
-# ifndef POPCOM_STREAM
+#ifndef LZPACK_COMPRESS_ONLY
+# ifndef LZPACK_STREAM
 static int
 do_restore (const char *fn, const char *oname, int verbose)
 {
@@ -2856,7 +2856,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
-      (void)fprintf (stderr, "FATAL: %s is not a POPCOM/LZPACK file\n", fn);
+      (void)fprintf (stderr, "FATAL: %s is not a PopCom!/LZPACK file\n", fn);
 
       return 1;
     }
@@ -2958,7 +2958,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if ((long)r != n || parse_header (data, n, &stubv, &lit_src, &outlen))
     {
       FREE (data);
-      (void)fprintf (stderr, "FATAL: %s is not a POPCOM/LZPACK file\n", fn);
+      (void)fprintf (stderr, "FATAL: %s is not a PopCom!/LZPACK file\n", fn);
 
       return 1;
     }
@@ -3074,7 +3074,7 @@ do_list (const char *fn)
 
   if (got < (size_t)LITCNT || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
-      (void)printf ("  %-16s (not a LZPACK/POPCOM file)\n", fn);
+      (void)printf ("  %-16s (not a PopCom!/LZPACK file)\n", fn);
 
       return 0;
     }
@@ -3095,7 +3095,7 @@ static void
 herald (FILE *f)
 {
   (void)fprintf (f,
-    "LZPACK %s - PopCom!-compatible 48K CP/M-80 executable compressor\n"
+    "LZPACK %s - 48K CP/M-80 (8080 and Z80) executable compressor\n"
     "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n",
     LZPACK_VER);
 }
@@ -3105,12 +3105,12 @@ herald (FILE *f)
 static void
 usage (void)
 {
-#ifdef POPCOM_NO_OPT
+#ifdef LZPACK_NO_OPT
   static const char* exopt = "";
   static const char* expad = "     ";
   static const char* extra = "";
 #else
-# ifndef POPCOM_DECODE_ONLY
+# ifndef LZPACK_DECODE_ONLY
   static const char* exopt = "[-e] ";
   static const char* expad = "";
   static const char* extra = "-e: extra, ";
@@ -3122,20 +3122,20 @@ usage (void)
   (void)fprintf (stderr,
     "\n"
     "Usage:\n"
-#ifndef POPCOM_DECODE_ONLY
-# ifdef POPCOM_8080
+#ifndef LZPACK_DECODE_ONLY
+# ifdef LZPACK_8080
     "  lzpack %s[-Z] <file>%s  compress (%s-Z: use Z80 stub)\n"
 # else
     "  lzpack %s[-8] <file>%s  compress (%s-8: use 8080 stub)\n"
 # endif
 #endif
-#ifndef POPCOM_COMPRESS_ONLY
+#ifndef LZPACK_COMPRESS_ONLY
     "  lzpack -R <file>         restore (decompress)\n"
 #endif
     "  lzpack -L <file>         list stored sizes\n"
     "  lzpack -O <name>         set output name\n"
     "  lzpack -V                show LZPACK information\n"
-#ifndef POPCOM_DECODE_ONLY
+#ifndef LZPACK_DECODE_ONLY
     , exopt, expad, extra
 #endif
     );
@@ -3267,11 +3267,11 @@ main (int argc, char **argv)
 
       if (mode == 0)
         {
-#ifdef POPCOM_DECODE_ONLY
+#ifdef LZPACK_DECODE_ONLY
           (void)fprintf (stderr, "FATAL: this build cannot compress\n");
           rc |= 1;
 #else
-# ifdef POPCOM_STREAM
+# ifdef LZPACK_STREAM
           rc |= do_compress_stream (argv[i], oname, 1, use8080, optimal);
 # else
           rc |= do_compress (argv[i], oname, 1, use8080, optimal);
@@ -3280,7 +3280,7 @@ main (int argc, char **argv)
         }
       else if (mode == 1)
         {
-#ifdef POPCOM_COMPRESS_ONLY
+#ifdef LZPACK_COMPRESS_ONLY
           (void)fprintf (stderr, "FATAL: this build cannot restore\n");
           rc |= 1;
 #else

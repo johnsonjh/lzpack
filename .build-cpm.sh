@@ -8,7 +8,7 @@
 #
 # Builds are supported using either a locally installed z88dk or with Docker.
 #
-# The CP/M build uses the streaming compressor (-DPOPCOM_STREAM): the input is
+# The CP/M build uses the streaming compressor (-DLZPACK_STREAM): the input is
 # read from disk through a sliding window (sized dynamically at runtime to the
 # largest the host's heap allows) and the payload is staged in a temp file, so
 # working RAM is fixed and large executables pack on 8080 48K TPA CP/M systems.
@@ -209,7 +209,7 @@ build_arch()
   sm="${out}/stubasm.map"
   printf '%s\n' ">> [${clib}] building ${lc}  (HSZ=${HSZ} MZXFILE=${MZXFILE} STACK=${STACKSZ})"
   run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${lc}" \
-    -DPOPCOM_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
+    -DLZPACK_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
   printf '%s\n' ">> [${clib}] building ${sc}"
   run_zcc zcc +cpm -O3 --opt-code-size -m stubasm.c -clib="${clib}" -o "${sc}" \

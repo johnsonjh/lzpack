@@ -132,7 +132,7 @@ cpm86 cpm-86: cs8080.h csz80.h
 	(upx -q -9 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	aztec42_cc -I. -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 \
-		-DPOPCOM_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c \
+		-DLZPACK_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L lzpack.c \
 		-o ./cpm-86/lzpack.o
 	aztec42_sqz ./cpm-86/lzpack.o
 	aztec42_link -t -o ./cpm-86/lzpack.cmd ./cpm-86/lzpack.o -lc86
@@ -154,7 +154,7 @@ msdos: cs8080.h csz80.h
 	(upx -q -9 --8086 msdos/stubasm.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
-		-Os -fno-stack-check -DPOPCOM_STREAM=1 -DHSZ=1024 \
+		-Os -fno-stack-check -DLZPACK_STREAM=1 -DHSZ=1024 \
 		-DMZXFILE=65535L -s -I.. -fm=lzpack.map -o lzpack.com \
 		-DNDEBUG ../lzpack.c)
 	(upx -q -9 --8086 msdos/lzpack.com 2> /dev/null | \
@@ -196,8 +196,8 @@ djgpp: cs8080.h csz80.h
 elks: cs8080.h csz80.h
 	@mkdir -p ./elks/
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
-		-mregparmcall -Os -s -DPOPCOM_STREAM=1 -DHSZ=1024 \
-		-DMZXFILE=65535L -o ./elks/lzpack lzpack.c
+		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DHSZ=1024 \
+		-DMZXFILE=65535L -maout-heap=24576 -o ./elks/lzpack lzpack.c
 
 ################################################################################
 
