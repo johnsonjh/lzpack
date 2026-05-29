@@ -118,7 +118,7 @@ if [ "${CHECK_OLINT:-0}" -eq 1 ]; then
   fi
 
   if [ -z "${OLINT+x}" ]; then
-    printf '%s\n' "WARNING: Oracle Developer Studio Lint was not found!" \
+    printf '%s\n' "WARNING: Oracle Developer Studio Lint 12.6 was not found!" \
       | wrap "${width:?}"
     NEED_PAUSE=1
   fi
@@ -160,6 +160,20 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> make <<<<<<<<<<<<<<<<"
 if (
   set -x
   "${MAKE:-make}"
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+################################################################################
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> tag generation <<<<<<<<<<<<<<<<"
+
+if (
+  set -x
+  "${MAKE:-make}" tags
 ); then
   :
 else

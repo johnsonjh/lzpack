@@ -32,6 +32,9 @@ core-*
 /elks/
 *.exe
 *.EXE
+/GPATH
+/GRTAGS
+/GTAGS
 log.pvs
 /lzpack
 /LZPACK
@@ -57,6 +60,8 @@ __pycache__/
 /README.wip
 /stubasm
 /*.t
+/tags
+/TAGS
 *.tmp
 *.TMP
 *.unittest

@@ -82,6 +82,7 @@ distclean reallyclean: clean
 	rm -f cs8080.h csz80.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
 	rm -f compile_commands.json compile_commands.events.json log.pvs
 	rm -f ./*.pop ./*.unp ./*.t a.out a.exe core core-*
+	rm -f tags cscope.out GPATH GRTAGS GTAGS TAGS
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
@@ -325,9 +326,28 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 
 ################################################################################
 
+tags etags ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag: \
+	cs8080.h csz80.h stubasm.c lzpack.c tests/t_autoarch.c
+	@command -v etags > /dev/null 2>&1 && \
+		{ { echo etags...; etags cs8080.h csz80.h stubasm.c lzpack.c \
+			tests/t_autoarch.c && exit 0; }; exit 1; } || :
+	@command -v ctags > /dev/null 2>&1 && \
+		{ { echo ctags...; ctags cs8080.h csz80.h stubasm.c lzpack.c \
+			tests/t_autoarch.c && exit 0; }; exit 1; } || :
+	@command -v gtags > /dev/null 2>&1 && \
+		{ { echo gtags...; gtags . && exit 0; }; \
+			exit 1; } || :
+	@command -v cscope > /dev/null 2>&1 && \
+		{ { echo cscope...; cscope -b cs8080.h csz80.h stubasm.c \
+			lzpack.c tests/t_autoarch.c && exit 0; }; \
+			exit 1; } || :
+
+################################################################################
+
 .PHONY: all build clean distclean reallyclean stub stubs strip cpm cpm80 \
-	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docler \
-	lint test cpm86 cpm-86 msdos djgpp elks windows bindist
+	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
+	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
+	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag
 
 ################################################################################
 
