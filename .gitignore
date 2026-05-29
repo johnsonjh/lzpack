@@ -40,6 +40,8 @@ log.pvs
 /mkstub
 /msdos
 /msdos/
+/NOTES.md
+/NOTES.TXT
 *.o
 *.O
 *.obj
