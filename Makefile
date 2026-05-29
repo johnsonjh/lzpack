@@ -235,7 +235,7 @@ lint: .lint.sh .common.sh
 # Runs the binary release process for CP/M-80, CP/M-86, and MS-DOS binaries.
 # Not for end users.
 
-bindist: .lint.sh .common.sh .sizeup.sh tests/run.sh
+bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" lint
 	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
@@ -282,7 +282,7 @@ bindist: .lint.sh .common.sh .sizeup.sh tests/run.sh
 	chmod a-x ./windows/lzpack64.exe.zip
 	mv -f ./windows/lzpack64.exe.zip ./bindist/LZPCKW64.ZIP
 	"$${MAKE:-make}" distclean
-	./.sizeup.sh
+	./.updatedocs.sh
 	"$${GIT_CMD-git}" add -f ./bindist/ || :
 	"$${GIT_CMD-git}" add -f ./bindist/* || :
 	"$${GIT_CMD-git}" status || :
