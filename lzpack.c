@@ -636,7 +636,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
           int depth)
 {
   long i;
-  int d, d2, L2;
+  int d, d2;
 
   D = data;
   N = n;
@@ -665,6 +665,8 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
       if (L >= mlen_min (d))
         {
+          int L2;
+
           d2 = 0;
           L2 = 0;
 
