@@ -925,19 +925,19 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
       if (a1)
         {
           if (!strcmp (a0, "A"   )
-	      && !strcmp (a1, "(BC)")) { emit (0x0A); return; }
+           && !strcmp (a1, "(BC)")) { emit (0x0A); return; }
 
           if (!strcmp (a0, "A"   )
-	      && !strcmp (a1, "(DE)")) { emit (0x1A); return; }
+           && !strcmp (a1, "(DE)")) { emit (0x1A); return; }
 
           if (!strcmp (a0, "(BC)")
-	      && !strcmp (a1, "A"))    { emit (0x02); return; }
+           && !strcmp (a1, "A"))    { emit (0x02); return; }
 
           if (!strcmp (a0, "(DE)")
-	      && !strcmp (a1, "A"))    { emit (0x12); return; }
+           && !strcmp (a1, "A"))    { emit (0x12); return; }
 
           if (!strcmp (a0, "SP"  )
-	      && !strcmp (a1, "HL"))   { emit (0xF9); return; }
+           && !strcmp (a1, "HL"))   { emit (0xF9); return; }
         }
 
       die ("bad LD");

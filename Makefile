@@ -8,7 +8,7 @@
 # Compatible defaults.
 
 CC="$$(command -v cc 2> /dev/null || command -v gcc 2> /dev/null || \
-  command -v clang 2> /dev/null || echo cc)"
+	command -v clang 2> /dev/null || echo cc)"
 CFLAGS?=-O
 
 ################################################################################

@@ -57,7 +57,8 @@ export CPE1704TKS=1
 ################################################################################
 
 export FIND_COMMAND_FATAL=1
-find_command "${AWK:-awk}" diff grep "${MAKE:-make}" mkdir rm rmdir sleep uname
+find_command "${AWK:-awk}" diff grep "${MAKE:-make}" mkdir paste rm rmdir \
+  sleep uname
 
 ################################################################################
 
@@ -67,8 +68,8 @@ export FIND_COMMAND_FATAL=0
 if out=$(
   find_command \
     "${BEAR_CMD:-bear}" "${BLACK_CMD:-black}" "${CH_CMD:-ch}" \
-    "${CLANG_CMD:-clang}" "${CPPCHECK:-cppcheck}" cppi flawfinder \
-    "${GCC_CMD:-gcc}" plog-converter pvs-studio-analyzer \
+    "${CLANG_CMD:-clang}" "${CPPCHECK:-cppcheck}" codespell cppi flawfinder \
+    git "${GCC_CMD:-gcc}" plog-converter pvs-studio-analyzer \
     "${REUSE_CMD:-reuse}" "${SCAN_BUILD_CMD:-scan-build}" \
     "${SHELLCHECK_CMD:-shellcheck}" "${SHFMT_CMD:-shfmt}" \
     "${HOME}/src/smatch/smatch" "${HOME}/src/smatch/cgcc" 2>&1
@@ -160,6 +161,44 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> make <<<<<<<<<<<<<<<<"
 if (
   set -x
   "${MAKE:-make}"
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+################################################################################
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> codespell <<<<<<<<<<<<<<<<"
+
+if (
+  command -v xxcodespell > /dev/null 2>&1 && {
+    command -v git > /dev/null 2>&1 && {
+      CODESPELL_EXCLUDE=$({
+        git ls-files --ignored --exclude-standard --others \
+          | sed 's/["\\]/\\&/g' \
+          | paste -sd',' -
+      } | sed 's/^/"/; s/$/"/')
+      codespell --ignore-words-list \
+        "expad,ACI,clen,DAA" --skip "${CODESPELL_EXCLUDE:-}" .
+    }
+  }
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+################################################################################
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> editorconfig <<<<<<<<<<<<<<<<"
+
+if (
+  command -v xxxeditorconfig-checker > /dev/null 2>&1 && {
+    editorconfig-checker
+  }
 ); then
   :
 else
