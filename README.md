@@ -9,7 +9,7 @@ LZPACK is a CP/M‑80 (8080 and Z80) executable compressor.
 It runs on 48K CP/M‑80, CP/M‑86, MS‑DOS, ELKS, UNIX, and other platforms.
 
 ```
-LZPACK v0.992 - 48K CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.993-dev - 48K CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
