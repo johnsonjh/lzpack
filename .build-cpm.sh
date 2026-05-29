@@ -417,7 +417,7 @@ printf '%s\n\n' ">>>>>>>>>>> Finished CP/M-80 build <<<<<<<<<<<"
 
 ################################################################################
 
-# Optional smoke test: Confirm the .COM loads and prints its usage banner
+# Optional smoke test: Confirm the .COM loads and prints its version info
 
 if command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '%s\n\n' ">> tnylpo z80 smoke test"
