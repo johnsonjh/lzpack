@@ -1032,13 +1032,13 @@ assemble (const char *path, int z80)
       { "LHLD", 0x2A }, { "SHLD", 0x22 }, { 0, 0 } };
 
   char line[1024];
-  FILE *f;
   int pass;
 
   nsym = 0;
 
   for (pass = 1; pass <= 2; pass++)
     {
+      FILE *f;
       long org = 0, have_org = 0;
       clen = 0;
       nref = 0;
