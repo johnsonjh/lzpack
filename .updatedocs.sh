@@ -18,14 +18,6 @@ fi
 
 ################################################################################
 
-# shellcheck disable=SC2065
-test -f "./${0##*/}" > /dev/null 2>&1 || {
-  printf '%s\n' "ERROR: Could not locate script in current directory."
-  exit 1
-}
-
-################################################################################
-
 test -d "/opt/freeware/bin" && {
   export PATH="/opt/freeware/bin:${PATH:-}"
 }
@@ -38,15 +30,27 @@ test -d "/usr/pkg/gnu/bin" && {
 
 ################################################################################
 
+set -eu
+
+################################################################################
+
+cd "$(dirname "$0")"
+
+################################################################################
+
 # shellcheck disable=SC2065
-test -f "./.common.sh" > /dev/null 2>&1 || {
-  printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
+test -f "./${0##*/}" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate script in current directory."
   exit 1
 }
 
 ################################################################################
 
-set -e
+# shellcheck disable=SC2065
+test -f "./.common.sh" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
+  exit 1
+}
 
 ################################################################################
 

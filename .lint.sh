@@ -58,7 +58,7 @@ export CPE1704TKS=1
 
 export FIND_COMMAND_FATAL=1
 find_command "${AWK:-awk}" diff grep "${MAKE:-make}" mkdir paste rm rmdir \
-  sleep uname
+  sed sleep uname
 
 ################################################################################
 
@@ -170,11 +170,10 @@ fi
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> codespell <<<<<<<<<<<<<<<<"
-
-if (
-  command -v codespell > /dev/null 2>&1 && {
-    command -v git > /dev/null 2>&1 && {
+command -v codespell > /dev/null 2>&1 && {
+  command -v git > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> codespell <<<<<<<<<<<<<<<<"
+    if (
       CODESPELL_EXCLUDE=$({
         git ls-files --ignored --exclude-standard --others \
           | sed 's/["\\]/\\&/g' \
@@ -182,29 +181,28 @@ if (
       } | sed 's/^/"/; s/$/"/')
       codespell --ignore-words-list \
         "expad,ACI,clen,DAA" --skip "${CODESPELL_EXCLUDE:-}" .
-    }
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
   }
-); then
-  :
-else
-  printf '%s\n' "****** FAILURE DETECTED ******"
-  rc=1
-fi
+}
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> editorconfig <<<<<<<<<<<<<<<<"
-
-if (
-  command -v editorconfig-checker > /dev/null 2>&1 && {
+command -v editorconfig-checker > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> editorconfig <<<<<<<<<<<<<<<<"
+  if (
     editorconfig-checker
-  }
-); then
-  :
-else
-  printf '%s\n' "****** FAILURE DETECTED ******"
-  rc=1
-fi
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
 
 ################################################################################
 
@@ -253,15 +251,12 @@ fi
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> flawfinder <<<<<<<<<<<<<<<<"
-
 command -v flawfinder > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> flawfinder <<<<<<<<<<<<<<<<"
   if (
     set -x
     flawfinder --quiet --dataonly --omittime --error-level=3 --context \
-      --minlevel=3 lzpack.c tests/t_autoarch.c # Flawfinder (Level 3)
-    flawfinder --quiet --dataonly --omittime --error-level=5 --context \
-      --minlevel=5 stubasm.c # Flawfinder (Level 5, operates on trusted input)
+      --minlevel=3 stubasm.c lzpack.c tests/t_autoarch.c
   ); then
     :
   else
@@ -272,9 +267,8 @@ command -v flawfinder > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
-
 command -v cppi > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
   for f in ./cs8080.h ./csz80.h ./stubasm.c ./lzpack.c ./tests/t_autoarch.c; do
     if (
       set -x
@@ -290,9 +284,8 @@ command -v cppi > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
-
 command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
   if (
     "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
       | grep -q 'unrecognized command line option' \
@@ -317,14 +310,13 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
-
 aCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
 aCFLAGS="${aCFLAGS:?} -U_FORTIFY_SOURCE"
 aCFLAGS="${aCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
 aCFLAGS="${aCFLAGS:?} -DGCC_ANALYZER -fanalyzer"
 
 command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   if (
     set -x
@@ -340,12 +332,11 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
 }
 
 ################################################################################
-
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer streaming <<<<<<<<<<<<<<<<"
 
 aCFLAGS="${aCFLAGS:?} -DLZPACK_STREAM"
 
 command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer streaming <<<<<<<<<<<<<<<<"
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   if (
     set -x
@@ -362,10 +353,9 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build standard <<<<<<<<<<<<<<<<"
-
 command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
   command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build standard <<<<<<<<<<<<<<<<"
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
@@ -388,11 +378,10 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio standard <<<<<<<<<<<<<<<<"
-
 command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
   command -v pvs-studio-analyzer > /dev/null 2>&1 && {
     command -v plog-converter > /dev/null 2>&1 && {
+      printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio standard <<<<<<<<<<<<<<<<"
       rm -f compile_commands.json log.pvs 2> /dev/null
       rm -f -r ./pvsreport 2> /dev/null 2>&1
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
@@ -420,10 +409,9 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build stream <<<<<<<<<<<<<<<<"
-
 command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
   command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build stream <<<<<<<<<<<<<<<<"
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
@@ -446,11 +434,10 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio stream <<<<<<<<<<<<<<<<"
-
 command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
   command -v pvs-studio-analyzer > /dev/null 2>&1 && {
     command -v plog-converter > /dev/null 2>&1 && {
+      printf '\n%s\n\n' ">>>>>>>>>>>>>>>> pvs-studio stream <<<<<<<<<<<<<<<<"
       rm -f compile_commands.json log.pvs 2> /dev/null
       rm -f -r ./pvsreport 2> /dev/null 2>&1
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
@@ -479,9 +466,8 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
-
 command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
   if (
     set -x
     "${CH_CMD:-ch}" -n ./stubasm.c
@@ -513,9 +499,8 @@ command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
-
 command -v "${OLINT:-}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> oracle lint <<<<<<<<<<<<<<<<"
   if (
     set -x
     "${OLINT:?}" \
@@ -579,9 +564,8 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
-
 command -v "${REUSE_CMD:-reuse}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> reuse <<<<<<<<<<<<<<<<"
   if (
     set -x
     "${REUSE_CMD:-reuse}" lint -q || "${REUSE_CMD:-reuse}" lint
@@ -595,9 +579,8 @@ command -v "${REUSE_CMD:-reuse}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
-
 command -v "${SHELLCHECK_CMD:-shellcheck}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shellcheck <<<<<<<<<<<<<<<<"
   if (
     set -x
     "${SHELLCHECK_CMD:-shellcheck}" -o any,all \
@@ -616,9 +599,8 @@ command -v "${SHELLCHECK_CMD:-shellcheck}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
-
 command -v "${SHFMT_CMD:-shfmt}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> shfmt <<<<<<<<<<<<<<<<"
   if (
     set -x
     "${SHFMT_CMD:-shfmt}" -bn -sr -fn -i 2 -s -d \
@@ -637,9 +619,8 @@ command -v "${SHFMT_CMD:-shfmt}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> black <<<<<<<<<<<<<<<<"
-
 command -v "${BLACK_CMD:-black}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> black <<<<<<<<<<<<<<<<"
   if (
     set -x
     "${BLACK_CMD:-black}" --quiet --check \
@@ -658,10 +639,9 @@ command -v "${BLACK_CMD:-black}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch standard <<<<<<<<<<<<<<<<"
-
 command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
   command -v "${HOME}/src/smatch/cgcc" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch standard <<<<<<<<<<<<<<<<"
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
@@ -679,10 +659,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch stream <<<<<<<<<<<<<<<<"
-
 command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
   command -v "${HOME}/src/smatch/cgcc" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch stream <<<<<<<<<<<<<<<<"
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
@@ -700,19 +679,28 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
 
 ################################################################################
 
-printf '\n%s\n\n' ">>>>>>>>>>>>>>>> NetBSD lint <<<<<<<<<<<<<<<<"
-
 case "$(uname -s 2> /dev/null || :)" in
 NetBSD)
   if command -p -v lint > /dev/null 2>&1; then
-    (
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> NetBSD lint <<<<<<<<<<<<<<<<"
+    if (
       set -x
       lint -a -aa -b -c -e -g -h -P -r -u -w -z lzpack.c
-    )
-    (
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
       set -x
       lint -a -aa -b -c -e -g -h -P -r -u -w -z stubasm.c
-    )
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
   fi
   ;;
 *) : ;;

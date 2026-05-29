@@ -22,6 +22,54 @@
 
 /******************************************************************************/
 
+/*
+ * Capacity limits.  Defaults are generous for the host; a CP/M-80 build can
+ * shrink them (e.g. -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768) to fit 64K.  The
+ * stub sources only need a fraction of these.
+ */
+
+#ifndef MAXSYM
+# define MAXSYM 256
+#endif
+
+#ifndef MAXREF
+# define MAXREF 512
+#endif
+
+#ifndef MAXCODE
+# define MAXCODE 4096
+#endif
+
+#ifndef NAMELEN
+# define NAMELEN 24 /* longest stub symbol is ~12 chars; 23 + NUL fits! */
+#endif
+
+/******************************************************************************/
+
+static char sym_name[MAXSYM][NAMELEN];
+static long sym_val[MAXSYM];
+static int sym_islabel[MAXSYM];
+static int nsym;
+
+/******************************************************************************/
+
+typedef struct
+{
+  int off;
+  char name[NAMELEN];
+  int width;
+} Ref;
+
+static Ref refs[MAXREF];
+
+/******************************************************************************/
+
+static int nref;
+static unsigned char code[MAXCODE];
+static int clen;
+
+/******************************************************************************/
+
 static long
 xstrtol (const char *nptr, const char **endptr, int base)
 {
@@ -131,54 +179,6 @@ xstrtol (const char *nptr, const char **endptr, int base)
 
 /******************************************************************************/
 
-/*
- * Capacity limits.  Defaults are generous for the host; a CP/M-80 build can
- * shrink them (e.g. -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768) to fit 64K.  The
- * stub sources only need a fraction of these.
- */
-
-#ifndef MAXSYM
-# define MAXSYM 256
-#endif
-
-#ifndef MAXREF
-# define MAXREF 512
-#endif
-
-#ifndef MAXCODE
-# define MAXCODE 4096
-#endif
-
-#ifndef NAMELEN
-# define NAMELEN 24 /* longest stub symbol is ~12 chars; 23 + NUL fits! */
-#endif
-
-/******************************************************************************/
-
-static char sym_name[MAXSYM][NAMELEN];
-static long sym_val[MAXSYM];
-static int sym_islabel[MAXSYM];
-static int nsym;
-
-/******************************************************************************/
-
-typedef struct
-{
-  int off;
-  char name[NAMELEN];
-  int width;
-} Ref;
-
-static Ref refs[MAXREF];
-
-/******************************************************************************/
-
-static int nref;
-static unsigned char code[MAXCODE];
-static int clen;
-
-/******************************************************************************/
-
 static void
 die (const char *m)
 {
@@ -218,6 +218,7 @@ sym_set (const char *n, long v, int islabel)
       if (strlen (n) >= (size_t)NAMELEN)
         die ("symbol too long");
 
+      /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
       (void)strcpy (sym_name[i], n);
     }
 
@@ -458,6 +459,7 @@ rec (const char *tok, int width)
           if (strlen (tok) >= (size_t)NAMELEN)
             die ("reference name too long");
 
+          /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
           (void)strcpy (refs[nref].name, tok);
         }
 
@@ -1207,7 +1209,9 @@ assemble (const char *path, int z80)
               exit (1);
             }
 
+          /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
           (void)strcpy (opU, op);
+
           upcase (opU);
           loc = (have_org ? org : 0) + clen;
 
@@ -1574,7 +1578,9 @@ collect (const char *const *patch)
           if (strlen (refs[j].name) >= (size_t)NAMELEN) /* //-V547 */
             die ("patch name too long");
 
+          /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
           (void)strcpy (sl_name[nsl], refs[j].name);
+
           sl_off[nsl] = refs[j].off;
           sl_w[nsl] = refs[j].width;
 
@@ -1726,7 +1732,9 @@ main (int argc, char **argv)
 
   for (i = 0; i < nsl; i++)
     {
+      /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
       (void)strcpy (s_sl_name[i], sl_name[i]);
+
       s_sl_off[i] = sl_off[i];
     }
 
