@@ -300,7 +300,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       (
         set -x
         "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
-        CFLAGS="-O3 -DLZPACK_STREAM" > /dev/null
+          CFLAGS="-O3 -DLZPACK_STREAM" > /dev/null
       )
       (
         set -x

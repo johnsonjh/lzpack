@@ -1996,8 +1996,6 @@ win_alloc (void)
 
       FREE (s_win);
       FREE (s_lnk);
-      s_win = 0;
-      s_lnk = 0;
     }
 
   if (!s_win)
