@@ -37,18 +37,42 @@ export CPE1704TKS=1
 # shellcheck disable=SC1091
 . ./.common.sh
 
+CC="$(command -v cc 2> /dev/null || command -v "${GCC_CMD:-gcc}" 2> /dev/null \
+  || command -v "${CLANG_CMD:-clang}" 2> /dev/null || printf '%s\n' cc)"
+
+export CC
+
 export FIND_COMMAND_FATAL=1
 # shellcheck disable=SC2310
-find_command awk grep make python3 sleep "${TNYLPO:-tnylpo}" uname
-
-export FIND_COMMAND_FATAL=0
-# shellcheck disable=SC2310
-find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" || :
+find_command awk "${CC:-cc}" grep make mktemp python3 sleep uname
 
 TNYLPO="${TNYLPO:-tnylpo}"
 CPMEMU="${CPMEMU:-cpm}"
 EMU2="${EMU2:-emu2}"
 rc=0
+
+export FIND_COMMAND_FATAL=0
+# shellcheck disable=SC2310
+find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" || :
+
+printf '\n%s\n' "================== UNIT ==================="
+
+# The autodetector's "stop at the logical (LRBC) length, not at physical EOF"
+# bound cannot be reached through the CP/M 2.2 test emulators (no LRBC, so there
+# the logical length already equals physical EOF).  Exercise it directly: build
+# a small program that #includes lzpack.c and calls the detector -- once as the
+# streaming is_z80_file (), once as the in-RAM is_z80_image () -- and check that
+# both stop at the logical length.  Needs only a working host C compiler.
+ut="$(mktemp).unittest"
+for udef in "-DLZPACK_STREAM" ""; do
+  # shellcheck disable=SC2086,SC2248
+  if "${CC:-cc}" ${udef} -I. -o "${ut}" tests/t_autoarch.c && "${ut}"; then
+    :
+  else
+    rc=1
+  fi
+done
+rm -f "${ut}"
 
 printf '\n%s\n' "================= NATIVE =================="
 

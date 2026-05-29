@@ -2622,19 +2622,26 @@ count_file (const char *fn)
 /******************************************************************************/
 
 #  ifndef LZPACK_NO_AUTOARCH
-static int
-is_z80_file (FILE *f)
-{
-  int op;
 
-  while ((op = getc (f)) != EOF)
+static int
+is_z80_file (FILE *f, long n)
+{
+  long pos = 0;
+
+  while (pos < n)
     {
+      int op = getc (f);
       int skip;
+
+      if (op == EOF)
+        return 0;
+
+      pos++;
 
       if (op == 0xCB || op == 0xDD || op == 0xED || op == 0xFD)
         return 1;
 
-      for (skip = op8080_len[op] - 1; skip > 0; skip--)
+      for (skip = op8080_len[op] - 1; skip > 0; skip--, pos++)
         if (getc (f) == EOF)
           return 0;
     }
@@ -2731,7 +2738,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
       if (df)
         {
-          use8080 = (is_z80_file (df) ? 0 : 1);
+          use8080 = (is_z80_file (df, n) ? 0 : 1);
           (void)fclose (df);
         }
     }

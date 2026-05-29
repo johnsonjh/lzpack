@@ -55,6 +55,7 @@ __pycache__/
 /*.t
 *.tmp
 *.TMP
+*.unittest
 *.unp
 *.UNP
 /windows/

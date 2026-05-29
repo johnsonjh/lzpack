@@ -62,7 +62,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
 
 "${MAKE:-make}" cs8080.h csz80.h > /dev/null
 
-for f in ./cs8080.h ./csz80.h ./stubasm.c ./lzpack.c; do
+for f in ./cs8080.h ./csz80.h ./stubasm.c ./lzpack.c ./tests/t_autoarch.c; do
   if (
     set -x
     cppi -a --check "${f}"
@@ -82,7 +82,9 @@ if (
     --enable=warning,style,performance,portability,unusedFunction \
     --force --check-level=exhaustive --std=c89 --platform=unix64 \
     --inline-suppr --inconclusive --quiet --error-exitcode=2 \
-    -D__CPPCHECK__ -D__LINT__ -j 1 ./stubasm.c ./lzpack.c
+    -D__CPPCHECK__ -D__LINT__ -j 1 \
+    ./stubasm.c ./lzpack.c
+
 ); then
   :
 else
@@ -297,6 +299,7 @@ if (
     ./.common.sh \
     ./.build-cpm.sh \
     ./.lint.sh \
+    ./.sizeup.sh \
     ./tests/run.sh
 ); then
   :
@@ -313,6 +316,7 @@ if (
     ./.common.sh \
     ./.build-cpm.sh \
     ./.lint.sh \
+    ./.sizeup.sh \
     ./tests/run.sh
 ); then
   :
