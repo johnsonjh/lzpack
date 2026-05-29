@@ -19,10 +19,10 @@ static void
 check (int got, int want, const char *what)
 {
   if (got == want)
-    (void)printf ("  ok   - %s\n", what);
+    (void)printf ("  [PASS] %s\n", what);
   else
     {
-      (void)printf ("  FAIL - %s (got %d, want %d)\n", what, got, want);
+      (void)printf ("  [FAIL] %s (got %d, want %d)\n", what, got, want);
       fails++;
     }
 }
