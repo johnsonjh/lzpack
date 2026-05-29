@@ -115,7 +115,8 @@ detect_width()
 
 wrap()
 {
-  awk -v width="${1:?}" '
+  # shellcheck disable=SC2016
+  "${AWK:-awk}" -v width="${1:?}" '
     {
       for (i = 1; i <= NF; i++) {
         if (length(out) + length($i) + 1 > width) {
@@ -130,6 +131,46 @@ wrap()
       if (out) print out
     }
   '
+}
+
+################################################################################
+
+mktemp_lzpack()
+{
+  : "${TMPDIR:=}"
+  : "${TMP:=}"
+  base="${TMPDIR:-${TMP:-/tmp}}"
+  template="${1:-tmp.$$$$$$}"
+
+  case "${template}" in
+  *XXXXXX) prefix="${template%XXXXXX}" ;;
+  *) prefix="${template}" ;;
+  esac
+
+  if [ ! -d "${base}" ]; then
+    printf '%s\n' \
+      "mktemp: directory '${base}' does not exist, aborting!" >&2
+    return 1
+  fi
+
+  i=0
+  while [ "${i}" -lt 10000 ]; do
+    candidate="${base}/${prefix}.$$$$.${i}"
+
+    if mkdir "${candidate}" 2> /dev/null; then
+      # unavoidable TOCTOU race here, callers should prefer GNU mktemp!
+      rmdir "${candidate}" || return 1
+      : > "${candidate}" || return 1
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+
+    i=$((i + 1))
+  done
+
+  printf '%s\n' \
+    "mktemp: could not create unique temporary name, aborting!" >&2
+  return 1
 }
 
 ################################################################################

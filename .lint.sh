@@ -43,8 +43,8 @@ export CPE1704TKS=1
 . ./.common.sh
 
 export FIND_COMMAND_FATAL=1
-find_command "${MAKE:-make}" awk chown cp grep head ls mv paste pwd rm sed \
-  sleep uname wc
+find_command "${AWK:-awk}" "${MAKE:-make}" chown cp grep head ls mkdir mv \
+  paste pwd rm rmdir sed sleep uname wc
 
 export FIND_COMMAND_FATAL=0
 # shellcheck disable=SC2310
@@ -132,18 +132,19 @@ fi
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build standard <<<<<<<<<<<<<<<<"
 
 "${MAKE:-make}" distclean > /dev/null 2>&1 || :
-TMPID=$$$$
+TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
+rm -f "${TMPFILE}"
 
 if (
   set -x
   "${SCAN_BUILD_CMD:-scan-build}" \
     --status-bugs \
-    -o /tmp/"lzpack-scan.${TMPID}" "${MAKE:-make}" all > /dev/null 2>&1
+    -o "${TMPFILE:?}" "${MAKE:-make}" all > /dev/null 2>&1
 ); then
   :
 else
   printf \
-    '\n%s\n' "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
+    '\n%s\n' "*** scan-build reported issues, see '${TMPFILE:?}'"
   rc=1
 fi
 
@@ -177,19 +178,19 @@ fi
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build stream <<<<<<<<<<<<<<<<"
 
 "${MAKE:-make}" distclean > /dev/null 2>&1 || :
-TMPID=$$$$
+TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
+rm -f "${TMPFILE}"
 
 if (
   set -x
   "${SCAN_BUILD_CMD:-scan-build}" \
     --status-bugs \
-    -o /tmp/"lzpack-scan.${TMPID}" "${MAKE:-make}" \
+    -o "${TMPFILE:?}" "${MAKE:-make}" \
     CFLAGS="-O -DLZPACK_STREAM" all > /dev/null 2>&1
 ); then
   :
 else
-  printf '\n%s\n' \
-    "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
+  printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
   rc=1
 fi
 
@@ -300,7 +301,7 @@ if (
     ./.common.sh \
     ./.build-cpm.sh \
     ./.lint.sh \
-    ./.sizeup.sh \
+    ./.updatedocs.sh \
     ./tests/run.sh
 ); then
   :
@@ -317,7 +318,7 @@ if (
     ./.common.sh \
     ./.build-cpm.sh \
     ./.lint.sh \
-    ./.sizeup.sh \
+    ./.updatedocs.sh \
     ./tests/run.sh
 ); then
   :

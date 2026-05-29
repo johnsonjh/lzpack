@@ -94,7 +94,7 @@ export CPE1704TKS=1
 . ./.common.sh
 
 export FIND_COMMAND_FATAL=1
-find_command "${MAKE:-make}" awk chown cp head ls mv pwd rm sed wc
+find_command "${AWK:-awk}" chown cp head ls "${MAKE:-make}" mkdir mv pwd rm rmdir sed wc
 
 export FIND_COMMAND_FATAL=0
 # shellcheck disable=SC2310

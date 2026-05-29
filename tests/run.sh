@@ -45,7 +45,8 @@ export CC
 
 export FIND_COMMAND_FATAL=1
 # shellcheck disable=SC2310
-find_command awk "${CC:-cc}" grep make mktemp python3 sleep uname
+find_command "${AWK:-awk}" "${CC:-cc}" grep make mkdir python3 rmdir \
+  sleep uname
 
 TNYLPO="${TNYLPO:-tnylpo}"
 CPMEMU="${CPMEMU:-cpm}"
@@ -64,7 +65,8 @@ printf '\n%s\n' "================== UNIT ==================="
 # a small program that #includes lzpack.c and calls the detector -- once as the
 # streaming is_z80_file (), once as the in-RAM is_z80_image () -- and check that
 # both stop at the logical length.  Needs only a working host C compiler.
-ut="$(mktemp).unittest"
+ut="$(mktemp 2> /dev/null || mktemp_lzpack)"
+
 for udef in "-DLZPACK_STREAM" ""; do
   # shellcheck disable=SC2086,SC2248
   if "${CC:-cc}" ${udef} -I. -o "${ut}" tests/t_autoarch.c && "${ut}"; then
@@ -73,6 +75,7 @@ for udef in "-DLZPACK_STREAM" ""; do
     rc=1
   fi
 done
+
 rm -f "${ut}"
 
 printf '\n%s\n' "================= NATIVE =================="
