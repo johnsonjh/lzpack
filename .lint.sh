@@ -219,10 +219,10 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> flawfinder <<<<<<<<<<<<<<<<"
 command -v flawfinder > /dev/null 2>&1 && {
   if (
     set -x
-    flawfinder --quiet --omittime --error-level=3 --context --minlevel=3 \
-      lzpack.c tests/t_autoarch.c # Flawfinder (Level 3)
-    flawfinder --quiet --omittime --error-level=5 --context --minlevel=5 \
-      stubasm.c # Flawfinder (Level 5, operates on trusted inputs only)
+    flawfinder --quiet --dataonly --omittime --error-level=3 --context \
+      --minlevel=3 lzpack.c tests/t_autoarch.c # Flawfinder (Level 3)
+    flawfinder --quiet --dataonly --omittime --error-level=5 --context \
+      --minlevel=5 stubasm.c # Flawfinder (Level 5, operates on trusted input)
   ); then
     :
   else
