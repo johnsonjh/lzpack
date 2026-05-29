@@ -134,7 +134,7 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 	@pcdev_cmdinfo ./cpm-86/stubasm.cmd
 	(upx -q -9 --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
-	aztec42_cc -I. -B "+CA" -L19 -Z814 -D__AZTEC_C_42T__=1 \
+	aztec42_cc -I. -B "+CA" -L19 -Z828 -D__AZTEC_C_42T__=1 \
 		-DLZPACK_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L ./lzpack.c \
 		-o ./cpm-86/lzpack.o
 	aztec42_sqz ./cpm-86/lzpack.o

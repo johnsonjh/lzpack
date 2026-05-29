@@ -46,6 +46,7 @@ find_command "${MAKE:-make}" awk chown cp grep head ls mv paste pwd rm sed \
   sleep uname wc
 
 export FIND_COMMAND_FATAL=0
+# shellcheck disable=SC2310
 find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" || :
 
 rc=0

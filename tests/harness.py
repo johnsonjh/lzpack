@@ -16,7 +16,7 @@ Usage:
 
 A "runner" is whatever turns argv into an lzpack invocation in a scratch dir.
 """
-import os, sys, shutil, subprocess, glob, tempfile
+import os, re, sys, shutil, subprocess, glob, tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(ROOT, "corpus")
@@ -30,25 +30,33 @@ NATIVE = os.path.join(PROJECT, "lzpack")
 CPMCOM = os.environ.get("CPMCOM", os.path.join(PROJECT, "cpm-z80", "lzpack.com"))
 CPMCMD = os.environ.get("CPMCMD", os.path.join(PROJECT, "cpm-86", "lzpack.cmd"))
 
-# corpus file -> (expected_marker_substring, expectation)
+# corpus file -> (expected_marker_substring, expectation, expected_stub)
 # expectation: 'ok' = must self-extract; 'skip' = compressor should refuse
 #              (inefficient or too big) and NOT write output.
+# expected_stub: the stub the autodetector must pick in auto mode -- '8080' for
+#              a pure-8080 program, 'Z80' for one that uses a Z80-only opcode --
+#              or None to not assert it (skip files, and ckrep whose random
+#              filler makes its detected arch data-dependent).  The -8 and -Z
+#              overrides are always checked, regardless of this field.
 CORPUS_FILES = [
-    ("tiny.com", b"TINY-MARK-A1", "skip"),  # 200B < stub overhead -> skipped
-    ("small.com", b"SMALL-MARK-B2", "ok"),
-    ("med.com", b"MED-MARK-C3", "ok"),
-    ("big16.com", b"BIG16-MARK-D4", "ok"),
-    ("big24.com", b"BIG24-MARK-E5", "ok"),
-    ("big46.com", b"BIG46-MARK-F6", "ok"),
-    ("incomp.com", b"INCOMP-MARK-G7", "skip"),  # random -> inefficient
-    ("over.com", b"OVER-MARK-H8", "skip"),  # too big to self-extract
+    ("tiny.com", b"TINY-MARK-A1", "skip", None),  # 200B < stub overhead -> skipped
+    ("small.com", b"SMALL-MARK-B2", "ok", "8080"),
+    ("med.com", b"MED-MARK-C3", "ok", "8080"),
+    ("big16.com", b"BIG16-MARK-D4", "ok", "8080"),
+    ("big24.com", b"BIG24-MARK-E5", "ok", "8080"),
+    ("big46.com", b"BIG46-MARK-F6", "ok", "8080"),
+    ("incomp.com", b"INCOMP-MARK-G7", "skip", None),  # random -> inefficient
+    ("over.com", b"OVER-MARK-H8", "skip", None),  # too big to self-extract
+    # genuine Z80 program (uses LDIR/ED B0): must autodetect as Z80, and the
+    # resulting Z80-stub self-extractor must run on the Z80 emulators.
+    ("z80.com", b"Z80-MARK-Z1", "ok", "Z80"),
     # self-checksumming: the marker prints only if the WHOLE decompressed image
     # sums to the value baked in at build time -> byte-exact decode is verified.
-    ("ckzero.com", b"CKZERO-OK", "ok"),  # long runs -> extended-length codes
-    ("cktext.com", b"CKTEXT-OK", "ok"),  # text -> FORM2/FORM3 mix
-    ("ckrep.com", b"CKREP-OK", "ok"),  # far repeats -> FORM3 + extended length
+    ("ckzero.com", b"CKZERO-OK", "ok", "8080"),  # long runs -> extended-length codes
+    ("cktext.com", b"CKTEXT-OK", "ok", "8080"),  # text -> FORM2/FORM3 mix
+    ("ckrep.com", b"CKREP-OK", "ok", None),  # far repeats; random filler -> arch n/a
 ]
-MODES = [[], ["-e"], ["-8"], ["-e", "-8"]]
+MODES = [[], ["-e"], ["-8"], ["-e", "-8"], ["-Z"]]
 
 
 def run_tnylpo(workdir, comname, args=None):
@@ -143,7 +151,15 @@ def emit(results, tag, status, size, note):
     print("  [%s] %-22s size=%-11s %s" % (status, tag, size, note), flush=True)
 
 
-def test_file(runner, fname, marker, expect, results):
+def parse_arch(log):
+    """Return the stub kind ('8080' or 'Z80') from lzpack's '[..]' verbose tag,
+    or '?' if absent.  The tag is '[8080]'/'[Z80]' when forced by -8/-Z and
+    '[8080 auto]'/'[Z80 auto]' when chosen by the autodetector."""
+    m = re.search(r"\[(8080|Z80)( auto)?\]", log)
+    return m.group(1) if m else "?"
+
+
+def test_file(runner, fname, marker, expect, expect_arch, results):
     src = os.path.join(CORPUS, fname)
     base = fname[:-4]  # strip .com
     orig = open(src, "rb").read()
@@ -229,10 +245,30 @@ def test_file(runner, fname, marker, expect, results):
             else:
                 rt = "none"
 
-            # PASS requires correct self-extraction; a -R MISMATCH (silent
-            # corruption) or a missing/garbled restore is a hard failure.
-            ok = se_ok and ref_ok and rt in ("OK", "refused(too-big)")
-            note = "self-extract=%s roundtrip=%s" % ("OK" if se_ok else "BAD", rt)
+            # Architecture selection: lzpack's '[..]' tag names the stub it
+            # used.  -8/-Z force the choice (always checked); otherwise the
+            # autodetector must pick expect_arch.  A wrong stub is a hard fail:
+            # picking Z80 for an 8080 program would strip its 8080 portability.
+            arch = parse_arch(log)
+            if "-8" in mode:
+                want_arch = "8080"
+            elif "-Z" in mode:
+                want_arch = "Z80"
+            else:
+                want_arch = expect_arch
+            arch_ok = want_arch is None or arch == want_arch
+
+            # PASS requires correct self-extraction and stub choice; a -R
+            # MISMATCH (silent corruption) or a missing/garbled restore is a
+            # hard failure.
+            ok = se_ok and ref_ok and arch_ok and rt in ("OK", "refused(too-big)")
+            note = "stub=%s self-extract=%s roundtrip=%s" % (
+                arch,
+                "OK" if se_ok else "BAD",
+                rt,
+            )
+            if not arch_ok:
+                note = "WRONG STUB %s (want %s)  " % (arch, want_arch) + note
             emit(results, tag, "PASS" if ok else "FAIL", sizestr, note)
         finally:
             shutil.rmtree(wd, ignore_errors=True)
@@ -286,8 +322,10 @@ def main():
     env = " + ".join(ev for _, ev in needed)
     cpm8680 = env == "EMU2 + TNYLPO"
 
-    # The test corpus .com files will be regenerated if they are missing.
-    if not os.path.exists(os.path.join(CORPUS, CORPUS_FILES[0][0])):
+    # The test corpus .com files are reproduced by gen.py if any are missing.
+    if any(
+        not os.path.exists(os.path.join(CORPUS, f)) for f, _m, _e, _a in CORPUS_FILES
+    ):
         subprocess.run([sys.executable, os.path.join(ROOT, "gen.py")], check=True)
     if cpm8680:
         print("===== Using EMU2-86+TNYLPO Combo Mode =====", flush=True)
@@ -295,8 +333,8 @@ def main():
         print("===== Using %s for CP/M emulation =====" % env, flush=True)
     print("===========================================\n", flush=True)
     results = []
-    for fname, marker, expect in CORPUS_FILES:
-        test_file(runner, fname, marker, expect, results)
+    for fname, marker, expect, expect_arch in CORPUS_FILES:
+        test_file(runner, fname, marker, expect, expect_arch, results)
     npass = sum(1 for r in results if r[1] == "PASS")
     print("\n  **** %d/%d passed ****" % (npass, len(results)), flush=True)
     return 0 if npass == len(results) else 1

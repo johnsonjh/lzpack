@@ -153,6 +153,58 @@ def make(name, target, marker, fill):
     )
 
 
+def make_z80(name, target, marker):
+    # A genuine Z80 program, used to prove the architecture autodetector tags a
+    # file that uses a Z80-only opcode as Z80 (and that the resulting Z80-stub
+    # self-extractor runs).  It LDIR-copies its marker into a scratch buffer and
+    # prints the copy via BDOS fn 9; LDIR is ED B0, which exists only on the
+    # Z80 -- on a real 8080 ED decodes as CALL, so this could not run there.
+    # The ED prefix at offset 9 is what the detector keys on.  Zero filler (no
+    # stray prefix bytes); size is a 128-byte-record multiple so the restored
+    # file also compares byte-for-byte under CP/M (2048 = 16 * 128).
+    msg = marker.encode("ascii") + b"\r\n$"
+    msg_addr = 0x100 + 22  # code below is 22 bytes, so msg starts at 0x116
+    buf_addr = msg_addr + len(msg)  # scratch buffer lives in the zero filler
+    code = bytes(
+        [
+            0x21,
+            msg_addr & 0xFF,
+            msg_addr >> 8,  # LXI/LD HL, msg
+            0x11,
+            buf_addr & 0xFF,
+            buf_addr >> 8,  # LXI/LD DE, buf
+            0x01,
+            len(msg) & 0xFF,
+            len(msg) >> 8,  # LXI/LD BC, len
+            0xED,
+            0xB0,  # LDIR        (Z80-only)
+            0x11,
+            buf_addr & 0xFF,
+            buf_addr >> 8,  # LXI/LD DE, buf
+            0x0E,
+            0x09,  # MVI/LD C, 9
+            0xCD,
+            0x05,
+            0x00,  # CALL 5
+            0xC3,
+            0x00,
+            0x00,  # JMP/JP 0
+        ]
+    )
+    assert len(code) == 22, len(code)
+    body = code + msg
+    pad = target - len(body)
+    if pad < 0:
+        raise SystemExit("target too small for %s" % name)
+    if target % 128:
+        raise SystemExit("%s: Z80 target must be a 128-byte multiple" % name)
+    open(name, "wb").write(body + b"\x00" * pad)
+    print(
+        "  %-22s %6d bytes  marker=%r (Z80: LDIR/ED B0)"
+        % (os.path.basename(name), target, marker)
+    )
+
+
 d = os.path.dirname(__file__) + "/corpus"
 make(d + "/tiny.com", 200, "TINY-MARK-A1", "text")
 make(d + "/small.com", 2048, "SMALL-MARK-B2", "text")
@@ -168,6 +220,9 @@ make(d + "/incomp.com", 4096, "INCOMP-MARK-G7", "rand")
 
 # expected: too big / would not fit
 make(d + "/over.com", 52000, "OVER-MARK-H8", "text")
+
+# genuine Z80 program (uses LDIR) -> must autodetect as Z80 and self-extract
+make_z80(d + "/z80.com", 2048, "Z80-MARK-Z1")
 
 # Self-checksumming programs: verify the ENTIRE decompressed image byte-for-byte
 # through the real Z80/8080 stub (prints "<tag>-OK" only on an exact sum match).

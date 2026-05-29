@@ -96,6 +96,7 @@ export FIND_COMMAND_FATAL=1
 find_command "${MAKE:-make}" awk chown cp head ls mv pwd rm sed wc
 
 export FIND_COMMAND_FATAL=0
+# shellcheck disable=SC2310
 find_command "${TNYLPO:?}" || :
 
 here="$(pwd -P)"
@@ -110,6 +111,7 @@ auto)
     export FIND_COMMAND_FATAL=1
     find_command "${DOCKER}"
     export FIND_COMMAND_FATAL=0
+    # shellcheck disable=SC2310
     find_command sudo || :
     CPM_BACKEND=docker
   fi

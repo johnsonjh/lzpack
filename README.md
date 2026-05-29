@@ -9,15 +9,15 @@ LZPACK is a CP/M‑80 (8080 and Z80) executable compressor.
 It runs on 48K CP/M‑80, CP/M‑86, MS‑DOS, ELKS, UNIX, and other platforms.
 
 ```
-LZPACK v0.972 - 48K CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.983 - 48K CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
-  lzpack [-e] [-8] <file>  compress (-e: extra, -8: use 8080 stub)
-  lzpack -R <file>         restore (decompress)
-  lzpack -L <file>         list stored sizes
-  lzpack -O <name>         set output name
-  lzpack -V                show LZPACK information
+  lzpack [-e] [-8|-Z] <file>  compress (-e: extra, -8/-Z: force stub type)
+  lzpack -R <file>            restore (decompress)
+  lzpack -L <file>            list stored sizes
+  lzpack -O <name>            set output name
+  lzpack -V                   show LZPACK information
 ```
 
 ## Downloads

@@ -20,7 +20,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.972"
+#define LZPACK_VER "v0.983"
 
 /******************************************************************************/
 
@@ -137,10 +137,15 @@ static unsigned char g_b[BUFSZ];
 /******************************************************************************/
 
 /*
- * Default self-extracting stub architecture.  z88dk predefines __8080 when its
- * 8080 library is in use (-clib=8080) and __Z80 for a Z80 build; on an 8080
- * host we default to the 8080 stub.  LZPACK_8080 may also be set by the build
- * to force that default.  -8 always selects the 8080 stub and -Z the Z80 stub.
+ * Self-extracting stub architecture.  By default lzpack autodetects, per input
+ * file, whether the program needs a Z80 (see op8080_len[] and is_z80_*()) and
+ * picks the Z80 or 8080 self-extractor to match, so the packed file runs
+ * wherever the original would.  -8 forces the 8080 stub and -Z the Z80 stub.
+ *
+ * DEFAULT_USE8080 is the fallback used only when autodetection is compiled out
+ * (-DLZPACK_NO_AUTOARCH) and neither -8 nor -Z is given.  z88dk predefines
+ * __8080 when its 8080 library is in use (-clib=8080), so an 8080 host does a
+ * fallback to the 8080 stub; a set LZPACK_8080 may also be set to force that.
  */
 
 #ifdef __8080
@@ -1619,6 +1624,32 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
 /******************************************************************************/
 
 #ifndef LZPACK_DECODE_ONLY
+
+# ifndef LZPACK_NO_AUTOARCH
+
+static const unsigned char op8080_len[256] = {
+  1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+  1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+  1, 3, 3, 1, 1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1,
+  1, 3, 3, 1, 1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 3, 3, 3, 2, 1,
+  1, 1, 3, 2, 3, 1, 2, 1, 1, 1, 3, 2, 3, 3, 2, 1,
+  1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1,
+  1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1
+};
+
+# endif
+
+/******************************************************************************/
+
 # ifndef LZPACK_STREAM
 
 static void
@@ -1740,9 +1771,31 @@ static int parse_header (const unsigned char *data, long n, unsigned *stubv,
 
 /******************************************************************************/
 
+#  ifndef LZPACK_NO_AUTOARCH
+static int
+is_z80_image (const unsigned char *d, long n)
+{
+  long i = 0;
+
+  while (i < n)
+    {
+      int op = d[i];
+
+      if (op == 0xCB || op == 0xDD || op == 0xED || op == 0xFD)
+        return 1;
+
+      i += op8080_len[op];
+    }
+
+  return 0;
+}
+
+/******************************************************************************/
+#  endif
+
 static int
 do_compress (const char *fn, const char *oname, int verbose, int use8080,
-             int optimal)
+             int auto_stub, int optimal)
 {
   unsigned char *data = g_a, *pl = g_b, *outf = g_c;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
@@ -1807,6 +1860,13 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
+#  ifndef LZPACK_NO_AUTOARCH
+  if (auto_stub)
+    use8080 = (is_z80_image (data, n) ? 0 : 1);
+#  else
+  (void)auto_stub;
+#  endif
+
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
@@ -1861,11 +1921,16 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (verbose)
     {
       long p10 = (total * 1000L + n / 2) / n; /* n > LITCNT + 32 here */
+#  ifdef LZPACK_NO_AUTOARCH
+      const char *amark = "";
+#  else
+      const char *amark = (auto_stub ? " auto" : "");
+#  endif
 
       (void)fprintf (stderr,
-                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n",
+                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s%s]  -> %s\n",
                      fn, n, total, p10 / 10, p10 % 10,
-                     (use8080 ? "8080" : "Z80"), oname);
+                     (use8080 ? "8080" : "Z80"), amark, oname);
     }
 
   return 0;
@@ -2556,9 +2621,33 @@ count_file (const char *fn)
 
 /******************************************************************************/
 
+#  ifndef LZPACK_NO_AUTOARCH
+static int
+is_z80_file (FILE *f)
+{
+  int op;
+
+  while ((op = getc (f)) != EOF)
+    {
+      int skip;
+
+      if (op == 0xCB || op == 0xDD || op == 0xED || op == 0xFD)
+        return 1;
+
+      for (skip = op8080_len[op] - 1; skip > 0; skip--)
+        if (getc (f) == EOF)
+          return 0;
+    }
+
+  return 0;
+}
+
+/******************************************************************************/
+#  endif
+
 static int
 do_compress_stream (const char *fn, const char *oname, int verbose,
-                    int use8080, int optimal)
+                    int use8080, int auto_stub, int optimal)
 {
   FILE *in, *tmp, *outf;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
@@ -2631,6 +2720,24 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
+
+#  ifndef LZPACK_NO_AUTOARCH
+  if (auto_stub)
+    {
+      FILE *df = fopen (fn, "rb");
+
+      if (!df)
+        df = fopen (fn, "r");
+
+      if (df)
+        {
+          use8080 = (is_z80_file (df) ? 0 : 1);
+          (void)fclose (df);
+        }
+    }
+#  else
+  (void)auto_stub;
+#  endif
 
   in = fopen (fn, "rb");
 
@@ -2781,11 +2888,16 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (verbose)
     {
       long p10 = (total * 1000L + n / 2) / n; /* n > LITCNT + 32 here */
+#  ifdef LZPACK_NO_AUTOARCH
+      const char *amark = "";
+#  else
+      const char *amark = (auto_stub ? " auto" : "");
+#  endif
 
       (void)fprintf (stderr,
-                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s]  -> %s\n", fn, n,
+                     "  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s%s]  -> %s\n", fn, n,
                      total, p10 / 10, p10 % 10, (use8080 ? "8080" : "Z80"),
-                     oname);
+                     amark, oname);
     }
 
   return 0;
@@ -3105,15 +3217,15 @@ herald (FILE *f)
 static void
 usage (void)
 {
-#ifdef LZPACK_NO_OPT
-  static const char* exopt = "";
-  static const char* expad = "     ";
-  static const char* extra = "";
-#else
-# ifndef LZPACK_DECODE_ONLY
-  static const char* exopt = "[-e] ";
-  static const char* expad = "";
-  static const char* extra = "-e: extra, ";
+#ifndef LZPACK_DECODE_ONLY
+# ifdef LZPACK_NO_OPT
+  static const char *exopt = "";
+  static const char *expad = "     ";
+  static const char *extra = "";
+# else
+  static const char *exopt = "[-e] ";
+  static const char *expad = "";
+  static const char *extra = "-e: extra, ";
 # endif
 #endif
 
@@ -3123,18 +3235,14 @@ usage (void)
     "\n"
     "Usage:\n"
 #ifndef LZPACK_DECODE_ONLY
-# ifdef LZPACK_8080
-    "  lzpack %s[-Z] <file>%s  compress (%s-Z: use Z80 stub)\n"
-# else
-    "  lzpack %s[-8] <file>%s  compress (%s-8: use 8080 stub)\n"
-# endif
+    "  lzpack %s[-8|-Z] <file>%s  compress (%s-8/-Z: force stub type)\n"
 #endif
 #ifndef LZPACK_COMPRESS_ONLY
-    "  lzpack -R <file>         restore (decompress)\n"
+    "  lzpack -R <file>            restore (decompress)\n"
 #endif
-    "  lzpack -L <file>         list stored sizes\n"
-    "  lzpack -O <name>         set output name\n"
-    "  lzpack -V                show LZPACK information\n"
+    "  lzpack -L <file>            list stored sizes\n"
+    "  lzpack -O <name>            set output name\n"
+    "  lzpack -V                   show LZPACK information\n"
 #ifndef LZPACK_DECODE_ONLY
     , exopt, expad, extra
 #endif
@@ -3175,7 +3283,7 @@ main (int argc, char **argv)
   int mode = 0;
   int i, rc = 0, nfiles = 0;
   const char *oname = 0;
-  int use8080 = DEFAULT_USE8080, optimal = 0;
+  int use8080 = DEFAULT_USE8080, auto_stub = 1, optimal = 0;
   int showver = 0;
 
   /*
@@ -3195,9 +3303,15 @@ main (int argc, char **argv)
           else if (c == 'L' || c == 'l')
             mode = 2;
           else if (c == '8')
-            use8080 = 1;
+            {
+              use8080 = 1;
+              auto_stub = 0;
+            }
           else if (c == 'Z' || c == 'z')
-            use8080 = 0;
+            {
+              use8080 = 0;
+              auto_stub = 0;
+            }
           else if (c == 'e' || c == 'E')
             optimal = 1;
           else if (c == 'o' || c == 'O')
@@ -3272,9 +3386,10 @@ main (int argc, char **argv)
           rc |= 1;
 #else
 # ifdef LZPACK_STREAM
-          rc |= do_compress_stream (argv[i], oname, 1, use8080, optimal);
+          rc |= do_compress_stream (argv[i], oname, 1, use8080, auto_stub,
+                                    optimal);
 # else
-          rc |= do_compress (argv[i], oname, 1, use8080, optimal);
+          rc |= do_compress (argv[i], oname, 1, use8080, auto_stub, optimal);
 # endif
 #endif
         }
@@ -3292,6 +3407,7 @@ main (int argc, char **argv)
     }
 
   (void)use8080;
+  (void)auto_stub;
   (void)optimal;
 
   return (rc ? 1 : 0);
