@@ -92,6 +92,12 @@ export CPE1704TKS=1
 # shellcheck disable=SC1091
 . ./.common.sh
 
+export FIND_COMMAND_FATAL=1
+find_command "${MAKE:-make}" awk chown cp head ls mv pwd rm sed wc
+
+export FIND_COMMAND_FATAL=0
+find_command "${TNYLPO:?}" || :
+
 here="$(pwd -P)"
 
 # Choose a build backend.
@@ -101,6 +107,10 @@ auto)
   if zccpath="$(command -v "${ZCC}" 2> /dev/null)"; then
     CPM_BACKEND=local
   else
+    export FIND_COMMAND_FATAL=1
+    find_command "${DOCKER}"
+    export FIND_COMMAND_FATAL=0
+    find_command sudo || :
     CPM_BACKEND=docker
   fi
   ;;

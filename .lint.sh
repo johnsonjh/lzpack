@@ -41,6 +41,13 @@ export CPE1704TKS=1
 # shellcheck disable=SC1091
 . ./.common.sh
 
+export FIND_COMMAND_FATAL=1
+find_command "${MAKE:-make}" awk chown cp grep head ls mv paste pwd rm sed \
+  sleep uname wc
+
+export FIND_COMMAND_FATAL=0
+find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" || :
+
 rc=0
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> distclean <<<<<<<<<<<<<<<<"
@@ -84,13 +91,17 @@ fi
 
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
 
+aCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
+aCFLAGS="${aCFLAGS:?} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3"
+aCFLAGS="${aCFLAGS:?} -DLZPACK_STREAM -fanalyzer"
+
 "${MAKE:-make}" distclean > /dev/null 2>&1 || :
 
 if (
   set -x
   "${MAKE:-make}" \
     CC="${GCC_CMD:-gcc}" \
-    CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fanalyzer"
+    CFLAGS="${aCFLAGS:?}"
 ); then
   :
 else
@@ -106,7 +117,7 @@ if (
   set -x
   "${MAKE:-make}" \
     CC="${GCC_CMD:-gcc}" \
-    CFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -DLZPACK_STREAM -fanalyzer"
+    CFLAGS="${aCFLAGS:?}"
 ); then
   :
 else
@@ -127,7 +138,8 @@ if (
 ); then
   :
 else
-  printf '\n%s\n' "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
+  printf \
+    '\n%s\n' "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
   rc=1
 fi
 
@@ -172,7 +184,8 @@ if (
 ); then
   :
 else
-  printf '\n%s\n' "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
+  printf '\n%s\n' \
+    "*** scan-build reported issues (see /tmp/lzpack-scan.${TMPID})"
   rc=1
 fi
 

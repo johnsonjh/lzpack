@@ -37,6 +37,12 @@ export CPE1704TKS=1
 # shellcheck disable=SC1091
 . ./.common.sh
 
+export FIND_COMMAND_FATAL=1
+find_command awk grep make python3 sleep ${TNYLPO:-tnylpo} uname
+
+export FIND_COMMAND_FATAL=0
+find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" || :
+
 TNYLPO="${TNYLPO:-tnylpo}"
 CPMEMU="${CPMEMU:-cpm}"
 EMU2="${EMU2:-emu2}"
