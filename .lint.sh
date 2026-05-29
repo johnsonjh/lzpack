@@ -655,6 +655,26 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
 
 ################################################################################
 
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> NetBSD lint <<<<<<<<<<<<<<<<"
+
+case "$(uname -s 2> /dev/null || :)" in
+NetBSD)
+  if command -p -v lint > /dev/null 2>&1; then
+    (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z lzpack.c
+    )
+    (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z stubasm.c
+    )
+  fi
+  ;;
+*) : ;;
+esac
+
+################################################################################
+
 if [ "${rc}" = 0 ]; then
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> lint SUCCESSFUL <<<<<<<<<<<<<<<<"
