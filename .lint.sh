@@ -255,10 +255,16 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
 
 command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
   if (
+    "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
+      | grep -q 'unrecognized command line option' \
+      || {
+        CHECK_LEVEL="--check-level=exhaustive"
+      } || :
     set -x
+    # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
       --enable=warning,style,performance,portability,unusedFunction \
-      --force --check-level=exhaustive --std=c89 --platform=unix64 \
+      --force ${CHECK_LEVEL:-} --std=c89 --platform=unix64 \
       --inline-suppr --inconclusive --quiet --error-exitcode=2 \
       -D__CPPCHECK__ -D__LINT__ -j 1 \
       ./stubasm.c ./lzpack.c
