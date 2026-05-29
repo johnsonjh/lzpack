@@ -57,7 +57,7 @@ export CPE1704TKS=1
 ################################################################################
 
 export FIND_COMMAND_FATAL=1
-find_command "${AWK:-awk}" "${MAKE:-make}" mkdir rm rmdir sleep uname
+find_command "${AWK:-awk}" diff grep "${MAKE:-make}" mkdir rm rmdir sleep uname
 
 ################################################################################
 
@@ -67,11 +67,11 @@ export FIND_COMMAND_FATAL=0
 if out=$(
   find_command \
     "${BEAR_CMD:-bear}" "${BLACK_CMD:-black}" "${CH_CMD:-ch}" \
-    "${CLANG_CMD:-clang}" "${CPPCHECK:-cppcheck}" cppi "${GCC_CMD:-gcc}" \
-    plog-converter pvs-studio-analyzer "${REUSE_CMD:-reuse}" \
-    "${SCAN_BUILD_CMD:-scan-build}" "${SHELLCHECK_CMD:-shellcheck}" \
-    "${SHFMT_CMD:-shfmt}" "${HOME}/src/smatch/smatch" \
-    "${HOME}/src/smatch/cgcc" 2>&1
+    "${CLANG_CMD:-clang}" "${CPPCHECK:-cppcheck}" cppi flawfinder \
+    "${GCC_CMD:-gcc}" plog-converter pvs-studio-analyzer \
+    "${REUSE_CMD:-reuse}" "${SCAN_BUILD_CMD:-scan-build}" \
+    "${SHELLCHECK_CMD:-shellcheck}" "${SHFMT_CMD:-shfmt}" \
+    "${HOME}/src/smatch/smatch" "${HOME}/src/smatch/cgcc" 2>&1
 ); then
   status=0
 else
@@ -169,6 +169,23 @@ fi
 
 ################################################################################
 
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> dangling words <<<<<<<<<<<<<<<<"
+
+if (
+  set -x
+  (grep -xi '[^[:space:]]\+' README.md | grep -Ev '(`|<|>|\[|\]|:)') && {
+    : ERROR: Dangling words found
+    exit 1
+  } || exit 0
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+################################################################################
+
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> tag generation <<<<<<<<<<<<<<<<"
 
 if (
@@ -180,6 +197,39 @@ else
   printf '%s\n' "****** FAILURE DETECTED ******"
   rc=1
 fi
+
+################################################################################
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> license diff <<<<<<<<<<<<<<<<"
+
+if (
+  set -x
+  diff LICENSES/MIT-0.txt LICENSE
+); then
+  :
+else
+  printf '%s\n' "****** FAILURE DETECTED ******"
+  rc=1
+fi
+
+################################################################################
+
+printf '\n%s\n\n' ">>>>>>>>>>>>>>>> flawfinder <<<<<<<<<<<<<<<<"
+
+command -v flawfinder > /dev/null 2>&1 && {
+  if (
+    set -x
+    flawfinder --quiet --omittime --error-level=3 --context --minlevel=3 \
+      lzpack.c tests/t_autoarch.c # Flawfinder (Level 3)
+    flawfinder --quiet --omittime --error-level=5 --context --minlevel=5 \
+      stubasm.c # Flawfinder (Level 5, operates on trusted inputs only)
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
 
 ################################################################################
 
@@ -227,7 +277,7 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
 aCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
 aCFLAGS="${aCFLAGS:?} -U_FORTIFY_SOURCE"
 aCFLAGS="${aCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
-aCFLAGS="${aCFLAGS:?} -fanalyzer"
+aCFLAGS="${aCFLAGS:?} -DGCC_ANALYZER -fanalyzer"
 
 command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :

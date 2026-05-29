@@ -3240,6 +3240,7 @@ usage (void)
 
   herald (stderr);
 
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
   (void)fprintf (stderr,
     "\n"
     "Usage:\n"

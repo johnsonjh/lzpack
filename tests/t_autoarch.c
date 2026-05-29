@@ -105,6 +105,7 @@ main (void)
   b[0] = b[1] = b[2] = 0x00;
   check (detect (b, 64, 64), 0, "all-8080 image stays 8080");
 
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
   (void)printf (fails ? "\n  **** UNIT TEST FAILED ****\n"
                       : "\n  **** unit test ok ****\n");
 
