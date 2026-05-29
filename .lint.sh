@@ -173,7 +173,7 @@ fi
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> codespell <<<<<<<<<<<<<<<<"
 
 if (
-  command -v xxcodespell > /dev/null 2>&1 && {
+  command -v codespell > /dev/null 2>&1 && {
     command -v git > /dev/null 2>&1 && {
       CODESPELL_EXCLUDE=$({
         git ls-files --ignored --exclude-standard --others \
@@ -196,7 +196,7 @@ fi
 printf '\n%s\n\n' ">>>>>>>>>>>>>>>> editorconfig <<<<<<<<<<<<<<<<"
 
 if (
-  command -v xxxeditorconfig-checker > /dev/null 2>&1 && {
+  command -v editorconfig-checker > /dev/null 2>&1 && {
     editorconfig-checker
   }
 ); then
