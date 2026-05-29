@@ -440,6 +440,32 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
     printf '%s\n' "****** FAILURE DETECTED ******"
     rc=1
   fi
+  if (
+    cd tests
+    set -x
+    "${OLINT:?}" \
+      -O -fd -std=c89 -err=warn -XCC=no \
+      -errchk=structarg,parentheses,locfmtchk -erroff=E_NAME_DEF_NOT_USED2 \
+      t_autoarch.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    cd tests
+    set -x
+    "${OLINT:?}" \
+      -O -fd -std=c89 -err=warn -XCC=no -DLZPACK_STREAM \
+      -errchk=structarg,parentheses,locfmtchk -erroff=E_NAME_DEF_NOT_USED2 \
+      t_autoarch.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
 }
 
 ################################################################################
