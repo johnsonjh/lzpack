@@ -5,7 +5,7 @@
 # scspell-id: 4ba45bfa-5b11-11f1-88d0-80ee73e9b8e7
 
 # For use by the maintainer only - not the general public.
-# It requires the GNU coreutils `du` to work correctly.
+# This script requires GNU coreutils `du` to work correctly.
 
 if [ -n "${ZSH_VERSION-}" ]; then
   emulate sh
@@ -60,6 +60,7 @@ fi
 SIZES="$("${DU:?}" -Sh --block-size=KiB bindist/*)"
 USAGE="$(./lzpack -h 2>&1)"
 
+# shellcheck disable=SC2119
 TMP_README="$(mktemp 2> /dev/null || mktemp_lzpack)"
 
 # shellcheck disable=SC2016

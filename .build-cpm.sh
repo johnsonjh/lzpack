@@ -94,11 +94,44 @@ export CPE1704TKS=1
 . ./.common.sh
 
 export FIND_COMMAND_FATAL=1
-find_command "${AWK:-awk}" chown cp head ls "${MAKE:-make}" mkdir mv pwd rm rmdir sed wc
+find_command "${AWK:-awk}" chown head ls "${MAKE:-make}" mkdir mv pwd rm sed sleep wc
 
 export FIND_COMMAND_FATAL=0
+
 # shellcheck disable=SC2310
-find_command "${TNYLPO:?}" || :
+if out=$(
+  find_command "${TNYLPO:?}" 2>&1
+); then
+  status=0
+else
+  status="$?"
+fi
+
+width="$(detect_width)"
+
+# shellcheck disable=SC2310
+printf '%s\n' "${out:-}" \
+  | wrap "${width:?}"
+
+unset NEED_PAUSE
+
+if [ "${status:?}" -ne 0 ]; then
+  NEED_PAUSE=1
+fi
+
+case ${OVERRIDE_PAUSE:-} in
+'' | *[!0-9]*)
+  unset OVERRIDE_PAUSE
+  ;;
+*) : ;;
+esac
+
+test "${NEED_PAUSE:-0}" -ne 1 || {
+  printf '%s\n' \
+    "Some checks will be skipped! [pausing ${OVERRIDE_PAUSE:-10}s]" \
+    | wrap "${width:?}"
+  sleep "${OVERRIDE_PAUSE:-10}"
+}
 
 here="$(pwd -P)"
 

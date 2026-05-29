@@ -44,9 +44,7 @@ CC="$(command -v cc 2> /dev/null || command -v "${GCC_CMD:-gcc}" 2> /dev/null \
 export CC
 
 export FIND_COMMAND_FATAL=1
-# shellcheck disable=SC2310
-find_command "${AWK:-awk}" "${CC:-cc}" grep make mkdir python3 rmdir \
-  sleep uname
+find_command "${AWK:-awk}" "${CC:-cc}" grep mkdir python3 rm rmdir sleep
 
 TNYLPO="${TNYLPO:-tnylpo}"
 CPMEMU="${CPMEMU:-cpm}"
@@ -54,8 +52,41 @@ EMU2="${EMU2:-emu2}"
 rc=0
 
 export FIND_COMMAND_FATAL=0
+
 # shellcheck disable=SC2310
-find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" || :
+if out=$(
+  find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" 2>&1
+); then
+  status=0
+else
+  status="$?"
+fi
+
+width="$(detect_width)"
+
+# shellcheck disable=SC2310
+printf '%s\n' "${out:-}" \
+  | wrap "${width:?}"
+
+unset NEED_PAUSE
+
+if [ "${status:?}" -ne 0 ]; then
+  NEED_PAUSE=1
+fi
+
+case ${OVERRIDE_PAUSE:-} in
+'' | *[!0-9]*)
+  unset OVERRIDE_PAUSE
+  ;;
+*) : ;;
+esac
+
+test "${NEED_PAUSE:-0}" -ne 1 || {
+  printf '%s\n' \
+    "Some checks will be skipped! [pausing ${OVERRIDE_PAUSE:-10}s]" \
+    | wrap "${width:?}"
+  sleep "${OVERRIDE_PAUSE:-10}"
+}
 
 printf '\n%s\n' "================== UNIT ==================="
 
@@ -65,6 +96,8 @@ printf '\n%s\n' "================== UNIT ==================="
 # a small program that #includes lzpack.c and calls the detector -- once as the
 # streaming is_z80_file (), once as the in-RAM is_z80_image () -- and check that
 # both stop at the logical length.  Needs only a working host C compiler.
+
+# shellcheck disable=SC2119
 ut="$(mktemp 2> /dev/null || mktemp_lzpack)"
 
 for udef in "-DLZPACK_STREAM" ""; do
