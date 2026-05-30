@@ -39,6 +39,10 @@ lzpack: lzpack.c cs8080.h csz80.h lzpack.c
 
 cs8080.h: s8080s.asm s8080d.asm stubasm
 	./stubasm s8080s.asm s8080d.asm > $@
+	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
+	'/S8_.*LEN/ { a[++i]=$$4; t+=$$4 } END { printf \
+	"8080: %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
+	a[1], a[2], t }' $@ 2> /dev/null || :; } || :
 
 ################################################################################
 
@@ -46,6 +50,10 @@ cs8080.h: s8080s.asm s8080d.asm stubasm
 
 csz80.h: sz80s.asm sz80d.asm stubasm
 	./stubasm -z80 sz80s.asm sz80d.asm > $@
+	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
+	'/Z80.*_LEN/ { a[++i]=$$4; t+=$$4 } END { printf \
+	"Z80: %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
+	a[1], a[2], t }' $@ 2> /dev/null || :; } || :
 
 ################################################################################
 
