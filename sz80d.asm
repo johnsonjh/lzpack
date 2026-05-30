@@ -70,7 +70,39 @@ ISMTCH:                      ; A = first match byte (bank P)
         LD   E,A             ;   offset low  = first byte
         EXX                  ; -> bank P
         XOR  A               ; a = 0
-        JR   LF
+        ; fall through to LF
+
+; ---- length grammar: a in A, c in C', bank P ----
+LF:     LD   C,A             ; c = a
+        LD   B,3             ; FORM1/FORM2: up to 3 unary length slots
+ULOOP:  INC  A
+        CALL GETBIT
+        JR   NC,COPY
+        DJNZ ULOOP
+        LD   A,2             ; a = 2; decode extended bit length b in A
+LEXT:   CALL GETBIT
+        JR   NC,LEXTD
+        INC  A
+        CP   7
+        JR   NZ,LEXT
+LEXTD:  LD   B,A             ; B = b (number of value bits)
+        LD   A,1             ; a = 1 (implicit leading 1)
+LRD:    CALL GETBIT
+        RLA                  ; a = (a<<1)|bit
+        DJNZ LRD
+        ADD  A,C             ; a = (a + c) & ffh
+
+; ---- copy a+1 bytes from DST-offset-1 to DST ----
+COPY:   EXX                  ; -> bank M (HL = DST, DE = offset)
+        PUSH HL              ; save DST
+        SCF
+        SBC  HL,DE           ; HL = DST - offset - 1 = match source
+        POP  DE              ; DE = DST (destination)
+        LD   C,A             ; BC = a (B is 0 in bank M)
+        INC  BC              ; BC = a + 1 = byte count
+        LDIR
+        EX   DE,HL           ; HL = DST advanced past the copy
+        JP   LOOP
 
 NOTF1:  BIT  6,A
         JR   NZ,FORM3
@@ -109,38 +141,6 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         JR   NC,COPY         ; b0 = 0 -> length 3
         LD   BC,0201h        ; b0 = 1 -> extended length: c = 1, B = 2 (unary slots)
         JR   ULOOP           ; (a already = 2)
-
-; ---- length grammar: a in A, c in C', bank P ----
-LF:     LD   C,A             ; c = a
-        LD   B,3             ; FORM1/FORM2: up to 3 unary length slots
-ULOOP:  INC  A
-        CALL GETBIT
-        JR   NC,COPY
-        DJNZ ULOOP
-        LD   A,2             ; a = 2; decode extended bit length b in A
-LEXT:   CALL GETBIT
-        JR   NC,LEXTD
-        INC  A
-        CP   7
-        JR   NZ,LEXT
-LEXTD:  LD   B,A             ; B = b (number of value bits)
-        LD   A,1             ; a = 1 (implicit leading 1)
-LRD:    CALL GETBIT
-        RLA                  ; a = (a<<1)|bit
-        DJNZ LRD
-        ADD  A,C             ; a = (a + c) & ffh
-
-; ---- copy a+1 bytes from DST-offset-1 to DST ----
-COPY:   EXX                  ; -> bank M (HL = DST, DE = offset)
-        PUSH HL              ; save DST
-        SCF
-        SBC  HL,DE           ; HL = DST - offset - 1 = match source
-        POP  DE              ; DE = DST (destination)
-        LD   C,A             ; BC = a (B is 0 in bank M)
-        INC  BC              ; BC = a + 1 = byte count
-        LDIR
-        EX   DE,HL           ; HL = DST advanced past the copy
-        JP   LOOP
 
 ; ---- GETBIT: next stream bit -> CY (bank P).  Clobbers D' (and HL' on refill).
 ; The reservoir marker E' rotates; when it wraps (CY set) D' is refilled from
