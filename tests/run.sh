@@ -56,6 +56,11 @@ export CPE1704TKS=1
 
 ################################################################################
 
+TEST_TIMEOUT=5
+export TEST_TIMEOUT
+
+################################################################################
+
 CC="$(command -v cc 2> /dev/null || command -v "${GCC_CMD:-gcc}" 2> /dev/null \
   || command -v "${CLANG_CMD:-clang}" 2> /dev/null || printf '%s\n' cc)"
 
@@ -75,7 +80,8 @@ export FIND_COMMAND_FATAL=0
 
 # shellcheck disable=SC2310
 if out=$(
-  find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" 2>&1
+  find_command "${CPMEMU:-cpm}" "${EMU2:-emu2}" "${TNYLPO:-tnylpo}" \
+    "${TIMEOUT_CMD:-timeout}" 2>&1
 ); then
   status=0
 else
@@ -112,6 +118,25 @@ test "${NEED_PAUSE:-0}" -ne 1 || {
 
 ################################################################################
 
+if command -v "${TIMEOUT_CMD:-timeout}" > /dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  if "${TIMEOUT_CMD:-timeout}" -p "${TEST_TIMEOUT}" sleep 0 > /dev/null 2>&1; then
+    _TIMEOUT="${TIMEOUT_CMD:-timeout} -p ${TEST_TIMEOUT}"
+  else
+    _TIMEOUT="${TIMEOUT_CMD:-timeout} ${TEST_TIMEOUT}"
+  fi
+else
+  _TIMEOUT=""
+fi
+
+################################################################################
+
+printf '\n%s' ">> Starting tests; "
+printf '%s\n' \
+  "test timeout is ${TEST_TIMEOUT} seconds (override via TEST_TIMEOUT)."
+
+################################################################################
+
 printf '\n%s\n' "================== UNIT ==================="
 
 # The autodetector "stop at the logical/LRBC length and not at physical EOF"
@@ -126,7 +151,8 @@ ut="$(mktemp 2> /dev/null || mktemp_lzpack)"
 
 for udef in "-DLZPACK_STREAM" ""; do
   # shellcheck disable=SC2086,SC2248
-  if "${CC:-cc}" ${udef} -I. -o "${ut}" tests/t_autoarch.c && "${ut}"; then
+  if "${CC:-cc}" ${udef} -I. -o "${ut}" tests/t_autoarch.c \
+    && ${_TIMEOUT:-} "${ut}"; then
     :
   else
     rc=1
@@ -186,6 +212,14 @@ if [ -f "./cpm-86/lzpack.cmd" ] \
   printf '\n%s\n' "============== EMU2-CP/M-86 ==============="
   EMU2="${EMU2}" TNYLPO="${TNYLPO}" CPMCMD="./cpm-86/lzpack.cmd" \
     python3 tests/harness.py cpm86 || rc=1
+fi
+
+################################################################################
+
+if [ "${rc}" != 0 ]; then
+  printf '\n%s\n\n' ">> Testing suite completed BUT SOME TESTS FAILED!!!"
+else
+  printf '\n%s\n\n' ">> Testing suite completed successfully."
 fi
 
 ################################################################################

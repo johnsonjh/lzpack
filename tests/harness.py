@@ -30,6 +30,9 @@ NATIVE = os.path.join(PROJECT, "lzpack")
 CPMCOM = os.environ.get("CPMCOM", os.path.join(PROJECT, "cpm-z80", "lzpack.com"))
 CPMCMD = os.environ.get("CPMCMD", os.path.join(PROJECT, "cpm-86", "lzpack.cmd"))
 
+# Timeout for each test step (compression, extraction, round-trip)
+TEST_TIMEOUT = int(os.environ.get("TEST_TIMEOUT", 5))
+
 # corpus file -> (expected_marker_substring, expectation, expected_stub)
 # expectation: 'ok' = must self-extract; 'skip' = compressor should refuse
 #              (inefficient or too big) and NOT write output.
@@ -68,7 +71,7 @@ def run_tnylpo(workdir, comname, args=None):
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        timeout=120,
+        timeout=TEST_TIMEOUT,
     )
     return p.stdout.decode("latin-1", "replace")
 
@@ -83,7 +86,7 @@ def run_cpmemu(workdir, comname, args=None):
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        timeout=120,
+        timeout=TEST_TIMEOUT,
     )
     return p.stdout.decode("latin-1", "replace")
 
@@ -97,7 +100,7 @@ def run_emu2_cpm86(workdir, cmdname, args=None):
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        timeout=120,
+        timeout=TEST_TIMEOUT,
     )
     return p.stdout.decode("latin-1", "replace")
 
@@ -113,7 +116,7 @@ def lzpack_native(workdir, args):
         cwd=workdir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        timeout=300,
+        timeout=TEST_TIMEOUT,
     )
     return p.returncode, p.stdout.decode("latin-1", "replace")
 
