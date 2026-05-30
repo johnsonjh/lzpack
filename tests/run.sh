@@ -120,7 +120,8 @@ test "${NEED_PAUSE:-0}" -ne 1 || {
 
 if command -v "${TIMEOUT_CMD:-timeout}" > /dev/null 2>&1; then
   # shellcheck disable=SC2086
-  if "${TIMEOUT_CMD:-timeout}" -p "${TEST_TIMEOUT}" sleep 0 > /dev/null 2>&1; then
+  if "${TIMEOUT_CMD:-timeout}" -p "${TEST_TIMEOUT}" \
+    sleep 0 > /dev/null 2>&1; then
     _TIMEOUT="${TIMEOUT_CMD:-timeout} -p ${TEST_TIMEOUT}"
   else
     _TIMEOUT="${TIMEOUT_CMD:-timeout} ${TEST_TIMEOUT}"
