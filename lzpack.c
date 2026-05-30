@@ -186,12 +186,6 @@ lxmalloc (size_t n)
 #define TPA 0x100
 #define LITCNT 16
 
-#define Z80_SETUP_LEN 34
-#define Z80_DCMP_LEN 159
-#define Z80_HEADROOM 51
-#define Z80_LOOP_OFF 0x0a
-#define STUBLEN (Z80_SETUP_LEN + Z80_DCMP_LEN)
-
 #define MAXDIST 8192
 #define MAXLEN 256
 #define MEMTOP 0xBDFF
@@ -202,6 +196,9 @@ lxmalloc (size_t n)
 
 # include "csz80.h"
 # include "cs8080.h"
+
+# define Z80_HEADROOM 51
+# define STUBLEN (Z80_SETUP_LEN + Z80_DCMP_LEN)
 
 # if S8_DLEN > 256
 #  error "8080 decompressor exceeds 256 bytes; widen SL3 counter in s8080s.asm"

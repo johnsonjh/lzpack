@@ -35,10 +35,12 @@ OUT_END_LO EQU 080h      ; patch: (out_end&0ffh)
         ORG 016B2h
 START:
         LDDR                 ; finish payload relocation (HL/DE/BC from setup)
+                             ; BC is now 0 (Bank P)
         EX   DE,HL           ; DE held dst-1; put it in HL
         INC  HL              ; HL = payload bottom = compressed SRC pointer
         LD   E,080h          ; reservoir seeded empty (forces refill on 1st bit)
-        EXX                  ; park SRC/reservoir in bank P
+        EXX                  ; park SRC/reservoir in bank P (BC' is now 0)
+        LD   B,0             ; bank M: ensure B=0
         LD   HL,0110h        ; bank M: DST = 0110h (TPA + restored 16 bytes)
 
 LOOP:                        ; main token loop, bank M (HL = DST)
@@ -64,7 +66,7 @@ ISMTCH:                      ; A = first match byte (bank P)
         JR   NZ,NOTF1
         ; FORM1: offset = first byte (0..127); length base a = 0
         EXX                  ; -> bank M
-        LD   D,0             ;   offset high = 0
+        LD   D,B             ;   offset high = 0 (B is 0 in bank M)
         LD   E,A             ;   offset low  = first byte
         EXX                  ; -> bank P
         XOR  A               ; a = 0
@@ -84,7 +86,7 @@ F2L:    CALL GETBIT
         LD   E,A             ;   bank M: offset low
         EXX
         LD   A,C
-        ADC  A,0             ; offset high = C + carry
+        ADC  A,B             ; offset high = C + carry (B is 0 in bank P)
         EXX
         LD   D,A             ;   bank M: offset high
         EXX
@@ -92,8 +94,8 @@ F2L:    CALL GETBIT
         JR   LF
 
 FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
-        AND  03Fh            ; A = first & 3fh
-        SRL  A               ; A >>= 1; CY = bit0
+        AND  03Fh            ; A = first & 3fh (clears CY)
+        RRA                  ; A >>= 1; CY = bit0
         EXX
         LD   D,A             ;   bank M: offset high = (first&3f)>>1
         EXX
@@ -105,9 +107,8 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         EXX
         LD   A,2             ; a = 2
         JR   NC,COPY         ; b0 = 0 -> length 3
-        LD   C,1             ; c = 1
-        LD   B,2             ; FORM3: up to 2 unary length slots (a already = 2)
-        JR   ULOOP           ; b0 = 1 -> extended length
+        LD   BC,0201h        ; b0 = 1 -> extended length: c = 1, B = 2 (unary slots)
+        JR   ULOOP           ; (a already = 2)
 
 ; ---- length grammar: a in A, c in C', bank P ----
 LF:     LD   C,A             ; c = a
@@ -135,8 +136,7 @@ COPY:   EXX                  ; -> bank M (HL = DST, DE = offset)
         SCF
         SBC  HL,DE           ; HL = DST - offset - 1 = match source
         POP  DE              ; DE = DST (destination)
-        LD   B,0
-        LD   C,A             ; BC = a
+        LD   C,A             ; BC = a (B is 0 in bank M)
         INC  BC              ; BC = a + 1 = byte count
         LDIR
         EX   DE,HL           ; HL = DST advanced past the copy

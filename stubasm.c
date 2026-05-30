@@ -1650,6 +1650,9 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 
   (void)printf ("#ifndef STUBASM_CZ80_H\n# define STUBASM_CZ80_H\n\n");
 
+  (void)printf ("# define Z80_SETUP_LEN %d\n", slen);
+  (void)printf ("# define Z80_DCMP_LEN %d\n\n", dlen);
+
   emit_bytes ("z80_stub", z80blob, total);
 
   (void)printf ("# define P_LIT_SRC 0x%02x\n", o_lit);
@@ -1668,12 +1671,15 @@ emit_z80 (const char *setup_path, const char *decomp_path)
    * stub offset of every CALL GETBIT operand. */
   {
     int gj, ng = 0, kg = sym_find ("GETBIT"), ks = sym_find ("START");
+    int kl = sym_find ("LOOP");
 
-    if (kg < 0 || ks < 0)
-      die ("GETBIT/START label missing from decompressor");
+    if (kg < 0 || ks < 0 || kl < 0)
+      die ("GETBIT/START/LOOP label missing from decompressor");
 
     (void)printf ("# define Z80_GETBIT_OFF 0x%02x\n",
                   (int)(sym_val[kg] - sym_val[ks]));
+    (void)printf ("# define Z80_LOOP_OFF 0x%02x\n",
+                  (int)(sym_val[kl] - sym_val[ks]));
     (void)printf ("static const unsigned short z80_getbit_fix[] = {");
 
     for (gj = 0; gj < nref; gj++)

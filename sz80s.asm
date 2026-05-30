@@ -31,10 +31,10 @@ ENTRY:
         LD   BC,16
         LDIR
         ; 2. relocate the decompressor block to high memory (dest > src, so
-        ;    copy top-down with LDDR; 09Fh = 159 = STUBLEN - this block's length)
+        ;    copy top-down with LDDR; 09Bh = 155 = STUBLEN - this block's length)
         LD   HL,DCMP_SRCTOP
         LD   DE,DCMP_DSTTOP
-        LD   BC,09Fh         ; 09Fh = 159 = STUBLEN - this block's length
+        LD   BC,09Bh         ; 09Bh = 155 = STUBLEN - this block's length
         LDDR
         ; 3. preset payload relocation args (consumed by the LDDR at START), then
         ;    enter the relocated decompressor in high memory
