@@ -353,6 +353,50 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
 
 ################################################################################
 
+lCFLAGS="-U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
+lCFLAGS="${lCFLAGS:-} -Wno-padded -Wno-missing-noreturn"
+lCFLAGS="${lCFLAGS:-} -Wno-disabled-macro-expansion"
+lCFLAGS="${lCFLAGS:-} -Wno-used-but-marked-unused -Werror -ferror-limit=0"
+lCFLAGS="${lCFLAGS:-} -std=c89 -Wno-padded -Wno-used-but-marked-unused"
+
+command -v "${CLANG_CMD_CMD:-clang}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> clang strict standard <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  if (
+    set -x
+    "${MAKE:-make}" \
+      CC="${CLANG_CMD:-clang}" \
+      CFLAGS="${lCFLAGS:?}"
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+lCFLAGS="${lCFLAGS:?} -DLZPACK_STREAM"
+
+command -v "${CLANG_CMD:-cmd}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> clang strict streaming <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  if (
+    set -x
+    "${MAKE:-make}" \
+      CC="${CLANG_CMD:-clang}" \
+      CFLAGS="${lCFLAGS:?}"
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
 command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
   command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
     printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build standard <<<<<<<<<<<<<<<<"

@@ -397,8 +397,10 @@ regidx (const char *const *tab, const char *t, const char *what)
 
   exit (1);
 
+#ifndef __clang_version__
   /*NOTREACHED*/ /* unreachable */
   return 0;
+#endif
 }
 
 /******************************************************************************/
@@ -1611,8 +1613,10 @@ zoff (const char *name)
 
   exit (1);
 
+#ifndef __clang_version__
   /*NOTREACHED*/ /* unreachable */
   return -1;
+#endif
 }
 
 /******************************************************************************/
@@ -1655,16 +1659,16 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 
   emit_bytes ("z80_stub", z80blob, total);
 
-  (void)printf ("# define P_LIT_SRC 0x%02x\n", o_lit);
-  (void)printf ("# define P_STUB_SRCTOP 0x%02x\n", o_ssrc);
-  (void)printf ("# define P_STUB_DSTTOP 0x%02x\n", o_sdst);
-  (void)printf ("# define P_PL_SRCTOP 0x%02x\n", o_psrc);
-  (void)printf ("# define P_PL_DSTTOP 0x%02x\n", o_pdst);
-  (void)printf ("# define P_PL_LEN 0x%02x\n", o_plen);
-  (void)printf ("# define P_JP_RELOC 0x%02x\n", o_run);
-  (void)printf ("# define P_CP_HI 0x%02x\n", o_chi);
-  (void)printf ("# define P_CP_LO 0x%02x\n", o_clo);
-  (void)printf ("# define P_JP_LOOP 0x%02x\n", o_loop);
+  (void)printf ("# define P_LIT_SRC 0x%02x\n", (unsigned int)o_lit);
+  (void)printf ("# define P_STUB_SRCTOP 0x%02x\n", (unsigned int)o_ssrc);
+  (void)printf ("# define P_STUB_DSTTOP 0x%02x\n", (unsigned int)o_sdst);
+  (void)printf ("# define P_PL_SRCTOP 0x%02x\n", (unsigned int)o_psrc);
+  (void)printf ("# define P_PL_DSTTOP 0x%02x\n", (unsigned int)o_pdst);
+  (void)printf ("# define P_PL_LEN 0x%02x\n", (unsigned int)o_plen);
+  (void)printf ("# define P_JP_RELOC 0x%02x\n", (unsigned int)o_run);
+  (void)printf ("# define P_CP_HI 0x%02x\n", (unsigned int)o_chi);
+  (void)printf ("# define P_CP_LO 0x%02x\n", (unsigned int)o_clo);
+  (void)printf ("# define P_JP_LOOP 0x%02x\n", (unsigned int)o_loop);
 
   /* GETBIT is a CALLed subroutine; its operand is absolute, so every call site
    * needs per-file relocation.  Emit GETBIT's decomp-relative offset and the
@@ -1677,14 +1681,15 @@ emit_z80 (const char *setup_path, const char *decomp_path)
       die ("GETBIT/START/LOOP label missing from decompressor");
 
     (void)printf ("# define Z80_GETBIT_OFF 0x%02x\n",
-                  (int)(sym_val[kg] - sym_val[ks]));
+                  (unsigned int)(sym_val[kg] - sym_val[ks]));
     (void)printf ("# define Z80_LOOP_OFF 0x%02x\n",
-                  (int)(sym_val[kl] - sym_val[ks]));
+                  (unsigned int)(sym_val[kl] - sym_val[ks]));
     (void)printf ("static const unsigned short z80_getbit_fix[] = {");
 
     for (gj = 0; gj < nref; gj++)
       if (!strcmp (refs[gj].name, "GETBIT"))
-        (void)printf ("%s0x%02x", ng++ ? ", " : " ", refs[gj].off + slen);
+        (void)printf ("%s0x%02x", ng++ ? ", " : " ",
+                      (unsigned int)(refs[gj].off + slen));
 
     (void)printf (" };\n# define Z80_GETBIT_FIX_N %d\n", ng);
   }
@@ -1761,13 +1766,15 @@ main (int argc, char **argv)
   (void)printf ("static const unsigned short setup8080_fix[][2] = {\n");
 
   for (i = 0; i < s_nfx; i++)
-    (void)printf ("    { %#4x, %#4x },\n", s_fx_off[i], s_fx_tgt[i]);
+    (void)printf ("    { %#4x, %#4x },\n",
+                  (unsigned int)s_fx_off[i], (unsigned int)s_fx_tgt[i]);
 
   (void)printf ("};\n\n# define SETUP8080_FIX_N %d\n", s_nfx);
   (void)printf ("\nstatic const unsigned short decomp8080_fix[][2] = {\n");
 
   for (i = 0; i < nfx; i++)
-    (void)printf ("    { %#4x, %#5x },\n", fx_off[i], fx_tgt[i]);
+    (void)printf ("    { %#4x, %#5x },\n",
+                  (unsigned int)fx_off[i], (unsigned int)fx_tgt[i]);
 
   (void)printf ("};\n\n# define DECOMP8080_FIX_N %d\n", nfx);
 
@@ -1777,7 +1784,8 @@ main (int argc, char **argv)
     for (p = 0; SETUP_PATCH[p]; p++)
       for (i = 0; i < s_nsl; i++)
         if (!strcmp (s_sl_name[i], SETUP_PATCH[p]))
-          (void)printf ("# define S8S_%s 0x%x\n", s_sl_name[i], s_sl_off[i]);
+          (void)printf ("# define S8S_%s 0x%x\n",
+                        s_sl_name[i], (unsigned int)s_sl_off[i]);
   }
 
   {
@@ -1786,7 +1794,8 @@ main (int argc, char **argv)
     for (p = 0; DECOMP_PATCH[p]; p++)
       for (i = 0; i < nsl; i++)
         if (!strcmp (sl_name[i], DECOMP_PATCH[p]))
-          (void)printf ("# define S8D_%s 0x%x\n", sl_name[i], sl_off[i]);
+          (void)printf ("# define S8D_%s 0x%x\n",
+                        sl_name[i], (unsigned int)sl_off[i]);
   }
 
   (void)printf ("\n#endif\n");
