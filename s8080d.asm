@@ -74,8 +74,7 @@ ISMTCH:
         STA  OFFV
         MVI  D,2             ; a = 2
         JNC  COPY            ; b0=0 -> length 3 (CY still = b0 here)
-        MVI  C,1             ; b0=1 -> extended length: c = 1
-        MVI  B,2             ; FORM3: up to 2 unary length slots (a already = 2)
+        LXI  B,0201h         ; b0=1 -> extended length: c = 1, B = 2 (unary slots)
         JMP  ULOOP
 
 FORM2:
@@ -99,7 +98,7 @@ F2L:
         ADI  80h             ; A = D+80h ; CY = overflow
         STA  OFFV            ; off low
         MOV  A,E
-        ACI  0               ; A = E + CY
+        ADC  B               ; A = E + CY (B is 0 after loop)
         STA  OFFV+1          ; off high
         MVI  D,1             ; a = 1
         JMP  LF
@@ -110,7 +109,7 @@ FORM1:
         STA  OFFV
         XRA  A
         STA  OFFV+1
-        MVI  D,0             ; a = 0
+        MOV  D,A             ; a = 0
 
 ; ---- length grammar ; D=a, C=c ----
 LF:
@@ -177,10 +176,7 @@ GETBIT:
         LDA  BITDAT
         ADD  A               ; A<<=1 ; CY = next bit (MSB) ; Z when marker gone
         JNZ  GBST
-        LHLD SRCV
-        MOV  A,M             ; A = *SRC++
-        INX  H
-        SHLD SRCV
+        CALL GETRAW          ; refill: A = *SRC++
         RAL                  ; A = (byte<<1)|1 ; CY = bit7 (the marker enters bit 0)
 GBST:
         STA  BITDAT
