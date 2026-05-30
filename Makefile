@@ -270,7 +270,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command arc compress "$${GIT_CMD-git}" "$${MAKE:-make}" \
-		pigz)
+		zip)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" lint
 	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
@@ -279,26 +279,26 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	# CP/M-80 8080
 	test -f ./cpm-8080/lzpack.com
 	(cd cpm-8080 && mv -f lzpack.com LZPACK.COM && \
-		arc a LZPCKI80.ARC LZPACK.COM)
+		arc as LZPCKI80.ARC LZPACK.COM)
 	mv -f ./cpm-8080/LZPCKI80.ARC ./bindist/LZPCKI80.ARC
 	# CP/M-80 Z80
 	test -f ./cpm-z80/lzpack.com
 	(cd cpm-z80 && mv -f lzpack.com LZPACK.COM && \
-		arc a LZPCKZ80.ARC LZPACK.COM)
+		arc as LZPCKZ80.ARC LZPACK.COM)
 	mv -f ./cpm-z80/LZPCKZ80.ARC ./bindist/LZPCKZ80.ARC
 	# CP/M-86
 	test -f ./cpm-86/lzpack.cmd
 	(cd cpm-86 && mv -f lzpack.cmd LZPACK.CMD && \
-		arc a LZPCK86C.ARC LZPACK.CMD)
+		arc as LZPCK86C.ARC LZPACK.CMD)
 	mv -f ./cpm-86/LZPCK86C.ARC ./bindist/LZPCK86C.ARC
 	# MS-DOS 8088
 	test -f ./msdos/lzpack.com
-	pigz -11vkfK ./msdos/lzpack.com
+	zip -0 -X -D -j ./msdos/lzpack.com.zip ./msdos/lzpack.com
 	chmod a-x ./msdos/lzpack.com.zip
 	mv -f ./msdos/lzpack.com.zip ./bindist/LZPCK86R.ZIP
 	# MS-DOS 386+
 	test -f ./djgpp/lzpack.exe
-	pigz -11vkfK ./djgpp/lzpack.exe
+	zip -0 -X -D -j ./djgpp/lzpack.exe.zip ./djgpp/lzpack.exe
 	chmod a-x ./djgpp/lzpack.exe.zip
 	mv -f ./djgpp/lzpack.exe.zip ./bindist/LZPCK86P.ZIP
 	# ELKS 8086
@@ -308,12 +308,12 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	mv -f ./elks/lzpack.Z ./bindist/LZPCKELK.Z
 	# Windows (32-bit)
 	test -f ./windows/lzpack32.exe
-	pigz -11vkfK ./windows/lzpack32.exe
+	zip -0 -X -D -j ./windows/lzpack32.exe.zip ./windows/lzpack32.exe
 	chmod a-x ./windows/lzpack32.exe.zip
 	mv -f ./windows/lzpack32.exe.zip ./bindist/LZPCKW32.ZIP
 	# Windows (64-bit)
 	test -f ./windows/lzpack64.exe
-	pigz -11vkfK ./windows/lzpack64.exe
+	zip -0 -X -D -j ./windows/lzpack64.exe.zip ./windows/lzpack64.exe
 	chmod a-x ./windows/lzpack64.exe.zip
 	mv -f ./windows/lzpack64.exe.zip ./bindist/LZPCKW64.ZIP
 	"$${MAKE:-make}" distclean
