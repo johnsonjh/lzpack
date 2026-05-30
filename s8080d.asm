@@ -3,14 +3,19 @@
 ; scspell-id: d481d522-585c-11f1-8c19-80ee73e9b8e7
 
 ; 8080 decompressor block - runs relocated at STUB_RUN (just above out_end).
-; pointers/bit-buffer live in fixed CP/M-80 scratch RAM (0040h-004Fh).
+; bit-buffer and backups live in fixed CP/M-80 scratch RAM (0044h-0047h).
 ; only JMP/CALL targets (labels) need per-file relocation by +STUB_RUN.
 ; OUT_END_HI / OUT_END_LO are per-file patch slots.
 
-SRCV    EQU 0040h        ; (2) compressed source pointer
-DSTV    EQU 0042h        ; (2) output pointer
+; Register Allocation:
+; HL = SRCV (compressed source pointer)
+; DE = DSTV (output pointer)
+; B  = 'a' (length value)
+; C  = 'c' (length base) or scratch
+; A  = bits / scratch
+
 BITDAT  EQU 0044h        ; (1) bit reservoir (sentinel-marked; see GETBIT)
-OFFV    EQU 0046h        ; (2) match offset
+OFFV    EQU 0046h        ; (2) match offset (stored as ~offset for DAD D)
 
 OUT_END_HI EQU 0         ; patch: (out_end>>8)
 OUT_END_LO EQU 0         ; patch: (out_end&0xff)
@@ -33,57 +38,61 @@ PRL:    MOV  A,M
         ORA  C
         JNZ  PRL
         INX  D               ; DE now = relocated payload bottom (= SRC start)
-        XCHG
-        SHLD SRCV
-        LXI  H, 0110h
-        SHLD DSTV
-        MVI  A,80h            ; seed reservoir empty (sentinel; forces refill on 1st bit)
+        XCHG                 ; HL = SRCV
+        LXI  D,0110h         ; DE = DSTV
+        MVI  A,80h           ; seed reservoir empty (sentinel; forces refill on 1st bit)
         STA  BITDAT
-LOOP:                         ; entered only with HL = DST (init / literal / COPY)
-        MOV  A,H
+
+LOOP:
+        MOV  A,D
         CPI  OUT_END_HI
         JNZ  TOK
-        MOV  A,L
+        MOV  A,E
         CPI  OUT_END_LO
         JZ   0100h            ; DST == out_end -> run the decompressed program
 TOK:
         CALL GETBIT          ; CY = control bit
-        CALL GETRAW          ; A  = raw byte
+        MOV  A,M             ; GETRAW inline (HL = SRCV)
+        INX  H
         JC   ISMTCH
         ; literal: store A
-        LHLD DSTV
-        MOV  M,A
-        INX  H
-        SHLD DSTV
+        STAX D
+        INX  D
         JMP  LOOP
 
 ; ---- match: A = first byte ----
 ISMTCH:
-        MOV  B,A             ; B = first byte (preserved; each form reloads A from B)
-        ADD  A               ; CY = bit7
+        MOV  C,A             ; C = first byte
+        PUSH D               ; Save DSTV (DE) to free DE for match decoding
+        MOV  A,C
+        ADD  A               ; CY = bit 7
         JNC  FORM1
-        ADD  A               ; CY = bit6 (of original first byte)
+        ADD  A               ; CY = bit 6
         JNC  FORM2
+
         ; ---- FORM3: 13-bit offset, second raw byte ----
-        MOV  A,B
+        MOV  A,C
         ANI  3Fh             ; (ANI clears CY on 8080 and Z80)
-        RAR                  ; A = (first&3f)>>1 = off high ; CY = (first&3f)&1
+        RAR                  ; CY = b0 of high bits, A = off high
+        CMA                  ; Store ~high for DAD D source calculation
         STA  OFFV+1
-        CALL GETRAW          ; A = second byte (GETRAW keeps CY)
-        RAR                  ; A = (cy<<7)|(second>>1) ; CY = second&1 = b0
+        MOV  A,M             ; GETRAW inline
+        INX  H
+        RAR                  ; CY = b0 of second byte, A = (savedbit<<7)|(byte>>1)
+        CMA                  ; Store ~low
         STA  OFFV
-        MVI  D,2             ; a = 2
-        JNC  COPY            ; b0=0 -> length 3 (CY still = b0 here)
-        LXI  B,0201h         ; b0=1 -> extended length: c = 1, B = 2 (unary slots)
+        LXI  B,0201h         ; B = a = 2, C = c = 1 (unary slots)
+        JNC  C_REST          ; b0=0 -> length 3
+        MVI  E,2             ; b0=1 -> extended length counter
         JMP  ULOOP
 
 FORM2:
-        ; a = first & 7f ; 4 bits -> {E:D} ; off = (E + carry)<<8 | (D+80h)
-        MOV  A,B
+        ; a = first & 7f ; 4 bits -> offset
+        MOV  A,C
         ANI  7Fh
-        MOV  D,A             ; D = low accumulator
-        MVI  E,0             ; E = high (overflow)
-        MVI  B,4             ; loop count (B free now)
+        MOV  D,A             ; accumulator low
+        MVI  E,0             ; accumulator high
+        MVI  C,4             ; count
 F2L:
         CALL GETBIT          ; CY = bit
         MOV  A,D
@@ -92,71 +101,72 @@ F2L:
         MOV  A,E
         RAL                  ; E = (E<<1)|CY
         MOV  E,A
-        DCR  B
+        DCR  C
         JNZ  F2L
         MOV  A,D
         ADI  80h             ; A = D+80h ; CY = overflow
-        STA  OFFV            ; off low
+        CMA                  ; Store ~low
+        STA  OFFV
         MOV  A,E
-        ADC  B               ; A = E + CY (B is 0 after loop)
-        STA  OFFV+1          ; off high
-        MVI  D,1             ; a = 1
+        ACI  0               ; A = E + CY
+        CMA                  ; Store ~high
+        STA  OFFV+1
+        MVI  B,1             ; a = 1
         JMP  LF
 
 FORM1:
         ; off = first byte (0..127) ; a=0
-        MOV  A,B
+        MOV  A,C
+        CMA
         STA  OFFV
-        XRA  A
+        MVI  A,0FFh          ; ~0
         STA  OFFV+1
-        MOV  D,A             ; a = 0
+        XRA  A
+        MOV  B,A             ; a = 0
 
-; ---- length grammar ; D=a, C=c ----
+; ---- length grammar ; B=a, C=c ----
 LF:
-        MOV  C,D             ; c = a
-        MVI  B,3             ; FORM1/FORM2: up to 3 unary length slots
+        MOV  C,B             ; c = a
+        MVI  E,3             ; FORM1/FORM2: up to 3 unary length slots
 ULOOP:
-        INR  D               ; a++
+        INR  B               ; a++
         CALL GETBIT
-        JNC  COPY
-        DCR  B
+        JNC  C_REST
+        DCR  E
         JNZ  ULOOP
-        MVI  D,2             ; a = 2
+
+        MVI  B,2             ; a = 2
 LEXT:
         CALL GETBIT
         JNC  LEXTD
-        INR  D
-        MOV  A,D
+        INR  B
+        MOV  A,B
         CPI  7
         JNZ  LEXT
 LEXTD:
-        MOV  E,D             ; E = b (value-bit count)
-        MVI  D,1             ; a = 1
+        MOV  D,B             ; D = b (bit count)
+        MVI  B,1             ; B = a (accumulator)
 LRD:
         CALL GETBIT
-        MOV  A,D
+        MOV  A,B
         RAL                  ; a = (a<<1)|bit
-        MOV  D,A
-        DCR  E
+        MOV  B,A
+        DCR  D
         JNZ  LRD
-        MOV  A,D
+        MOV  A,B
         ADD  C               ; a = (a + c) & ff
-        MOV  D,A
+        MOV  B,A
 
-; ---- copy D+1 bytes from (DSTV-off-1) to DSTV ----
+C_REST:
+        POP  D               ; Restore DSTV (DE)
+
+; ---- copy B+1 bytes from (DSTV - (off+1)) to DSTV ----
 COPY:
-        MOV  B,D             ; B = length-1 (D holds 'a' on every COPY entry)
-        INR  B               ; B = length (1..256; 0 means 256)
-        LHLD DSTV
-        XCHG                 ; DE = dest
-        LHLD OFFV
-        INX  H               ; off+1
-        MOV  A,E
-        SUB  L
-        MOV  L,A
-        MOV  A,D
-        SBB  H
-        MOV  H,A             ; HL = dest - (off+1) = source
+        PUSH H               ; Save advanced SRCV (HL)
+        LHLD OFFV            ; HL = ~off
+        DAD  D               ; HL = DSTV - off - 1 (since ~off = -off-1)
+        ; HL = source, DE = dest
+        INR  B               ; B = count (1..256)
 CPL:
         MOV  A,M
         STAX D
@@ -164,11 +174,10 @@ CPL:
         INX  D
         DCR  B
         JNZ  CPL
-        XCHG                 ; HL = new dest
-        SHLD DSTV
+        POP  H               ; Restore SRCV
         JMP  LOOP
 
-; ---- GETBIT: returns next stream bit in CY. Clobbers A, HL. ----
+; ---- GETBIT: returns next stream bit in CY. Clobbers A. ----
 ; Sentinel reservoir: BITDAT holds the live bits left-justified with a single
 ; marker '1' bit below them.  ADD A shifts the MSB into CY; when the marker
 ; falls out (A becomes 0) we refill and RAL re-seeds the marker into bit 0.
@@ -176,16 +185,9 @@ GETBIT:
         LDA  BITDAT
         ADD  A               ; A<<=1 ; CY = next bit (MSB) ; Z when marker gone
         JNZ  GBST
-        CALL GETRAW          ; refill: A = *SRC++
+        MOV  A,M             ; refill: A = *SRCV++
+        INX  H
         RAL                  ; A = (byte<<1)|1 ; CY = bit7 (the marker enters bit 0)
 GBST:
         STA  BITDAT
-        RET
-
-; ---- GETRAW: A = *SRCV++ ; preserves CY, B, C, D, E ----
-GETRAW:
-        LHLD SRCV
-        MOV  A,M
-        INX  H
-        SHLD SRCV
         RET
