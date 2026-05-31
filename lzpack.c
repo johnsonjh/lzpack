@@ -18,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9994"
+#define LZPACK_VER "v0.9995"
 
 /******************************************************************************/
 
@@ -292,11 +292,19 @@ prog_show (const char *tag, long done)
 static void
 prog_done (void)
 {
+  int i;
+
   if (!pg_on)
     return;
 
   pg_on = 0;
-  (void)fprintf (stderr, "\r%*s\r", pg_w, "");
+
+  (void)putc ('\r', stderr);
+
+  for (i = 0; i < pg_w; i++)
+    (void)putc (' ', stderr);
+
+  (void)putc ('\r', stderr);
 }
 
 # else
