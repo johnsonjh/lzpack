@@ -65,7 +65,7 @@ printf '\n%s\n' ">>>>>>>>>>> Starting CP/M-80 build <<<<<<<<<<<"
 
 CPM_BACKEND="${CPM_BACKEND:-auto}"
 ZCC="${ZCC:-zcc}"
-IMAGE="${IMAGE:-z88dk/z88dk:20260525}"
+IMAGE="${IMAGE:-z88dk/z88dk:latest}"
 DOCKER="${DOCKER:-docker}"
 TNYLPO="${TNYLPO:-tnylpo}"
 ARCHS="${ARCHS:-ixiy 8080}"

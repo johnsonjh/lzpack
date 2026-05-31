@@ -8,6 +8,7 @@
 
 /******************************************************************************/
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9996"
+#define LZPACK_VER "v0.9997"
 
 /******************************************************************************/
 
@@ -3591,7 +3592,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   bufsz = outlen + (ming < 1 ? (1 - ming) : 0);
 
-  if (bufsz < outlen)
+  if (ming < outlen + 1 - LONG_MAX)
     {
       (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
 
