@@ -1252,6 +1252,24 @@ NetBSD)
     fi
     if (
       set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z -DLZPACK_NO_OPT lzpack.c
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z -DLZPACK_NO_PROGRESS lzpack.c
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
+      set -x
       lint -a -aa -b -c -e -g -h -P -r -u -w -z -DLZPACK_STREAM lzpack.c
     ); then
       :
@@ -1263,6 +1281,16 @@ NetBSD)
       set -x
       lint -a -aa -b -c -e -g -h -P -r -u -w -z \
         -DLZPACK_STREAM -DLZPACK_OPT lzpack.c
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z \
+        -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS lzpack.c
     ); then
       :
     else
