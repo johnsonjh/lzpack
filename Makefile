@@ -122,7 +122,6 @@ distclean reallyclean: clean
 	rm -f -r ./msdos 2> /dev/null
 	rm -f -r ./djgpp 2> /dev/null
 	rm -f -r ./elks 2> /dev/null
-	rm -f -r ./os2 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
@@ -203,25 +202,6 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 		./cpm-86/lzpack.o -lc86
 	@pcdev_cmdinfo ./cpm-86/lzpack.cmd
 	(upx -q -9 --8086 ./cpm-86/lzpack.cmd 2> /dev/null | \
-		grep ' \-> ' 2> /dev/null) || :
-
-################################################################################
-
-# Protected-mode OS/2 v1 build using Open Watcom V2.0's "owcc" compiler driver.
-# https://github.com/open-watcom/open-watcom-v2
-
-os2: cs8080.h csz80.h stubasm.c lzpack.c
-	@(export CPE1704TKS=1 && . ./.common.sh && \
-		export FIND_COMMAND_FATAL=1 && \
-		find_command owcc)
-	@mkdir -p ./os2/
-	(cd os2 && owcc -v -bos2 -march=i286 -mcmodel=h -frerun-optimizer \
-		-Os -fno-stack-check -s -I.. -fm=stubasm.map -o ./stubasm.exe \
-		-DNDEBUG ../stubasm.c)
-		grep ' \-> ' 2> /dev/null) || :
-	(cd os2 && owcc -v -bos2 -march=i286 -mcmodel=h -frerun-optimizer \
-		-Os -fno-stack-check -s -I.. -fm=lzpack.map -o ./lzpack.exe \
-		-DNDEBUG ../lzpack.c)
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -464,7 +444,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 .PHONY: all build clean distclean reallyclean stub stubs strip cpm cpm80 \
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
-	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag os2 cpm-opt \
+	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag cpm-opt \
 	cpm80-opt cpm56 cpm-56k scspell scspell-fix
 
 ################################################################################
