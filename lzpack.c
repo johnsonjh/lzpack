@@ -18,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.998"
+#define LZPACK_VER "v0.999"
 
 /******************************************************************************/
 
@@ -195,6 +195,25 @@ lxmalloc (size_t n)
 #if defined(__8080)
 # include "csr8080.h"
 # define LZ_ASM_RESTORE
+# define LZ_RCORE decompr8080
+# define LZ_RCORE_LEN S8R_DLEN
+# define LZ_RCORE_FIX decompr8080_fix
+# define LZ_RCORE_FIX_N DECOMPR8080_FIX_N
+# define LZ_RCORE_SRCV S8R_SRCV_INIT
+# define LZ_RCORE_DSTV S8R_DSTV_INIT
+# define LZ_RCORE_OEHI S8R_OUT_END_HI
+# define LZ_RCORE_OELO S8R_OUT_END_LO
+#elif defined(__Z80)
+# include "csrz80.h"
+# define LZ_ASM_RESTORE
+# define LZ_RCORE decomprz80
+# define LZ_RCORE_LEN SRZ_DLEN
+# define LZ_RCORE_FIX decomprz80_fix
+# define LZ_RCORE_FIX_N DECOMPRZ80_FIX_N
+# define LZ_RCORE_SRCV SRZ_SRCV_INIT
+# define LZ_RCORE_DSTV SRZ_DSTV_INIT
+# define LZ_RCORE_OEHI SRZ_OUT_END_HI
+# define LZ_RCORE_OELO SRZ_OUT_END_LO
 #endif
 
 /******************************************************************************/
@@ -3145,42 +3164,35 @@ do_restore (const char *fn, const char *oname, int verbose)
 
 #  ifdef LZ_ASM_RESTORE
   {
-    /*
-     * Reuse the self-extractor's decompressor for -R: copy the CALL-able core
-     * (csr8080.h) into RAM, relocate its internal labels to that copy, patch
-     * the source/dest/out-end slots, then call it.  The payload sits at the
-     * top of the buffer and the output grows up into it -- the same overlap
-     * the portable decode () path uses, but in the very code that runs on real
-     * hardware, and far smaller than a second C decoder.
-     */
+    /* Reuse the self-extracting decompressor for -R: copy CALL-able core */
 
-    static unsigned char rcore[S8R_DLEN];
+    static unsigned char rcore[LZ_RCORE_LEN];
     unsigned cbase, sv, dv, oe;
     int i;
 
     (void)memcpy (buf, lit, (size_t)LITCNT); /* seed the 16 literal bytes */
-    (void)memcpy (rcore, decompr8080, (size_t)S8R_DLEN);
+    (void)memcpy (rcore, LZ_RCORE, (size_t)LZ_RCORE_LEN);
 
     cbase = (unsigned)rcore;
 
-    for (i = 0; i < DECOMPR8080_FIX_N; i++)
+    for (i = 0; i < LZ_RCORE_FIX_N; i++)
       {
-        unsigned t = cbase + (unsigned)decompr8080_fix[i][1];
+        unsigned t = cbase + (unsigned)LZ_RCORE_FIX[i][1];
 
-        rcore[decompr8080_fix[i][0]] = (unsigned char)(t & 0xff);
-        rcore[decompr8080_fix[i][0] + 1] = (unsigned char)((t >> 8) & 0xff);
+        rcore[LZ_RCORE_FIX[i][0]] = (unsigned char)(t & 0xff);
+        rcore[LZ_RCORE_FIX[i][0] + 1] = (unsigned char)((t >> 8) & 0xff);
       }
 
     sv = (unsigned)(buf + srcoff);
     dv = (unsigned)(buf + LITCNT);
     oe = (unsigned)(buf + outlen);
 
-    rcore[S8R_SRCV_INIT] = (unsigned char)(sv & 0xff);
-    rcore[S8R_SRCV_INIT + 1] = (unsigned char)((sv >> 8) & 0xff);
-    rcore[S8R_DSTV_INIT] = (unsigned char)(dv & 0xff);
-    rcore[S8R_DSTV_INIT + 1] = (unsigned char)((dv >> 8) & 0xff);
-    rcore[S8R_OUT_END_HI] = (unsigned char)((oe >> 8) & 0xff);
-    rcore[S8R_OUT_END_LO] = (unsigned char)(oe & 0xff);
+    rcore[LZ_RCORE_SRCV] = (unsigned char)(sv & 0xff);
+    rcore[LZ_RCORE_SRCV + 1] = (unsigned char)((sv >> 8) & 0xff);
+    rcore[LZ_RCORE_DSTV] = (unsigned char)(dv & 0xff);
+    rcore[LZ_RCORE_DSTV + 1] = (unsigned char)((dv >> 8) & 0xff);
+    rcore[LZ_RCORE_OEHI] = (unsigned char)((oe >> 8) & 0xff);
+    rcore[LZ_RCORE_OELO] = (unsigned char)(oe & 0xff);
 
     ((void (*) (void)) rcore) ();
   }

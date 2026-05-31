@@ -28,6 +28,7 @@ core-*
 /cs8080.h
 /csr8080.h
 /csz80.h
+/csrz80.h
 /djgpp
 /djgpp/
 /elks/

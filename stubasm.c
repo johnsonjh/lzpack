@@ -1743,6 +1743,39 @@ emit_restore8080 (const char *path)
 
 /******************************************************************************/
 
+static void
+emit_restorez80 (const char *path)
+{
+  int i, p;
+
+  assemble (path, 1);
+  collect (RESTORE_PATCH);
+
+  (void)printf ("#ifndef STUBASM_CSRZ80_H\n");
+  (void)printf ("# define STUBASM_CSRZ80_H\n\n");
+  (void)printf ("# define SRZ_DLEN %d\n\n", clen);
+
+  emit_bytes ("decomprz80", code, clen);
+
+  (void)printf ("static const unsigned short decomprz80_fix[][2] = {\n");
+
+  for (i = 0; i < nfx; i++)
+    (void)printf ("    { %#4x, %#5x },\n",
+                  (unsigned int)fx_off[i], (unsigned int)fx_tgt[i]);
+
+  (void)printf ("};\n\n# define DECOMPRZ80_FIX_N %d\n", nfx);
+
+  for (p = 0; RESTORE_PATCH[p]; p++)
+    for (i = 0; i < nsl; i++)
+      if (!strcmp (sl_name[i], RESTORE_PATCH[p]))
+        (void)printf ("# define SRZ_%s 0x%x\n",
+                      sl_name[i], (unsigned int)sl_off[i]);
+
+  (void)printf ("\n#endif\n");
+}
+
+/******************************************************************************/
+
 int
 main (int argc, char **argv)
 {
@@ -1769,10 +1802,17 @@ main (int argc, char **argv)
       return 0;
     }
 
+  if (argc == 3 && !strcmp (argv[1], "-rz80"))
+    {
+      emit_restorez80 (argv[2]);
+
+      return 0;
+    }
+
   if (argc < 3)
     {
       (void)fprintf (stderr,
-                     "Usage: stubasm [-z80] setup.asm decomp.asm > stub.h\n");
+        "Usage: stubasm [-z80|-r|-z80] setup.asm decomp.asm > stub.h\n");
 
       return 2;
     }
