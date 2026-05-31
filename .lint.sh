@@ -269,7 +269,8 @@ command -v flawfinder > /dev/null 2>&1 && {
 
 command -v cppi > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
-  for f in ./cs8080.h ./csz80.h ./stubasm.c ./lzpack.c ./tests/t_autoarch.c; do
+  for f in ./cs8080.h ./csz80.h ./csr8080.h ./csrz80.h ./stubasm.c \
+    ./lzpack.c ./tests/t_autoarch.c; do
     if (
       set -x
       cppi -a --check "${f}"

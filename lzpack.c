@@ -3112,6 +3112,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   long stub_dst_top, dcmp_dsttop;
   unsigned char first16[LITCNT];
   char nb[64];
+  static unsigned short wshown = 0;
 
   /* cppcheck-suppress variableScope */
   const char *oom = "FATAL: out of memory for compression window\n";
@@ -3257,9 +3258,11 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 #  endif
 
-  if (verbose)
+  if (verbose && !wshown) {
     (void)fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
                    fn, s_winsz, s_maxback);
+    wshown++;
+  }
 
   prog_begin (verbose, n - LITCNT, fn);
 

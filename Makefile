@@ -209,7 +209,7 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 # Real-mode MS-DOS build using Open Watcom V2.0's "owcc" compiler driver.
 # https://github.com/open-watcom/open-watcom-v2
 
-msdos: cs8080.h csz80.h stubasm.c lzpack.c
+msdos dos pcdos: cs8080.h csz80.h stubasm.c lzpack.c
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx owcc)
@@ -445,7 +445,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag cpm-opt \
-	cpm80-opt cpm56 cpm-56k scspell scspell-fix
+	cpm80-opt cpm56 cpm-56k scspell scspell-fix dos pcdos
 
 ################################################################################
 
