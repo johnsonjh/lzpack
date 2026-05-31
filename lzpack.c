@@ -18,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9992"
+#define LZPACK_VER "v0.9993"
 
 /******************************************************************************/
 
@@ -2337,10 +2337,12 @@ opt_cost_tables (void)
 
   for (L = 2; L <= MAXLEN; L++)
     {
-      o_mb0[L] = 1 + 8 + len_bits (L, 0);
-      o_mb1[L] = 1 + 8 + 4 + len_bits (L, 1);
-      o_mb3[L] = (L >= 3) ? 1 + 16 + len3_bits (L) : 0;
+      o_mb0[L] = match_bits (1, L);
+      o_mb1[L] = match_bits (200, L);
     }
+
+  for (L = 3; L <= MAXLEN; L++)
+    o_mb3[L] = match_bits (2000, L);
 }
 
 /******************************************************************************/
