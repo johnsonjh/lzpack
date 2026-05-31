@@ -18,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9993"
+#define LZPACK_VER "v0.9994"
 
 /******************************************************************************/
 
@@ -236,6 +236,74 @@ lxmalloc (size_t n)
 
 static long ol, tagpos;
 static int tagcnt;
+
+/******************************************************************************/
+
+# ifndef LZPACK_NO_PROGRESS
+
+static const char *pg_name;
+static long pg_total, pg_next, pg_step;
+static int pg_pct, pg_on, pg_w;
+
+static void
+prog_begin (int on, long total, const char *name)
+{
+  pg_on = on;
+  pg_name = name;
+  pg_total = total;
+  pg_step = total / 100;
+
+  if (pg_step < 1)
+    pg_step = 1;
+
+  pg_next = pg_step;
+  pg_pct = -1;
+
+  pg_w = (int)strlen (name);
+
+  if (pg_w < 12)
+    pg_w = 12;
+
+  pg_w += 11;
+}
+
+/******************************************************************************/
+
+static void
+prog_show (const char *tag, long done)
+{
+  int pct;
+
+  if (!pg_on || pg_total < 1 || done < pg_next)
+    return;
+
+  pg_next = done + pg_step;
+  pct = (int)(done * 100L / pg_total);
+
+  if (pct == pg_pct)
+    return;
+
+  pg_pct = pct;
+  (void)fprintf (stderr, "\r  %-12s %-3s%3d%% ", pg_name, tag, pct);
+}
+
+/******************************************************************************/
+
+static void
+prog_done (void)
+{
+  if (!pg_on)
+    return;
+
+  pg_on = 0;
+  (void)fprintf (stderr, "\r%*s\r", pg_w, "");
+}
+
+# else
+#  define prog_begin(on, total, name) ((void)0)
+#  define prog_show(tag, done)        ((void)0)
+#  define prog_done()                 ((void)0)
+# endif
 
 /******************************************************************************/
 
@@ -685,6 +753,8 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
     {
       int L;
 
+      prog_show ("", i - start);
+
       d = 0;
       L = findmatch (i, &d, depth);
 
@@ -845,6 +915,8 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
   for (i = start; i < n; i++)
     {
+      prog_show ("-e", i - start);
+
       if (cost[i] != 0x3fffffffL)
         {
           if (cost[i] + 9 < cost[i + 1])
@@ -1897,6 +1969,8 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   (void)auto_stub;
 #  endif
 
+  prog_begin (verbose, n - LITCNT, fn);
+
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
@@ -1906,6 +1980,9 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   pllen = (optimal ? compress_opt (data, n, LITCNT, pl, 4096)
                    : compress (data, n, LITCNT, pl, 1024));
 #  endif
+
+  prog_done ();
+
   outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
   ming = min_gap (pl, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
@@ -2225,6 +2302,8 @@ compress_stream (FILE *in, long n, int start, FILE *out, int depth,
     {
       int d, L;
 
+      prog_show ("", i - start);
+
       win_load (i + LOOKAHEAD + 1);
       d = 0;
       L = findmatch_stream (i, &d, depth);
@@ -2386,7 +2465,7 @@ opt_free (void)
 
 static long
 compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
-                     unsigned char *first16, int verbose)
+                     unsigned char *first16)
 {
   long seg_start, abs, ins;
   int k;
@@ -2587,13 +2666,8 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
 
       seg_start = seg_end;
 
-      if (verbose)
-        (void)fprintf (stderr, "\r  -e %3ld%% ",
-                       (seg_start - start) * 100L / (n - start));
+      prog_show ("-e", seg_start - start);
     }
-
-  if (verbose)
-    (void)fprintf (stderr, "\r%14s\r", "");
 
   obuf_flush (ol);
 
@@ -3187,10 +3261,11 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     (void)fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
                    fn, s_winsz, s_maxback);
 
+  prog_begin (verbose, n - LITCNT, fn);
+
 #  ifndef LZPACK_NO_OPT
   pllen = optimal
-            ? compress_opt_stream (in, n, LITCNT, tmp, LZ_OPTDEPTH, first16,
-                                   verbose)
+            ? compress_opt_stream (in, n, LITCNT, tmp, LZ_OPTDEPTH, first16)
             : compress_stream (in, n, LITCNT, tmp, 1024, first16);
 
   if (optimal)
@@ -3198,6 +3273,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 #  else
   pllen = compress_stream (in, n, LITCNT, tmp, 1024, first16);
 #  endif
+
+  prog_done ();
+
   win_free (); /* release the window before reopening files */
   (void)fclose (in);
   (void)fclose (tmp);
