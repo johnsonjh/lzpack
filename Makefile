@@ -253,6 +253,7 @@ elks: cs8080.h csz80.h stubasm.c lzpack.c
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command "$${IA16_ELF_GCC:-ia16-elf-gcc}")
+	# Heap of 23296 determined experimentally as minimum for 8K window
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
 		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DHSZ=1024 \
 		-DMZXFILE=65535L -maout-heap=24576 -o ./elks/lzpack ./lzpack.c
