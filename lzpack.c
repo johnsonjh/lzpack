@@ -2010,19 +2010,40 @@ static int *s_lnk;
 static long s_winsz, s_wmask, s_maxback;
 static FILE *s_in;
 static long s_N, s_loaded;
+static long s_win_start = WIN_MAX;
+static long s_win_reserve;
 
 /******************************************************************************/
 
 static int
 win_alloc (void)
 {
-  for (s_winsz = WIN_MAX; s_winsz >= WINMIN; s_winsz >>= 1)
+  for (s_winsz = s_win_start; s_winsz >= WINMIN; s_winsz >>= 1)
     {
       s_win = (unsigned char *)malloc ((size_t)s_winsz);
       s_lnk = (int *)malloc ((size_t)s_winsz * sizeof (int));
 
       if (s_win && s_lnk)
-        break;
+        {
+          if (s_win_reserve)
+            {
+              /* This window leaves enough heap for the DP block only if a
+               * probe of the reserve succeeds; otherwise try a smaller one. */
+              void *guard = malloc ((size_t)s_win_reserve);
+
+              if (!guard)
+                {
+                  FREE (s_win);
+                  FREE (s_lnk);
+
+                  continue;
+                }
+
+              free (guard);
+            }
+
+          break;
+        }
 
       FREE (s_win);
       FREE (s_lnk);
@@ -2263,6 +2284,15 @@ compress_stream (FILE *in, long n, int start, FILE *out, int depth,
 
 #   ifndef LZ_OPTBLK_MIN
 #    define LZ_OPTBLK_MIN 512
+#   endif
+
+#   ifndef LZ_OPT_WINMAX
+#    define LZ_OPT_WINMAX MAXDIST
+#   endif
+
+#   ifndef LZ_OPT_RESERVE
+#    define LZ_OPT_RESERVE \
+  ((long)(LZ_OPTBLK_MIN + 1) * (sizeof (long) + 3 * sizeof (int)) + 512L)
 #   endif
 
 #   ifndef LZ_OPTDEPTH
@@ -3124,25 +3154,12 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
 #  ifndef LZPACK_NO_OPT
-  if (optimal && opt_alloc ())
-    {
-      (void)fclose (in);
-      (void)fclose (tmp);
-      (void)remove (LZTMP);
-      (void)fprintf (stderr, "%s", oom);
-
-      return 1;
-    }
+  s_win_start = optimal ? LZ_OPT_WINMAX : WIN_MAX;
+  s_win_reserve = optimal ? LZ_OPT_RESERVE : 0;
 #  endif
-
-  /* Grab the largest window the heap allows, after the file buffers exist. */
 
   if (win_alloc ())
     {
-#  ifndef LZPACK_NO_OPT
-      if (optimal)
-        opt_free ();
-#  endif
       (void)fclose (in);
       (void)fclose (tmp);
       (void)remove (LZTMP);
@@ -3150,6 +3167,19 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
       return 1;
     }
+
+#  ifndef LZPACK_NO_OPT
+  if (optimal && opt_alloc ())
+    {
+      win_free ();
+      (void)fclose (in);
+      (void)fclose (tmp);
+      (void)remove (LZTMP);
+      (void)fprintf (stderr, "%s", oom);
+
+      return 1;
+    }
+#  endif
 
   if (verbose)
     (void)fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
@@ -3704,6 +3734,55 @@ version (void)
       os, (ver >> 4) & 0xf, ver & 0xf, ver, sys,
       ((ver >= 0x30) ? "; Last Record Byte Count supported."
                      : "; no Last Record Byte Count support."));
+  }
+
+  {
+    unsigned tk;
+    const char *cpu;
+    const char *memword;
+# ifdef LZPACK_NO_OPT
+    const char *eopt = "unavailable";
+# else
+    const char *eopt = "available";
+# endif
+
+# ifdef __AZTEC_C_42T__
+    /*
+     * CP/M-86 (Aztec): BDOS 53 (Get Max Mem) reports the largest free memory
+     * region.  Request more than can exist (0xFFFF paragraphs) so it returns
+     * the maximum available rather than allocating; the length comes back in
+     * the MCB's second word, in 16-byte paragraphs.  Clamp to the 64K data
+     * segment -- a small-model program cannot use more than that regardless of
+     * how much the system reports free.
+     */
+    {
+      unsigned mcb[3];
+
+      mcb[1] = 0xFFFFU;
+      (void)bdos (53, (int)mcb);
+      tk = mcb[1] / 64U;
+    }
+
+    if (tk > 64U)
+      tk = 64U;
+
+    cpu = "Intel x86";
+    memword = "memory";
+# else
+    /* CP/M-80 (z88dk): the BDOS entry word at 0x0006 (from the JMP at 0x0005)
+     * tops the flat TPA, which starts at TPA (0x100). */
+    /* cppcheck-suppress intToPointerCast */
+    tk = (unsigned)((*(unsigned *)6 - (unsigned)TPA) / 1024U);
+    memword = "TPA";
+#  ifdef LZPACK_8080
+    cpu = "Intel 8080";
+#  else
+    cpu = "Zilog Z80";
+#  endif
+# endif
+
+    (void)printf ("%s build; extra compression (-e) %s; %uK %s free.\n",
+                  cpu, eopt, tk, memword);
   }
 #endif
 

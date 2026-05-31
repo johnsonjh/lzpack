@@ -22,13 +22,15 @@ Usage:
 
 ## Downloads
 
-|                                                                                          File  | Size        | Platform                              |
-|-----------------------------------------------------------------------------------------------:|:------------|:--------------------------------------|
-| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(8080)                |
-| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                 |
-| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)           |
-| [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 16&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)            |
-| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)           |
-| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB |**Windows**&nbsp;(32-bit,&nbsp;MSVCRT) |
-| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit,&nbsp;UCRT)   |
-| [LZPCKELF.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELF.Z)     | 16&nbsp;KiB |**ELKS**&nbsp;(8086/8088)              |
+|                                                                                          File  | Size        | Platform                                        |
+|-----------------------------------------------------------------------------------------------:|:------------|:------------------------------------------------|
+| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(8080)                          |
+| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                           |
+| [LZPKOI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOI80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(8080&nbsp;≥&nbsp;56K&nbsp;TPA) |
+| [LZPKOZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOZ80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(Z80&nbsp;≥&nbsp;56K&nbsp;TPA)  |
+| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)                     |
+| [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 16&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)                      |
+| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)                     |
+| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB |**Windows**&nbsp;(32-bit,&nbsp;MSVCRT)           |
+| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit,&nbsp;UCRT)             |
+| [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB |**ELKS**&nbsp;(8086/8088)                        |

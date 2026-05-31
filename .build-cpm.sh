@@ -80,13 +80,23 @@ STACKSZ="${STACKSZ:-2048}"
 # self-extractor; 0 = leave them raw
 PACK="${PACK:-1}"
 
-# 48K-system memory ceiling (= MEMTOP); the build
-# fails if a tool's runtime footprint won't fit
+# Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
+# (optimal-parser) build raises it (e.g. 0xDDFF = 56K) because -e needs a
+# larger TPA than greedy to fit its DP block beside a usable window.
 TPA48="${TPA48:-0xBDFF}"
 
 # smallest window lzpack will fall back to (matches
 # the WINMIN in lzpack.c)
 WINMIN="${WINMIN:-1024}"
+
+# Bytes of dynamic RAM the fit check reserves below the ceiling: the greedy
+# build needs only a minimum window (3*WINMIN); the -e build also needs its DP
+# block, so a larger reserve is passed in for that build.
+CHECK_RESERVE="${CHECK_RESERVE:-$((3 * WINMIN))}"
+
+# Suffix appended to the per-arch output dirs (cpm-z80, cpm-8080), so the -e
+# build can be produced alongside the standard one (e.g. cpm-z80-opt).
+OUT_SUFFIX="${OUT_SUFFIX:-}"
 
 ################################################################################
 
@@ -317,21 +327,23 @@ check_48k()
   # (e.g., lzpack's smallest window) + stdio buffers + stack.
   peak=$((0x${end} + $3 + 2048 + STACKSZ))
   ceil=$((TPA48))
+  kib=$(((ceil + 1) / 1024))
   if [ "${peak}" -gt "${ceil}" ]; then
     # shellcheck disable=SC2312
-    printf ">> [%s] %s: runtime peak 0x%04X exceeds 48K ceiling 0x%04X\n" \
+    printf ">> [%s] %s: runtime peak 0x%04X exceeds %dK ceiling 0x%04X\n" \
       "$1" "$([ "$4" = 1 ] && printf '%s\n' \
-        FAIL || printf '%s\n' WARN)" "${peak}" "${ceil}"
+        FAIL || printf '%s\n' WARN)" "${peak}" "${kib}" "${ceil}"
     [ "$4" = 1 ] && FITFAIL=1
   elif [ "$3" -gt 0 ]; then
     avail=$((ceil - 0x${end} - 2048 - STACKSZ))
     win=$((avail / 3))
     RFR="room for "
     WND="-byte window"
-    printf ">> [%s] fits 48K: peak 0x%04X <= 0x%04X (${RFR} ~%d${WND})\n" \
-      "$1" "${peak}" "${ceil}" "${win}"
+    printf ">> [%s] fits %dK: peak 0x%04X <= 0x%04X (${RFR} ~%d${WND})\n" \
+      "$1" "${kib}" "${peak}" "${ceil}" "${win}"
   else
-    printf ">> [%s] fits 48K: peak 0x%04X <= 0x%04X\n" "$1" "${peak}" "${ceil}"
+    printf ">> [%s] fits %dK: peak 0x%04X <= 0x%04X\n" \
+      "$1" "${kib}" "${peak}" "${ceil}"
   fi
 }
 
@@ -355,8 +367,10 @@ build_arch()
   BLDN=" building "
   printf '%s\n' \
     ">> [${clib}]${BLDN}${lc}  (HSZ=${HSZ} MZXFILE=${MZXFILE} STACK=${STACKSZ})"
+  # shellcheck disable=SC2086
   run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${lc}" \
     -DLZPACK_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
+    ${LZPACK_EXTRA_DEFS:-} \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
   printf '%s\n' ">> [${clib}] building ${sc}"
   run_zcc zcc +cpm -O3 --opt-code-size -m stubasm.c -clib="${clib}" -o "${sc}" \
@@ -369,7 +383,7 @@ build_arch()
   esac
 
   printf '%s\n' ""
-  check_48k "${clib} lzpack" "${lm}" "$((3 * WINMIN))" 1
+  check_48k "${clib} lzpack" "${lm}" "${CHECK_RESERVE}" 1
   check_48k "${clib} stubasm" "${sm}" 0 0
   printf '%s\n' ""
   trim_bss "${lc}" "${lm}"
@@ -399,9 +413,9 @@ FITFAIL=0
 
 for arch in ${ARCHS}; do
   case "${arch}" in
-  ixiy) build_arch ixiy "cpm-z80" ;;
-  8080) build_arch 8080 "cpm-8080" ;;
-  *) build_arch "${arch}" "cpm-${arch}" ;;
+  ixiy) build_arch ixiy "cpm-z80${OUT_SUFFIX}" ;;
+  8080) build_arch 8080 "cpm-8080${OUT_SUFFIX}" ;;
+  *) build_arch "${arch}" "cpm-${arch}${OUT_SUFFIX}" ;;
   esac
 done
 
@@ -421,9 +435,9 @@ printf '%s\n\n' ">>>>>>>>>>> Finished CP/M-80 build <<<<<<<<<<<"
 
 if command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '%s\n\n' ">> tnylpo z80 smoke test"
-  "${TNYLPO}" -n ./cpm-z80/lzpack.com -v || :
+  "${TNYLPO}" -n "./cpm-z80${OUT_SUFFIX}/lzpack.com" -v || :
   printf '\n%s\n\n' ">> tnylpo 8080 smoke test"
-  "${TNYLPO}" -n ./cpm-8080/lzpack.com -v || :
+  "${TNYLPO}" -n "./cpm-8080${OUT_SUFFIX}/lzpack.com" -v || :
   printf \
     '\n%s\n' ">> for full round-trip self-extract tests: '${MAKE:-make} test'"
 else

@@ -117,10 +117,6 @@ BEGIN {
 
     file_sizes[fname] = sz
   }
-
-  if ("LZPCKELK.Z" in file_sizes) {
-    file_sizes["LZPCKELF.Z"] = file_sizes["LZPCKELK.Z"]
-  }
 }
 
 {
