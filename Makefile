@@ -122,6 +122,7 @@ distclean reallyclean: clean
 	rm -f -r ./msdos 2> /dev/null
 	rm -f -r ./djgpp 2> /dev/null
 	rm -f -r ./elks 2> /dev/null
+	rm -f -r ./os2 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
@@ -206,6 +207,25 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 
 ################################################################################
 
+# Protected-mode OS/2 v1 build using Open Watcom V2.0's "owcc" compiler driver.
+# https://github.com/open-watcom/open-watcom-v2
+
+os2: cs8080.h csz80.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command owcc)
+	@mkdir -p ./os2/
+	(cd os2 && owcc -v -bos2 -march=i286 -mcmodel=h -frerun-optimizer \
+		-Os -fno-stack-check -s -I.. -fm=stubasm.map -o ./stubasm.exe \
+		-DNDEBUG ../stubasm.c)
+		grep ' \-> ' 2> /dev/null) || :
+	(cd os2 && owcc -v -bos2 -march=i286 -mcmodel=h -frerun-optimizer \
+		-Os -fno-stack-check -s -I.. -fm=lzpack.map -o ./lzpack.exe \
+		-DNDEBUG ../lzpack.c)
+		grep ' \-> ' 2> /dev/null) || :
+
+################################################################################
+
 # Real-mode MS-DOS build using Open Watcom V2.0's "owcc" compiler driver.
 # https://github.com/open-watcom/open-watcom-v2
 
@@ -280,6 +300,8 @@ elks: cs8080.h csz80.h stubasm.c lzpack.c
 
 ################################################################################
 
+# Windows 32-bit MSVCRT and 64-bit UCRT builds using Fedora MinGW-w64 GCC
+
 windows: cs8080.h csz80.h stubasm.c lzpack.c
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
@@ -306,7 +328,6 @@ test: lzpack tests/run.sh .common.sh
 ################################################################################
 
 # Runs extensive source code checks to hopefully ensure high code quality.
-# Not for end users at this time.
 
 lint: .lint.sh .common.sh
 	@./.lint.sh
@@ -402,10 +423,49 @@ tags etags ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag: \
 
 ################################################################################
 
+# Not used yet!
+
+scspell: ./.scspell/basedict.txt ./.scspell/dictionary.txt
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command grep scspell find rm)
+	@printf '%s\n' \
+		"* Running scspell, use scspell-fix to run interactively" \
+			2> /dev/null || :; \
+	set -x; rm -f ./tags ./GPATH ./GRTAGS ./GTAGS > /dev/null 2>&1; \
+	scspell \
+		--report-only \
+		--override-dictionary ./.scspell/dictionary.txt \
+		--base-dict ./.scspell/basedict.txt \
+		$$( find . \( -path ./.git -o -path ./.venv -o -path ./vendor \
+			-o -name '.doc.tmpl' -o -name 'README.md' \) \
+			-prune -o -type f -exec grep -l 'scspell-id:' {} \; )
+
+################################################################################
+
+# Not used yet!
+
+scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command scspell find grep)
+	@printf '%s\n' \
+		"* Running scspell-fix, use scspell to run non-interactively" \
+			2> /dev/null || :
+	scspell \
+		--override-dictionary ./.scspell/dictionary.txt \
+		--base-dict ./.scspell/basedict.txt \
+		$$( find . \( -path ./.git -o -path ./.venv -o -path ./vendor \
+			-o -name '.doc.tmpl' -o -name 'README.md' \) \
+			-prune -o -type f -exec grep -l 'scspell-id:' {} \; )
+
+################################################################################
+
 .PHONY: all build clean distclean reallyclean stub stubs strip cpm cpm80 \
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
-	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag
+	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag os2 cpm-opt \
+	cpm80-opt cpm56 cpm-56k scspell scspell-fix
 
 ################################################################################
 

@@ -27,8 +27,8 @@ core-*
 /cpm-z80/
 /cs8080.h
 /csr8080.h
-/csz80.h
 /csrz80.h
+/csz80.h
 /djgpp
 /djgpp/
 /elks/
@@ -51,6 +51,7 @@ log.pvs
 *.O
 *.obj
 *.OBJ
+/os2/
 *.out
 *.pak
 *.PAK
