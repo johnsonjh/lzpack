@@ -7,7 +7,7 @@
 
 Tests both correctness of the C round-trip (-R) AND real self-extraction of the
 produced .COM on CP/M-80 (using the tnylpo emulator).  Running CP/M tests is
-the only way we can actually prove the Z80 and 8080 decompressiom stubs work.
+the only way we can actually prove the Z80 and 8080 decompression stubs work.
 
 Usage:
   harness.py native            # exercise the host ./lzpack binary
@@ -106,7 +106,7 @@ def run_emu2_cpm86(workdir, cmdname, args=None):
 
 
 # Emulator used to *run* .COMs (set per command in main)
-# The native testsnstill use tnylpo to self-extract .pop outputs!
+# The native tests still use tnylpo to self-extract .pop outputs!
 EMU = run_tnylpo
 
 
