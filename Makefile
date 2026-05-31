@@ -392,7 +392,8 @@ tags etags ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag: \
 			tests/t_autoarch.c && exit 0; }; exit 1; } || :
 	@command -v ctags > /dev/null 2>&1 && \
 		{ { echo ctags...; ctags cs8080.h csz80.h stubasm.c lzpack.c \
-			tests/t_autoarch.c && exit 0; }; exit 1; } || :
+			tests/t_autoarch.c 2> /dev/null && exit 0; }; \
+			exit 1; } || :
 	@command -v gtags > /dev/null 2>&1 && \
 		{ { echo gtags...; gtags . && exit 0; }; \
 			exit 1; } || :

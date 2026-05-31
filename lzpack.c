@@ -2467,7 +2467,7 @@ static long
 compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
                      unsigned char *first16)
 {
-  long seg_start, abs, ins;
+  long seg_start, apos, ins;
   int k;
 
   s_in = in;
@@ -2486,10 +2486,10 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
   for (k = 0; k < LITCNT && (long)k < n; k++)
     first16[k] = s_win[k & s_wmask];
 
-  for (abs = 0; abs < start && abs + 2 < n; abs++)
+  for (apos = 0; apos < start && apos + 2 < n; apos++)
     {
-      win_load (abs + LOOKAHEAD + 1);
-      s_hinsert (abs);
+      win_load (apos + LOOKAHEAD + 1);
+      s_hinsert (apos);
     }
 
   ins = start;
@@ -2513,39 +2513,39 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
 
       o_cost[0] = 0;
 
-      for (abs = seg_start; abs < seg_end; abs++)
+      for (apos = seg_start; apos < seg_end; apos++)
         {
-          long jc = abs - seg_start;
+          long jc = apos - seg_start;
           int cap, maxml = 0;
 
-          while (ins < abs)
+          while (ins < apos)
             {
               win_load (ins + LOOKAHEAD + 1);
               s_hinsert (ins);
               ins++;
             }
 
-          win_load (abs + LOOKAHEAD + 1);
+          win_load (apos + LOOKAHEAD + 1);
 
           if (o_cost[jc] + 9 < o_cost[jc + 1])
             {
               o_cost[jc + 1] = o_cost[jc] + 9;
               o_tlen[jc + 1] = 1;
-              o_tdist[jc + 1] = s_win[abs & s_wmask];
+              o_tdist[jc + 1] = s_win[apos & s_wmask];
             }
 
           cap = MAXLEN;
 
-          if ((long)cap > seg_end - abs)
-            cap = (int)(seg_end - abs);
+          if ((long)cap > seg_end - apos)
+            cap = (int)(seg_end - apos);
 
-          if ((long)cap > n - abs)
-            cap = (int)(n - abs);
+          if ((long)cap > n - apos)
+            cap = (int)(n - apos);
 
-          if (cap >= 3 && abs + 2 < n)
+          if (cap >= 3 && apos + 2 < n)
             {
-              long base = abs & ~s_wmask;
-              int stored = head[s_hash3 (abs)];
+              long base = apos & ~s_wmask;
+              int stored = head[s_hash3 (apos)];
               int dep = depth;
 
               while (stored >= 0 && dep-- > 0)
@@ -2554,17 +2554,17 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
                   long d;
                   int ml;
 
-                  if (p > abs)
+                  if (p > apos)
                     p -= s_winsz;
 
-                  d = abs - p;
+                  d = apos - p;
 
                   if (d <= 0 || d > s_maxback)
                     break;
 
                   if (maxml > 0 && maxml < cap
                       && s_win[(p + maxml) & s_wmask]
-                           != s_win[(abs + maxml) & s_wmask])
+                           != s_win[(apos + maxml) & s_wmask])
                     {
                       stored = s_lnk[p & s_wmask];
 
@@ -2575,7 +2575,7 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
 
                   while (ml < cap
                          && s_win[(p + ml) & s_wmask]
-                              == s_win[(abs + ml) & s_wmask])
+                              == s_win[(apos + ml) & s_wmask])
                     ml++;
 
                   if (ml > maxml)
@@ -2612,23 +2612,23 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
               }
             }
 
-          if (cap >= 2 && abs + 1 < n)
+          if (cap >= 2 && apos + 1 < n)
             {
-              long lo = (abs > 128) ? (abs - 128) : 0;
+              long lo = (apos > 128) ? (apos - 128) : 0;
               long p;
 
-              for (p = abs - 1; p >= lo; p--)
-                if (s_win[p & s_wmask] == s_win[abs & s_wmask]
-                    && s_win[(p + 1) & s_wmask] == s_win[(abs + 1) & s_wmask])
+              for (p = apos - 1; p >= lo; p--)
+                if (s_win[p & s_wmask] == s_win[apos & s_wmask]
+                    && s_win[(p + 1) & s_wmask] == s_win[(apos + 1) & s_wmask])
                   {
-                    int d2 = (int)(abs - p);
+                    int d2 = (int)(apos - p);
                     long c2 = o_cost[jc] + OMBITS (d2, 2);
 
                     if (c2 < o_cost[jc + 2])
                       {
                         o_cost[jc + 2] = c2;
                         o_tlen[jc + 2] = 2;
-                        o_tdist[jc + 2] = (int)(abs - p);
+                        o_tdist[jc + 2] = (int)(apos - p);
                       }
 
                     break;
@@ -2695,7 +2695,7 @@ static long
 min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
 {
   long src_base = pl_dst_top + 1 - pl_len;
-  long dst_base = TPA + litcnt;
+  long dst_base = (long)TPA + litcnt;
   int bc = 0;
   unsigned bv = 0;
   long produced = 0;
