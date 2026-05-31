@@ -18,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.997"
+#define LZPACK_VER "v0.998"
 
 /******************************************************************************/
 
@@ -189,6 +189,13 @@ lxmalloc (size_t n)
 #define MAXDIST 8192
 #define MAXLEN 256
 #define MEMTOP 0xBDFF
+
+/******************************************************************************/
+
+#if defined(__8080)
+# include "csr8080.h"
+# define LZ_ASM_RESTORE
+#endif
 
 /******************************************************************************/
 
@@ -947,6 +954,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
 #ifndef LZPACK_COMPRESS_ONLY
 
+# ifndef LZ_ASM_RESTORE
 static const unsigned char *ip, *ip_end;
 static int dbc;
 static unsigned dbv;
@@ -1161,6 +1169,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
   return pos;
 }
 
+# endif
 #endif
 
 /******************************************************************************/
@@ -3021,24 +3030,18 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   return 0;
 }
-# else
 
-/*
- * Streaming restore: the compressed file and the decompressed output are
- * malloc'd to their exact sizes, so -R is limited only by the heap (not a
- * fixed buffer) and the compression path keeps all of RAM for its window.
- * Files too large for the heap are rejected cleanly.
- */
+# else
 
 static int
 do_restore (const char *fn, const char *oname, int verbose)
 {
-  unsigned char *data, *out;
-  long n, outlen, pstart;
+  unsigned char *buf;
+  unsigned char hdr[LITCNT], lit[LITCNT];
+  long n, outlen, pllen, ming, bufsz, srcoff;
   unsigned stubv, lit_src;
   char nb[64];
   FILE *f;
-  size_t r;
 
   n = count_file (fn);
 
@@ -3049,15 +3052,11 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
-  data = (unsigned char *)malloc ((size_t)(n > 0 ? n : 1));
-
-  if (!data)
-    {
-      (void)fprintf (stderr,
-                     "FATAL: %s too large to restore (out of memory)\n", fn);
-
-      return 1;
-    }
+  /*
+   * Read the 16-byte header, then scan the payload for the overlap gap.  The
+   * header read leaves the file positioned at the payload, so the gap scan
+   * needs no reopen (and no seek -- CP/M stdio cannot rewind reliably).
+   */
 
   f = fopen (fn, "rb");
 
@@ -3066,56 +3065,128 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (!f)
     {
-      FREE (data);
       (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
 
       return 1;
     }
 
-  r = fread (data, 1, (size_t)n, f);
-  (void)fclose (f);
-
-  if ((long)r != n || parse_header (data, n, &stubv, &lit_src, &outlen))
+  if (fread (hdr, 1, (size_t)LITCNT, f) != (size_t)LITCNT
+      || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
-      FREE (data);
+      (void)fclose (f);
       (void)fprintf (stderr, "FATAL: %s is not a PopCom!/LZPACK file\n", fn);
 
       return 1;
     }
 
-  pstart = TPA + LITCNT - TPA;
-
   if (outlen > MZXFILE)
     {
-      FREE (data);
+      (void)fclose (f);
       (void)fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
 
       return 1;
     }
 
-  if ((long)lit_src - TPA < 0 ||
-      (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
+  if ((long)lit_src - TPA < LITCNT
+      || (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
-      FREE (data);
+      (void)fclose (f);
       (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
 
       return 1;
     }
 
-  out = (unsigned char *)malloc ((size_t)outlen);
+  pllen = ((long)lit_src - TPA) - LITCNT;
+  ming = min_gap_stream (f, pllen, outlen - LITCNT, LITCNT,
+                         (long)(TPA + outlen) - 1);
+  (void)fclose (f);
 
-  if (!out)
+  bufsz = outlen + (ming < 1 ? (1 - ming) : 0);
+
+  if (bufsz < outlen)
     {
-      FREE (data);
+      (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
+
+      return 1;
+    }
+
+  buf = (unsigned char *)malloc ((size_t)bufsz);
+
+  if (!buf)
+    {
       (void)fprintf (stderr,
                      "FATAL: %s too large to restore (out of memory)\n", fn);
 
       return 1;
     }
 
-  (void)decode (data + pstart, (long)lit_src - TPA - pstart, out, outlen,
-                LITCNT, data + ((long)lit_src - TPA));
+  srcoff = bufsz - pllen;
+  f = fopen (fn, "rb");
+
+  if (!f)
+    f = fopen (fn, "r");
+
+  if (!f
+      || fread (hdr, 1, (size_t)LITCNT, f) != (size_t)LITCNT
+      || fread (buf + srcoff, 1, (size_t)pllen, f) != (size_t)pllen
+      || fread (lit, 1, (size_t)LITCNT, f) != (size_t)LITCNT)
+    {
+      if (f)
+        (void)fclose (f);
+
+      FREE (buf);
+      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+
+      return 1;
+    }
+
+  (void)fclose (f);
+
+#  ifdef LZ_ASM_RESTORE
+  {
+    /*
+     * Reuse the self-extractor's decompressor for -R: copy the CALL-able core
+     * (csr8080.h) into RAM, relocate its internal labels to that copy, patch
+     * the source/dest/out-end slots, then call it.  The payload sits at the
+     * top of the buffer and the output grows up into it -- the same overlap
+     * the portable decode () path uses, but in the very code that runs on real
+     * hardware, and far smaller than a second C decoder.
+     */
+
+    static unsigned char rcore[S8R_DLEN];
+    unsigned cbase, sv, dv, oe;
+    int i;
+
+    (void)memcpy (buf, lit, (size_t)LITCNT); /* seed the 16 literal bytes */
+    (void)memcpy (rcore, decompr8080, (size_t)S8R_DLEN);
+
+    cbase = (unsigned)rcore;
+
+    for (i = 0; i < DECOMPR8080_FIX_N; i++)
+      {
+        unsigned t = cbase + (unsigned)decompr8080_fix[i][1];
+
+        rcore[decompr8080_fix[i][0]] = (unsigned char)(t & 0xff);
+        rcore[decompr8080_fix[i][0] + 1] = (unsigned char)((t >> 8) & 0xff);
+      }
+
+    sv = (unsigned)(buf + srcoff);
+    dv = (unsigned)(buf + LITCNT);
+    oe = (unsigned)(buf + outlen);
+
+    rcore[S8R_SRCV_INIT] = (unsigned char)(sv & 0xff);
+    rcore[S8R_SRCV_INIT + 1] = (unsigned char)((sv >> 8) & 0xff);
+    rcore[S8R_DSTV_INIT] = (unsigned char)(dv & 0xff);
+    rcore[S8R_DSTV_INIT + 1] = (unsigned char)((dv >> 8) & 0xff);
+    rcore[S8R_OUT_END_HI] = (unsigned char)((oe >> 8) & 0xff);
+    rcore[S8R_OUT_END_LO] = (unsigned char)(oe & 0xff);
+
+    ((void (*) (void)) rcore) ();
+  }
+#  else
+  (void)decode (buf + srcoff, pllen, buf, outlen, LITCNT, lit);
+#  endif
 
   if (!oname)
     {
@@ -3123,21 +3194,19 @@ do_restore (const char *fn, const char *oname, int verbose)
       oname = nb;
     }
 
-  if (writefile (oname, out, outlen))
+  if (writefile (oname, buf, outlen))
     {
-      FREE (data);
-      FREE (out);
+      FREE (buf);
       (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
 
       return 1;
     }
 
   if (verbose)
-    (void)fprintf (stderr,
-                   "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen, oname);
+    (void)fprintf (stderr, "  %-12s %6ld => %6ld  -> %s\n", fn, n, outlen,
+                   oname);
 
-  FREE (data);
-  FREE (out);
+  FREE (buf);
 
   return 0;
 }

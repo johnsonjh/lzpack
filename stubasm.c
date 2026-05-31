@@ -1699,6 +1699,50 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 
 /******************************************************************************/
 
+static const char *RESTORE_PATCH[] =
+  { "SRCV_INIT", "DSTV_INIT", "OUT_END_HI", "OUT_END_LO", 0 };
+
+/*
+ * Emit a single CALL-able decompressor (no setup/relocation pair) for lzpack's
+ * in-RAM -R restore path on CP/M-80.  Same machinery as the self-extractor:
+ * internal JMP/CALL/data-label operands become +base fixups, and OUT_END_HI/LO
+ * are the two per-call patch slots.  Distinct names (decompr8080, S8R_*) let
+ * csr8080.h coexist with cs8080.h in one translation unit.
+ */
+
+static void
+emit_restore8080 (const char *path)
+{
+  int i, p;
+
+  assemble (path, 0);
+  collect (RESTORE_PATCH);
+
+  (void)printf ("#ifndef STUBASM_CSR8080_H\n");
+  (void)printf ("# define STUBASM_CSR8080_H\n\n");
+  (void)printf ("# define S8R_DLEN %d\n\n", clen);
+
+  emit_bytes ("decompr8080", code, clen);
+
+  (void)printf ("static const unsigned short decompr8080_fix[][2] = {\n");
+
+  for (i = 0; i < nfx; i++)
+    (void)printf ("    { %#4x, %#5x },\n",
+                  (unsigned int)fx_off[i], (unsigned int)fx_tgt[i]);
+
+  (void)printf ("};\n\n# define DECOMPR8080_FIX_N %d\n", nfx);
+
+  for (p = 0; RESTORE_PATCH[p]; p++)
+    for (i = 0; i < nsl; i++)
+      if (!strcmp (sl_name[i], RESTORE_PATCH[p]))
+        (void)printf ("# define S8R_%s 0x%x\n",
+                      sl_name[i], (unsigned int)sl_off[i]);
+
+  (void)printf ("\n#endif\n");
+}
+
+/******************************************************************************/
+
 int
 main (int argc, char **argv)
 {
@@ -1714,6 +1758,13 @@ main (int argc, char **argv)
   if (argc == 4 && !strcmp (argv[1], "-z80"))
     {
       emit_z80 (argv[2], argv[3]);
+
+      return 0;
+    }
+
+  if (argc == 3 && !strcmp (argv[1], "-r"))
+    {
+      emit_restore8080 (argv[2]);
 
       return 0;
     }

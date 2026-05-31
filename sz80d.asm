@@ -6,10 +6,10 @@
 ; there (just above out_end).  It first finishes relocating the compressed
 ; payload (the LDDR uses HL/DE/BC preset by the setup block), then decodes the
 ; lzpack stream into the CP/M TPA starting at 0110h.
-;
+
 ; The Z80 version keeps all the state in registers using the alternate bank
 ; (EXX) instead of fixed scratch RAM:
-;
+
 ;   bank M (working set)   HL = DST  (output pointer)
 ;                          DE = match offset (D = high, E = low) during a match
 ;                          A  = scratch / current length value 'a'
@@ -17,11 +17,11 @@
 ;                          E' = bit reservoir  (see GETBIT)
 ;                          D' = current stream byte being shifted out
 ;                          C' = 'c' length base / FORM2 high accumulator
-;
+
 ; GETBIT (runs in bank P) is a subroutine at the end of this block (see there).
 ;   E' is seeded with 80h so the very first GETBIT triggers a refill; the marker
 ;   bit then walks 01h,02h,..,80h and wraps every 8 bits, refilling D' again.
-;
+
 ; Control flow inside this block is PC-relative (JR/DJNZ) except the absolute
 ; "JP LOOP" back-edge and the five "CALL GETBIT" sites.  Those operands, plus the
 ; two CP out_end immediates, are the per-file patch slots: P_JP_LOOP, P_CP_HI,

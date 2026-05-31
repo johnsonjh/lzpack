@@ -164,6 +164,51 @@ rm -f "${ut}"
 
 ################################################################################
 
+printf '\n%s\n' "================ STREAM ==================="
+
+# Emulator-free check of the streaming (-DLZPACK_STREAM) build's in-place -R.
+# That build decodes into a single overlapping buffer (the payload sits at the
+# top of the output buffer and is consumed as the output grows up into it),
+# unlike the in-RAM decoder the NATIVE section exercises, so round-trip it
+# against the corpus byte-for-byte here.  Needs only a C compiler.
+
+# shellcheck disable=SC2119
+st="$(mktemp 2> /dev/null || mktemp_lzpack)"
+sdir="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzst.$$")"
+mkdir -p "${sdir}"
+
+# shellcheck disable=SC2086,SC2248
+if "${CC:-cc}" -DLZPACK_STREAM -DHSZ=1024 -I. -o "${st}" lzpack.c; then
+  s_ok=0
+  s_run=0
+  for f in tests/corpus/*.com; do
+    b="${f##*/}"
+    b="${b%.com}"
+    # Compress with the streaming build itself; "skip" corpus files (too small
+    # or incompressible) produce no .pop and are simply not round-tripped.
+    "${st}" -O "${sdir}/${b}.pop" "${f}" > /dev/null 2>&1 || :
+    test -f "${sdir}/${b}.pop" || continue
+    s_run=$((s_run + 1))
+    "${st}" -R -O "${sdir}/${b}.unp" "${sdir}/${b}.pop" > /dev/null 2>&1 || :
+    if cmp -s "${f}" "${sdir}/${b}.unp"; then
+      s_ok=$((s_ok + 1))
+    else
+      printf '  [FAIL] stream in-place -R %s\n' "${b}"
+      rc=1
+    fi
+  done
+  printf '  stream in-place -R round-tripped %d/%d corpus files\n' \
+    "${s_ok}" "${s_run}"
+else
+  printf '  [FAIL] streaming build (-DLZPACK_STREAM) failed to compile\n'
+  rc=1
+fi
+
+rm -rf "${sdir}"
+rm -f "${st}"
+
+################################################################################
+
 printf '\n%s\n' "================= NATIVE =================="
 
 TNYLPO="${TNYLPO}" python3 tests/harness.py native || rc=1

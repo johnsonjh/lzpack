@@ -7,7 +7,7 @@
 ; relocates the decompressor block to high memory (backward LDDR copy), presets
 ; the payload-relocation arguments in HL/DE/BC and jumps into the relocated
 ; decompressor (which finishes the payload copy itself, from safe high memory).
-;
+
 ; This block has no internal branch targets, so it is position independent and
 ; ORG only documents the example load address.  The five 16-bit LD operands and
 ; the final JP operand are per-file patch slots: lzpack overwrites them via the

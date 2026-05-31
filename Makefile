@@ -27,7 +27,7 @@ build: all
 
 # Builds the native LZPACK binary.
 
-lzpack: lzpack.c cs8080.h csz80.h lzpack.c
+lzpack: lzpack.c cs8080.h csz80.h csr8080.h lzpack.c
 	@eval echo \
 		"$${CC-$(CC)}" $(CFLAGS) -I. -o $@ lzpack.c 2> /dev/null || :
 	@eval \
@@ -41,8 +41,18 @@ cs8080.h: s8080s.asm s8080d.asm stubasm
 	./stubasm s8080s.asm s8080d.asm > $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/S8_.*LEN/ { a[++i]=$$4; t+=$$4 } END { printf \
-	"8080: %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
+	"[8080] %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
 	a[1], a[2], t }' $@ 2> /dev/null || :; } || :
+
+################################################################################
+
+# Builds the CALL-able 8080 decompressor reused by lzpack's in-RAM -R restore.
+
+csr8080.h: s8080r.asm stubasm
+	./stubasm -r s8080r.asm > $@
+	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
+	'/S8R_DLEN/ { printf "[8080] "$$4" total bytes (reloc).\n" }' \
+	$@ 2> /dev/null || :; } || :
 
 ################################################################################
 
@@ -52,7 +62,7 @@ csz80.h: sz80s.asm sz80d.asm stubasm
 	./stubasm -z80 sz80s.asm sz80d.asm > $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/Z80.*_LEN/ { a[++i]=$$4; t+=$$4 } END { printf \
-	"Z80: %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
+	"[Z80] %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
 	a[1], a[2], t }' $@ 2> /dev/null || :; } || :
 
 ################################################################################
@@ -87,7 +97,7 @@ clean:
 # Clean up all the builds and assorted build, testing, and temporary detritus.
 
 distclean reallyclean: clean
-	rm -f cs8080.h csz80.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
+	rm -f cs8080.h csz80.h csr8080.h ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
 	rm -f compile_commands.json compile_commands.events.json log.pvs
 	rm -f ./*.pop ./*.unp ./*.t a.out a.exe core core-*
 	rm -f tags cscope.out GPATH GRTAGS GTAGS TAGS
@@ -105,14 +115,14 @@ distclean reallyclean: clean
 
 # Builds both decompression stubs from the assembly source code.
 
-stub stubs: cs8080.h csz80.h stubasm.c
+stub stubs: cs8080.h csz80.h csr8080.h stubasm.c
 
 ################################################################################
 
 # CP/M-80 builds (Z80 and 8080) using the z88dk development kit.
 # https://z88dk.org/
 
-cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h stubasm.c lzpack.c \
+cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h stubasm.c lzpack.c \
 		.build-cpm.sh .common.sh
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
@@ -121,7 +131,7 @@ cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h stubasm.c lzpack.c \
 # Local CP/M-80 builds (Z80 and 8080) using the z88dk development kit.
 # https://github.com/z88dk/z88dk
 
-cpm-local cpm80-local: cs8080.h csz80.h stubasm.c lzpack.c \
+cpm-local cpm80-local: cs8080.h csz80.h csr8080.h stubasm.c lzpack.c \
 		.build-cpm.sh .common.sh
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
@@ -130,7 +140,7 @@ cpm-local cpm80-local: cs8080.h csz80.h stubasm.c lzpack.c \
 # Dockerized CP/M-80 builds (Z80 and 8080) using the z88dk development kit.
 # https://hub.docker.com/r/z88dk/z88dk
 
-cpm-docker cpm80-docker: cs8080.h csz80.h stubasm.c lzpack.c \
+cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h stubasm.c lzpack.c \
 		.build-cpm.sh .common.sh
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
