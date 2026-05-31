@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9997"
+#define LZPACK_VER "v0.9998"
 
 /******************************************************************************/
 
@@ -174,7 +174,7 @@ lxmalloc (size_t n)
 
   if (!p)
     {
-      (void)fprintf (stderr, "FATAL: Out of memory!\n");
+      (void)fprintf (stderr, "ERROR: Out of memory!\n");
 
       exit (1);
     }
@@ -1071,7 +1071,7 @@ g_bit (void)
     {
       if (ip >= ip_end)
         {
-          (void)fprintf (stderr, "FATAL: unexpected end of data\n");
+          (void)fprintf (stderr, "ERROR: unexpected end of data\n");
 
           exit (1);
         }
@@ -1111,7 +1111,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (ip >= ip_end)
         {
-          (void)fprintf (stderr, "FATAL: unexpected end of data\n");
+          (void)fprintf (stderr, "ERROR: unexpected end of data\n");
 
           exit (1);
         }
@@ -1169,7 +1169,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
           if (ip >= ip_end)
             {
-              (void)fprintf (stderr, "FATAL: unexpected end of data\n");
+              (void)fprintf (stderr, "ERROR: unexpected end of data\n");
 
               exit (1);
             }
@@ -1258,7 +1258,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
       if (off >= (unsigned)pos)
         {
           (void)fprintf (stderr,
-                         "FATAL: invalid compressed data (underflow)\n");
+                         "ERROR: invalid compressed data (underflow)\n");
 
           exit (1);
         }
@@ -1916,7 +1916,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n < 0)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -1949,7 +1949,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n > MZXFILE)
     {
       (void)fprintf (stderr,
-                     "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
+                     "ERROR: %s exceeds MZXFILE=%ld (build constraint)\n",
                      fn, (long)MZXFILE);
 
       return 1;
@@ -1958,7 +1958,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n > 65535L)
     {
       (void)fprintf (stderr,
-                     "FATAL: %s is too large for header (max 65535 bytes)\n",
+                     "ERROR: %s is too large for header (max 65535 bytes)\n",
                      fn);
 
       return 1;
@@ -1966,7 +1966,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n <= LITCNT + 32)
     {
-      (void)fprintf (stderr, "FATAL: %s too small\n", fn);
+      (void)fprintf (stderr, "ERROR: %s too small\n", fn);
 
       return 1;
     }
@@ -2004,7 +2004,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (body < 0)
     {
-      (void)fprintf (stderr, "FATAL: %s would not fit in memory\n", fn);
+      (void)fprintf (stderr, "ERROR: %s would not fit in memory\n", fn);
 
       return 1;
     }
@@ -2029,7 +2029,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (writefile (oname, outf, total))
     {
-      (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
+      (void)fprintf (stderr, "ERROR: cannot write %s\n", oname);
 
       return 1;
     }
@@ -3124,13 +3124,13 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   static unsigned short wshown = 0;
 
   /* cppcheck-suppress variableScope */
-  const char *oom = "FATAL: out of memory for compression window\n";
+  const char *oom = "ERROR: out of memory for compression window\n";
 
   n = count_file (fn);
 
   if (n < 0)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3156,7 +3156,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
           if (k == LITCNT && parse_header (hdr, n, &rsv, &rls, &rol) == 0)
             {
               (void)fprintf (stderr,
-                             "FATAL: %s is already packed; restore it first\n",
+                             "ERROR: %s is already packed; restore it first\n",
                              fn);
 
               return 1;
@@ -3167,7 +3167,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (n > MZXFILE)
     {
       (void)fprintf (stderr,
-                     "FATAL: %s exceeds MZXFILE=%ld (build constraint)\n",
+                     "ERROR: %s exceeds MZXFILE=%ld (build constraint)\n",
                      fn, (long)MZXFILE);
 
       return 1;
@@ -3176,7 +3176,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (n > 65535L)
     {
       (void)fprintf (stderr,
-                     "FATAL: %s is too large for header (max 65535 bytes)\n",
+                     "ERROR: %s is too large for header (max 65535 bytes)\n",
                      fn);
 
       return 1;
@@ -3184,7 +3184,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (n <= LITCNT + 32)
     {
-      (void)fprintf (stderr, "FATAL: %s too small\n", fn);
+      (void)fprintf (stderr, "ERROR: %s too small\n", fn);
 
       return 1;
     }
@@ -3219,7 +3219,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (!in)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3234,7 +3234,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!tmp)
     {
       (void)fclose (in);
-      (void)fprintf (stderr, "FATAL: cannot create temp file %s\n", LZTMP);
+      (void)fprintf (stderr, "ERROR: cannot create temp file %s\n", LZTMP);
 
       return 1;
     }
@@ -3305,7 +3305,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!tmp)
     {
       (void)remove (LZTMP);
-      (void)fprintf (stderr, "FATAL: cannot reopen temp file %s\n", LZTMP);
+      (void)fprintf (stderr, "ERROR: cannot reopen temp file %s\n", LZTMP);
 
       return 1;
     }
@@ -3322,7 +3322,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (use8080 ? (dcmp_dsttop > MEMTOP) : (stub_dst_top > MEMTOP))
     {
       (void)remove (LZTMP);
-      (void)fprintf (stderr, "FATAL: %s would not fit in memory\n", fn);
+      (void)fprintf (stderr, "ERROR: %s would not fit in memory\n", fn);
 
       return 1;
     }
@@ -3358,7 +3358,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!outf)
     {
       (void)remove (LZTMP);
-      (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
+      (void)fprintf (stderr, "ERROR: cannot write %s\n", oname);
 
       return 1;
     }
@@ -3372,7 +3372,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     {
       (void)fclose (outf);
       (void)remove (LZTMP);
-      (void)fprintf (stderr, "FATAL: cannot reopen temp file %s\n", LZTMP);
+      (void)fprintf (stderr, "ERROR: cannot reopen temp file %s\n", LZTMP);
 
       return 1;
     }
@@ -3458,7 +3458,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (n < 0)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3466,14 +3466,15 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (n > BUFSZ)
     {
       (void)fprintf (stderr,
-                     "FATAL: %s is too large to restore in this build\n", fn);
+                     "ERROR: %s is too large to restore in this build\n", fn);
 
       return 1;
     }
 
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
-      (void)fprintf (stderr, "FATAL: %s is not a PopCom!/LZPACK file\n", fn);
+      (void)fprintf (stderr,
+                     "ERROR: %s is not a PopCom! or LZPACK file\n", fn);
 
       return 1;
     }
@@ -3482,7 +3483,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (outlen > MZXFILE)
     {
-      (void)fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
+      (void)fprintf (stderr, "ERROR: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
 
       return 1;
@@ -3491,7 +3492,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if ((long)lit_src - TPA < 0 ||
       (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
-      (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
+      (void)fprintf (stderr, "ERROR: %s has invalid header data\n", fn);
 
       return 1;
     }
@@ -3507,7 +3508,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (writefile (oname, out, outlen))
     {
-      (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
+      (void)fprintf (stderr, "ERROR: cannot write %s\n", oname);
 
       return 1;
     }
@@ -3535,7 +3536,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (n < 0)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3553,7 +3554,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (!f)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3562,7 +3563,8 @@ do_restore (const char *fn, const char *oname, int verbose)
       || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
       (void)fclose (f);
-      (void)fprintf (stderr, "FATAL: %s is not a PopCom!/LZPACK file\n", fn);
+      (void)fprintf (stderr,
+                     "ERROR: %s is not a PopCom! or LZPACK file\n", fn);
 
       return 1;
     }
@@ -3570,7 +3572,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (outlen > MZXFILE)
     {
       (void)fclose (f);
-      (void)fprintf (stderr, "FATAL: %s expands beyond MZXFILE=%ld\n", fn,
+      (void)fprintf (stderr, "ERROR: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
 
       return 1;
@@ -3580,7 +3582,7 @@ do_restore (const char *fn, const char *oname, int verbose)
       || (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
       (void)fclose (f);
-      (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
+      (void)fprintf (stderr, "ERROR: %s has invalid header data\n", fn);
 
       return 1;
     }
@@ -3594,7 +3596,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (ming < outlen + 1 - LONG_MAX)
     {
-      (void)fprintf (stderr, "FATAL: %s has invalid header data\n", fn);
+      (void)fprintf (stderr, "ERROR: %s has invalid header data\n", fn);
 
       return 1;
     }
@@ -3604,7 +3606,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (!buf)
     {
       (void)fprintf (stderr,
-                     "FATAL: %s too large to restore (out of memory)\n", fn);
+                     "ERROR: %s too large to restore (out of memory)\n", fn);
 
       return 1;
     }
@@ -3624,7 +3626,7 @@ do_restore (const char *fn, const char *oname, int verbose)
         (void)fclose (f);
 
       FREE (buf);
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3678,7 +3680,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (writefile (oname, buf, outlen))
     {
       FREE (buf);
-      (void)fprintf (stderr, "FATAL: cannot write %s\n", oname);
+      (void)fprintf (stderr, "ERROR: cannot write %s\n", oname);
 
       return 1;
     }
@@ -3710,7 +3712,7 @@ do_list (const char *fn)
 
   if (!f)
     {
-      (void)fprintf (stderr, "FATAL: cannot read %s\n", fn);
+      (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
 
       return 1;
     }
@@ -3744,7 +3746,7 @@ do_list (const char *fn)
 
   if (got < (size_t)LITCNT || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
-      (void)printf ("  %-16s (not a PopCom!/LZPACK file)\n", fn);
+      (void)printf ("  %-16s (not a PopCom! or LZPACK file)\n", fn);
 
       return 0;
     }
@@ -3926,7 +3928,7 @@ main (int argc, char **argv)
             {
               if (i + 1 >= argc)
                 {
-                  (void)fprintf (stderr, "FATAL: -o requires an argument\n");
+                  (void)fprintf (stderr, "ERROR: -o requires an argument\n");
 
                   return 2;
                 }
@@ -3943,7 +3945,7 @@ main (int argc, char **argv)
             }
           else
             {
-              (void)fprintf (stderr, "FATAL: unknown option %s\n", argv[i]);
+              (void)fprintf (stderr, "ERROR: unknown option %s\n", argv[i]);
 
               return 2;
             }
@@ -3968,7 +3970,7 @@ main (int argc, char **argv)
 
   if (oname && nfiles > 1)
     {
-      (void)fprintf (stderr, "FATAL: -o cannot be used with multiple files\n");
+      (void)fprintf (stderr, "ERROR: -o cannot be used with multiple files\n");
 
       return 2;
     }
@@ -3990,7 +3992,7 @@ main (int argc, char **argv)
       if (mode == 0)
         {
 #ifdef LZPACK_DECODE_ONLY
-          (void)fprintf (stderr, "FATAL: this build cannot compress\n");
+          (void)fprintf (stderr, "ERROR: this build cannot compress\n");
           rc |= 1;
 #else
 # ifdef LZPACK_STREAM
@@ -4004,7 +4006,7 @@ main (int argc, char **argv)
       else if (mode == 1)
         {
 #ifdef LZPACK_COMPRESS_ONLY
-          (void)fprintf (stderr, "FATAL: this build cannot restore\n");
+          (void)fprintf (stderr, "ERROR: this build cannot restore\n");
           rc |= 1;
 #else
           rc |= do_restore (argv[i], oname, 1);
