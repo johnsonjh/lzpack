@@ -18,7 +18,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.999"
+#define LZPACK_VER "v0.9991"
 
 /******************************************************************************/
 
@@ -29,8 +29,10 @@
 /******************************************************************************/
 
 #ifdef LZPACK_STREAM
-# ifndef LZPACK_NO_OPT
-#  define LZPACK_NO_OPT
+# ifndef LZPACK_OPT
+#  ifndef LZPACK_NO_OPT
+#   define LZPACK_NO_OPT
+#  endif
 # endif
 #endif
 
@@ -49,9 +51,9 @@
 #ifdef LZPACK_STREAM
 static const int never =0;
 # define FREE(p) \
-  do {          \
-    free((p));  \
-    (p) = NULL; \
+  do {           \
+    free((p));   \
+    (p) = NULL;  \
   } while(never)
 #endif
 
@@ -735,7 +737,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 /******************************************************************************/
 
 # ifndef LZPACK_NO_OPT
-#  ifndef LZPACK_STREAM
+
 
 static int
 extlen_bits (int v)
@@ -802,6 +804,8 @@ match_bits (int dist, int L)
 }
 
 /******************************************************************************/
+
+#  ifndef LZPACK_STREAM
 
 static long
 compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
@@ -2251,6 +2255,323 @@ compress_stream (FILE *in, long n, int start, FILE *out, int depth,
 
 /******************************************************************************/
 
+#  ifndef LZPACK_NO_OPT
+
+#   ifndef LZ_OPTBLK
+#    define LZ_OPTBLK 2048
+#   endif
+
+#   ifndef LZ_OPTBLK_MIN
+#    define LZ_OPTBLK_MIN 512
+#   endif
+
+#   ifndef LZ_OPTDEPTH
+#    define LZ_OPTDEPTH 1024
+#   endif
+
+#   ifndef LZ_OPT_ALLOC
+#    define LZ_OPT_ALLOC(n) malloc ((n))
+#   endif
+
+#   ifndef LZ_OPT_FREE
+#    define LZ_OPT_FREE(p) free ((p))
+#   endif
+
+#   define OFREE(p)    \
+  do {                 \
+    LZ_OPT_FREE ((p)); \
+    (p) = NULL;        \
+  } while (never)
+
+static long *o_cost;
+static int *o_tlen;
+static int *o_tdist;
+static int *o_stk;
+static long o_blk;
+
+static int o_l2d[MAXLEN + 1];
+
+static int o_mb0[MAXLEN + 1];
+static int o_mb1[MAXLEN + 1];
+static int o_mb3[MAXLEN + 1];
+
+#   define OMBITS(d, L) \
+  ((d) <= 128 ? o_mb0[L] : (d) <= 1152 ? o_mb1[L] : o_mb3[L])
+
+/******************************************************************************/
+
+static void
+opt_cost_tables (void)
+{
+  int L;
+
+  for (L = 2; L <= MAXLEN; L++)
+    {
+      o_mb0[L] = 1 + 8 + len_bits (L, 0);
+      o_mb1[L] = 1 + 8 + 4 + len_bits (L, 1);
+      o_mb3[L] = (L >= 3) ? 1 + 16 + len3_bits (L) : 0;
+    }
+}
+
+/******************************************************************************/
+
+static int
+opt_alloc (void)
+{
+  for (o_blk = LZ_OPTBLK; o_blk >= LZ_OPTBLK_MIN; o_blk >>= 1)
+    {
+      size_t s = (size_t)(o_blk + 1);
+
+      o_cost = (long *)LZ_OPT_ALLOC (s * sizeof (long));
+      o_tlen = (int *)LZ_OPT_ALLOC (s * sizeof (int));
+      o_tdist = (int *)LZ_OPT_ALLOC (s * sizeof (int));
+      o_stk = (int *)LZ_OPT_ALLOC (s * sizeof (int));
+
+      if (o_cost && o_tlen && o_tdist && o_stk)
+        return 0;
+
+      OFREE (o_cost);
+      OFREE (o_tlen);
+      OFREE (o_tdist);
+      OFREE (o_stk);
+    }
+
+  return -1;
+}
+
+/******************************************************************************/
+
+static void
+opt_free (void)
+{
+  OFREE (o_cost);
+  OFREE (o_tlen);
+  OFREE (o_tdist);
+  OFREE (o_stk);
+}
+
+/******************************************************************************/
+
+static long
+compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
+                     unsigned char *first16, int verbose)
+{
+  long seg_start, abs, ins;
+  int k;
+
+  s_in = in;
+  s_N = n;
+  s_loaded = 0;
+
+  opt_cost_tables ();
+
+  for (k = 0; k < HSZ; k++)
+    head[k] = -1;
+
+  e_init_stream (out);
+
+  win_load ((long)LOOKAHEAD + 1);
+
+  for (k = 0; k < LITCNT && (long)k < n; k++)
+    first16[k] = s_win[k & s_wmask];
+
+  for (abs = 0; abs < start && abs + 2 < n; abs++)
+    {
+      win_load (abs + LOOKAHEAD + 1);
+      s_hinsert (abs);
+    }
+
+  ins = start;
+
+  for (seg_start = start; seg_start < n;)
+    {
+      long seg_end = seg_start + o_blk;
+      long span, j;
+
+      if (seg_end > n)
+        seg_end = n;
+
+      span = seg_end - seg_start;
+
+      for (j = 0; j <= span; j++)
+        {
+          o_cost[j] = 0x3fffffffL;
+          o_tlen[j] = 0;
+          o_tdist[j] = 0;
+        }
+
+      o_cost[0] = 0;
+
+      for (abs = seg_start; abs < seg_end; abs++)
+        {
+          long jc = abs - seg_start;
+          int cap, maxml = 0;
+
+          while (ins < abs)
+            {
+              win_load (ins + LOOKAHEAD + 1);
+              s_hinsert (ins);
+              ins++;
+            }
+
+          win_load (abs + LOOKAHEAD + 1);
+
+          if (o_cost[jc] + 9 < o_cost[jc + 1])
+            {
+              o_cost[jc + 1] = o_cost[jc] + 9;
+              o_tlen[jc + 1] = 1;
+              o_tdist[jc + 1] = s_win[abs & s_wmask];
+            }
+
+          cap = MAXLEN;
+
+          if ((long)cap > seg_end - abs)
+            cap = (int)(seg_end - abs);
+
+          if ((long)cap > n - abs)
+            cap = (int)(n - abs);
+
+          if (cap >= 3 && abs + 2 < n)
+            {
+              long base = abs & ~s_wmask;
+              int stored = head[s_hash3 (abs)];
+              int dep = depth;
+
+              while (stored >= 0 && dep-- > 0)
+                {
+                  long p = base | (long)stored;
+                  long d;
+                  int ml;
+
+                  if (p > abs)
+                    p -= s_winsz;
+
+                  d = abs - p;
+
+                  if (d <= 0 || d > s_maxback)
+                    break;
+
+                  if (maxml > 0 && maxml < cap
+                      && s_win[(p + maxml) & s_wmask]
+                           != s_win[(abs + maxml) & s_wmask])
+                    {
+                      stored = s_lnk[p & s_wmask];
+
+                      continue;
+                    }
+
+                  ml = 0;
+
+                  while (ml < cap
+                         && s_win[(p + ml) & s_wmask]
+                              == s_win[(abs + ml) & s_wmask])
+                    ml++;
+
+                  if (ml > maxml)
+                    {
+                      int L;
+
+                      for (L = maxml + 1; L <= ml; L++)
+                        o_l2d[L] = (int)d;
+
+                      maxml = ml;
+
+                      if (maxml >= cap)
+                        break;
+                    }
+
+                  stored = s_lnk[p & s_wmask];
+                }
+
+              {
+                int L;
+
+                for (L = 3; L <= maxml; L++)
+                  {
+                    int d = o_l2d[L];
+                    long c2 = o_cost[jc] + OMBITS (d, L);
+
+                    if (c2 < o_cost[jc + L])
+                      {
+                        o_cost[jc + L] = c2;
+                        o_tlen[jc + L] = L;
+                        o_tdist[jc + L] = d;
+                      }
+                  }
+              }
+            }
+
+          if (cap >= 2 && abs + 1 < n)
+            {
+              long lo = (abs > 128) ? (abs - 128) : 0;
+              long p;
+
+              for (p = abs - 1; p >= lo; p--)
+                if (s_win[p & s_wmask] == s_win[abs & s_wmask]
+                    && s_win[(p + 1) & s_wmask] == s_win[(abs + 1) & s_wmask])
+                  {
+                    int d2 = (int)(abs - p);
+                    long c2 = o_cost[jc] + OMBITS (d2, 2);
+
+                    if (c2 < o_cost[jc + 2])
+                      {
+                        o_cost[jc + 2] = c2;
+                        o_tlen[jc + 2] = 2;
+                        o_tdist[jc + 2] = (int)(abs - p);
+                      }
+
+                    break;
+                  }
+            }
+        }
+
+      {
+        long sp = 0, kk;
+
+        for (kk = span; kk > 0;)
+          {
+            o_stk[sp++] = (int)kk;
+            kk -= (o_tlen[kk] > 1 ? o_tlen[kk] : 1);
+          }
+
+        for (kk = sp - 1; kk >= 0; kk--)
+          {
+            int e = o_stk[kk];
+            int L = o_tlen[e];
+
+            if (L > 1)
+              e_match (o_tdist[e], L);
+            else
+              e_lit (o_tdist[e]);
+          }
+      }
+
+      while (ins < seg_end)
+        {
+          win_load (ins + LOOKAHEAD + 1);
+          s_hinsert (ins);
+          ins++;
+        }
+
+      seg_start = seg_end;
+
+      if (verbose)
+        (void)fprintf (stderr, "\r  -e %3ld%% ",
+                       (seg_start - start) * 100L / (n - start));
+    }
+
+  if (verbose)
+    (void)fprintf (stderr, "\r%14s\r", "");
+
+  obuf_flush (ol);
+
+  return ol;
+}
+
+#  endif
+
+/******************************************************************************/
+
 static FILE *s_mg_f;
 static long s_mg_rd;
 
@@ -2263,11 +2584,6 @@ mg_byte (void)
 }
 
 /******************************************************************************/
-
-/*
- * Worst-case overlap scan, identical to min_gap () but reading the payload
- * sequentially from the temp file instead of a RAM buffer.
- */
 
 static long
 min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
@@ -2691,6 +3007,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   unsigned char first16[LITCNT];
   char nb[64];
 
+  /* cppcheck-suppress variableScope */
+  const char *oom = "FATAL: out of memory for compression window\n";
+
   n = count_file (fn);
 
   if (n < 0)
@@ -2754,8 +3073,10 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
+#  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
+#  endif
 
 #  ifndef LZPACK_NO_AUTOARCH
   if (auto_stub)
@@ -2802,14 +3123,30 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-  /* Grab the largest window the heap allows, after the file buffers exist. */
-
-  if (win_alloc ())
+#  ifndef LZPACK_NO_OPT
+  if (optimal && opt_alloc ())
     {
       (void)fclose (in);
       (void)fclose (tmp);
       (void)remove (LZTMP);
-      (void)fprintf (stderr, "FATAL: out of memory for compression window\n");
+      (void)fprintf (stderr, "%s", oom);
+
+      return 1;
+    }
+#  endif
+
+  /* Grab the largest window the heap allows, after the file buffers exist. */
+
+  if (win_alloc ())
+    {
+#  ifndef LZPACK_NO_OPT
+      if (optimal)
+        opt_free ();
+#  endif
+      (void)fclose (in);
+      (void)fclose (tmp);
+      (void)remove (LZTMP);
+      (void)fprintf (stderr, "%s", oom);
 
       return 1;
     }
@@ -2818,7 +3155,17 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     (void)fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
                    fn, s_winsz, s_maxback);
 
+#  ifndef LZPACK_NO_OPT
+  pllen = optimal
+            ? compress_opt_stream (in, n, LITCNT, tmp, LZ_OPTDEPTH, first16,
+                                   verbose)
+            : compress_stream (in, n, LITCNT, tmp, 1024, first16);
+
+  if (optimal)
+    opt_free ();
+#  else
   pllen = compress_stream (in, n, LITCNT, tmp, 1024, first16);
+#  endif
   win_free (); /* release the window before reopening files */
   (void)fclose (in);
   (void)fclose (tmp);

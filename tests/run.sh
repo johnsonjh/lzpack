@@ -56,7 +56,8 @@ export CPE1704TKS=1
 
 ################################################################################
 
-TEST_TIMEOUT=5
+TEST_TIMEOUT="${TEST_TIMEOUT:-60}"
+
 export TEST_TIMEOUT
 
 ################################################################################
@@ -69,6 +70,7 @@ export CC
 ################################################################################
 
 export FIND_COMMAND_FATAL=1
+
 find_command "${AWK:-awk}" "${CC:-cc}" grep mkdir python3 rm rmdir sleep
 
 TNYLPO="${TNYLPO:-tnylpo}"

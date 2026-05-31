@@ -167,19 +167,23 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 		pcdev_cmdinfo)
 	@mkdir -p ./cpm-86/
 	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
-	aztec42_cc -B "+CA" -L19 -Z728 -D__AZTEC_C_42T__=1 \
+	aztec42_cc -B "+CA" -D__AZTEC_C_42T__=1 \
 		-DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768 ./stubasm.c \
 		-o ./cpm-86/stubasm.o
 	aztec42_sqz ./cpm-86/stubasm.o
-	aztec42_link -t -o ./cpm-86/stubasm.cmd ./cpm-86/stubasm.o -lc86
+	aztec42_link -t -o ./cpm-86/stubasm.cmd \
+		./cpm-86/stubasm.o -lc86
 	@pcdev_cmdinfo ./cpm-86/stubasm.cmd
 	(upx -q -9 --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
-	aztec42_cc -I. -B "+CA" -L19 -Z828 -D__AZTEC_C_42T__=1 \
-		-DLZPACK_STREAM=1 -DHSZ=1024 -DMZXFILE=65535L ./lzpack.c \
-		-o ./cpm-86/lzpack.o
+	aztec42_cc -I. -B "+CA" -D__AZTEC_C_42T__=1 \
+		-DLZPACK_STREAM=1 -DLZPACK_OPT=1 -DHSZ=1024 -DMZXFILE=65535L \
+		./lzpack.c -o ./cpm-86/lzpack.o
 	aztec42_sqz ./cpm-86/lzpack.o
-	aztec42_link -t -o ./cpm-86/lzpack.cmd ./cpm-86/lzpack.o -lc86
+	# +D reserves data-segment headroom for the run-time stack: the optimal
+	# parser recurses deeper than the greedy path and overflows the default
+	aztec42_link -V +D 12288 -t -o ./cpm-86/lzpack.cmd \
+		./cpm-86/lzpack.o -lc86
 	@pcdev_cmdinfo ./cpm-86/lzpack.cmd
 	(upx -q -9 --8086 ./cpm-86/lzpack.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
