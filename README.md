@@ -23,6 +23,9 @@ Running the compressor on a system without CP/M‑80's memory constraints (such
 as on MS‑DOS, Windows, Linux, or in a UNIX‑like environment) gives even
 better compression results.
 
+It surely is not the smallest executable packer, nor the most technically
+impressive, but is freely licensed, extremely portable, and very compatible.
+
 ---
 
 <!-- toc -->
@@ -148,11 +151,11 @@ compares the **LZPACK** decompression stubs against those from the
 | **Z80**  | **`187` bytes** | `230` bytes |
 | **8080** | **`256` bytes** | Unsupported |
 
-* **LZPACK**'s Z80 code is just **187 bytes** versus *PopCom!*'s 230 bytes,
-nearly **20% smaller**.
+* **LZPACK**'s Z80 code is just **187 bytes** (including setup code) versus
+  *PopCom!*'s 230 bytes, nearly **20% smaller**.
 
 * *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
-decompressor weighs in at only **~11%** larger than the *PopCom!* Z80 code.
+  decompressor weighs in at only **~11%** larger than the *PopCom!* Z80 code.
 
 * No **LZPACK** stub is larger than (two CP/M‑80 disk records) or 256 bytes.
 
