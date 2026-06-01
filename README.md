@@ -19,6 +19,8 @@ same ~47K TPA footprint.  Running the compressor on a system without CP/M‑80's
 tight memory constraints (such as on MS‑DOS, Windows, Linux, or in a
 UNIX‑like environment) gives even better compression results.
 
+---
+
 <!-- toc -->
 
 - [Overview](#overview)
