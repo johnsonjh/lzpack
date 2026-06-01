@@ -57,7 +57,8 @@ functionality of the hardware or software).
 **LZPACK** is a single, ultra‑portable ANSI C89 program.
 
 The *compressor* runs on just about anything with an ANSI C89 compiler.  You
-can pack CP/M‑80 programs on any modern UNIX (even **ELKS**), Windows, MS‑DOS
+can pack CP/M‑80 programs on any modern UNIX
+(even [**ELKS**](https://github.com/ghaerr/elks)), Windows, or MS‑DOS
 system without emulation, as well as pack natively on the CP/M‑80 target.
 
 The *decompressor* that is embedded in each packed executable is hand‑written
@@ -91,7 +92,7 @@ a Z80‑powered system.
 **LZPACK** also includes a hand‑written and optimized 8086/8088 assembly
 decompressor used for the `-R` (restore) feature when built for 8086/8088
 targets such as CP/M‑86, real‑mode MS‑DOS, and ELKS.  This is not only faster
-than the ANSI C version but also smaller, which leaves more memory available
+than the ANSI C89 version but also smaller, which leaves more memory available
 for compression.
 
 For extremely memory constrained systems, custom builds can be created that
@@ -102,7 +103,8 @@ precious bytes.
 ANSI C89‑conforming compiler, without requiring any external assemblers.  The
 source repository does not include any binary blobs.  Instead, the 8080 and
 Z80 stubs are assembled from their included sources during the build process
-using an included custom assembler, **StubASM**, also written in portable C89.
+using an included custom assembler, [**StubASM**](stubasm.c), also written in
+portable C89.
 
 ### Compression results
 
@@ -146,10 +148,11 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   packed.  On CP/M 2.2 systems, all bytes in the final record are packed.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
-* Because the `tnylpo` and `cpm` emulators used for testing do *not* emulate
-  CP/M‑Plus (and thus do not provide LRBC metadata), any file not ending at
-  an exact record boundary would be automatically padded to the size of the
-  next full record.
+* Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) and
+* [`cpm`](https://github.com/jhallen/cpm) emulators used for testing do *not*
+  emulate CP/M‑Plus (and thus do not provide LRBC metadata), any file not
+  ending at an exact record boundary would be automatically padded to the size
+  of the next full record.
 
 ### Decompression stubs
 
@@ -310,16 +313,16 @@ The following targets build various `lzpack` binaries.
 
 Most users will only be interested in the native binary build.
 
-| Make Target | Description            | Toolchain                                    |
-|------------:|:-----------------------|:---------------------------------------------|
-| `all`       | Native&nbsp;binary     | ANSI&nbsp;C89                                |
-| `cpm`       | CP/M‑80&nbsp;8080+Z80  | z88dk&nbsp;(20250501+)                       |
-| `cpm-opt`   | CP/M‑80&nbsp;8080+Z80  | z88dk&nbsp;(20250501+)                       |
-| `cpm86`     | CP/M‑86&nbsp;8086/8088 | cross‑Aztec&nbsp;C&nbsp;v4.2&nbsp;(tsupplis) |
-| `msdos`     | MS‑DOS&nbsp;8086/8088  | Open&nbsp;Watcom&nbsp;V2.0                   |
-| `djgpp`     | MS‑DOS&nbsp;80386      | DJGPP&nbsp;+&nbsp;CWSDPMI                    |
-| `elks`      | ELKS&nbsp;8086/8088    | IA16‑GCC                                     |
-| `windows`   | Windows&nbsp;32/64‑bit | MinGW‑w64&nbsp;GCC                           |
+| Make Target | Description            | Toolchain |
+|------------:|:-----------------------|:----------|
+| `all`       | Native&nbsp;binary     | ANSI&nbsp;C89 |
+| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(20250501+) |
+| `cpm-opt`   | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(20250501+) |
+| `cpm86`     | CP/M‑86&nbsp;8086/8088 | cross‑Aztec&nbsp;C&nbsp;v4.2&nbsp;([tsupplis](https://github.com/tsupplis/cpm86-crossdev)) |
+| `msdos`     | MS‑DOS&nbsp;8086/8088  | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2) |
+| `djgpp`     | MS‑DOS&nbsp;80386      | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/) |
+| `elks`      | ELKS&nbsp;8086/8088    | [IA16‑GCC](https://gitlab.com/tkchia/build-ia16) |
+| `windows`   | Windows&nbsp;32/64‑bit | [MinGW‑w64](https://www.mingw-w64.org/)&nbsp;[GCC](https://gcc.gnu.org/) |
 
 The following targets will likely only be of interest to developers:
 
@@ -357,7 +360,7 @@ invocation will be automatically determined by the build system.
   prerequisite for any change.
 
 * Usage of AI (artificial intelligence) tools by contributors is currently
-  permitted, subject to the
+  permitted, subject to the same conditions as the
   [LLVM AI Tool Use Policy](https://llvm.org/docs/AIToolPolicy.html), but
   this permission may be withdrawn at any time and without notice.
 
