@@ -320,7 +320,7 @@ lint: .lint.sh .common.sh
 bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
-		find_command arc compress "$${GIT_CMD-git}" "$${MAKE:-make}" \
+		find_command arc compress "$${GIT_CMD:-git}" "$${MAKE:-make}" \
 		zip)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" lint
