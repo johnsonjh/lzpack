@@ -24,7 +24,8 @@ as on MS‑DOS, Windows, Linux, or in a UNIX‑like environment) gives even
 better compression results.
 
 It surely is not the smallest executable packer, nor the most technically
-impressive, but is freely licensed, extremely portable, and very compatible.
+impressive, but is freely licensed, portable (able to run on CP/M‑80 systems
+and modern machines with any operating system), and extremely compatible.
 
 ---
 
