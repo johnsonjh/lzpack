@@ -165,7 +165,7 @@ compares the **LZPACK** decompression stubs against those from the
 * **LZPACK**'s Z80 code is just **187 bytes** (including setup code) versus
   *PopCom!*'s 230 bytes, nearly **20% smaller**.
 * *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
-  decompressor weighs in at only **~11%** larger than the *PopCom!* Z80 code.
+  decompressor weighs in at only **\~11%** larger than the *PopCom!* Z80 code.
 * No **LZPACK** stub is larger than two CP/M‑80 disk records or 256 bytes.
 
 ### Operation
@@ -190,7 +190,7 @@ is required:
 2. The **extra** compression engine (`-e`) is a cost‑optimal shortest‑path
    parser that looks for the smallest possible encoding.  It needs more
    memory, so it is only available on CP/M‑80 builds that target machines with
-   **~**56K (or larger) TPAs.
+   **\~**56K (or larger) TPAs.
 3. The **streaming** compression engine reads the input through a sliding
    window and writes the compressed data to a temporary file, so the working
    memory size is independent of file input size, allowing memory‑constrained
@@ -266,7 +266,7 @@ depends on how much memory is available on the system that will actually run
 the **LZPACK** program.
 
 * **CP/M‑80**  The **extra** compression engine needs a large block of working
-  memory that, on a **~**48K TPA machine, can only fit by shrinking the
+  memory that, on a **\~**48K&nbsp;TPA machine, can only fit by shrinking the
   compression window down so far that it actually compresses **much worse**
   than the **standard** engine, so the plain CP/M‑80 builds, for systems with
   **<**56K&nbsp;TPA
@@ -279,9 +279,9 @@ the **LZPACK** program.
   for 8080, and
   [`LZPKOZ80.ARC`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOZ80.ARC)
   for Z80).  It is *highly recommended* that you use a build appropriate to
-  your TPA size.  While the 56K TPA builds will likely still *run* on a machine
-  with less memory, compression will suffer greatly vs. the "lesser"
-  standard **~**48K TPA builds.
+  your TPA size.  While the 56K&nbsp;TPA builds will likely still *run* on a
+  machine with smaller memory, compression will suffer greatly vs. the "lesser"
+  standard **\~**48K&nbsp;TPA builds.
 
 * **MS‑DOS**  The real‑mode MS‑DOS build
   ([`LZPCK86R.ZIP`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP))
