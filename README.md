@@ -223,8 +223,8 @@ engines, differing in execution speed, code size, and memory usage:
 
 * While compression speed (and ratios) should improve in the future,
   development focused on providing the fastest possible *unpacking*, since
-  it happens *every time a program is executed*, often on vintage hardware,
-  while the *packing* operation is performed rarely and can be run on more
+  it happens *every time a program is executed*, while the *packing* operation
+  is performed rarely (especially on vintage systems) and can be easily run on
   modern hardware (which almost everyone has now, in the year 2026).
 
 ## Usage
