@@ -123,13 +123,16 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 | `WS30`    | `15,872`  | `11,648`&nbsp;(`‑26.6%`) | `11,425`&nbsp;(`‑28.0%`) | `11,539`&nbsp;(`‑27.3%`) | `12,221`&nbsp;(`‑23.0%`) | `12,224`&nbsp;(`‑23.0%`) |
 | `ZORK1`   | `8,426`   |  `5,376`&nbsp;(`‑36.2%`) |  `5,276`&nbsp;(`‑37.4%`) |  `5,338`&nbsp;(`‑36.6%`) |  `5,542`&nbsp;(`‑34.2%`) |  `5,546`&nbsp;(`‑34.2%`) |
 
-* The **/N** builds are native (Linux, x86_64), while the **/C** builds are
-  running on CP/M‑80.  The **+`-e`** indicates that the **extra** compression
-  mode was used.  Native **LZPACK** builds using **extra** compression should
-  **always** beat *PopCom!*, while CP/M‑80 **LZPACK** builds using **extra**
-  compression *still* beat *PopCom!* in five out of the eleven tests.  The
-  **standard** compression results representing **LZPACK** performance on a
-  low-memory CP/M‑80 system are still respectable.
+* The "**/N**" builds are native (Linux/x86_64), while the "**/C**" builds are
+  running on CP/M‑80.
+
+* The "**+`-e`**" indicates that the **extra** compression mode was used.
+  Native **LZPACK** builds using **extra** compression should **always** beat
+  *PopCom!*, while CP/M‑80 **LZPACK** builds using **extra** compression
+  *still* beat *PopCom!* in five out of the eleven tests.  The last column
+  shows  **streaming** compression results (representative of **LZPACK**'s
+  performance on a low-memory CP/M‑80 system) is still respectable, usually
+  only larger than the native **standard** results by a few bytes.
 
 * The above files were "trimmed" to "near‑exact" length (determined by
   discarding up to, but *not* including, the final `0x00` or `0x1A` bytes
