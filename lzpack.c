@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.9998"
+#define LZPACK_VER "v0.99981"
 
 /******************************************************************************/
 
@@ -217,6 +217,15 @@ lxmalloc (size_t n)
 # define LZ_RCORE_DSTV SRZ_DSTV_INIT
 # define LZ_RCORE_OEHI SRZ_OUT_END_HI
 # define LZ_RCORE_OELO SRZ_OUT_END_LO
+#endif
+
+/******************************************************************************/
+
+#if !defined(LZ_ASM_RESTORE) && !defined(LZPACK_COMPRESS_ONLY)
+# if defined(__ELKS__) || (defined(__WATCOMC__) && defined(__I86__)) || \
+     defined(__AZTEC_C_42T__)
+#  define LZ_ASM_RESTORE_86
+# endif
 #endif
 
 /******************************************************************************/
@@ -1058,7 +1067,7 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
 #ifndef LZPACK_COMPRESS_ONLY
 
-# ifndef LZ_ASM_RESTORE
+# if !defined(LZ_ASM_RESTORE) && !defined(LZ_ASM_RESTORE_86)
 static const unsigned char *ip, *ip_end;
 static int dbc;
 static unsigned dbv;
@@ -1271,6 +1280,36 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
     }
 
   return pos;
+}
+
+# endif
+
+# ifdef LZ_ASM_RESTORE_86
+
+/******************************************************************************/
+
+extern void lz86_decode (void);
+#  ifdef __AZTEC_C_42T__
+extern unsigned lz86_src, lz86_dst, lz86_oend;
+#  else
+unsigned lz86_src, lz86_dst, lz86_oend;
+#  endif
+
+/******************************************************************************/
+
+static long
+decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
+        int litcnt, const unsigned char *litsrc)
+{
+  (void)pllen;
+  (void)memcpy (out, litsrc, (size_t)litcnt); /* seed the literal prefix */
+
+  lz86_src = (unsigned)pl;
+  lz86_dst = (unsigned)(out + litcnt);
+  lz86_oend = (unsigned)(out + outlen);
+  lz86_decode ();
+
+  return outlen;
 }
 
 # endif
@@ -3522,6 +3561,22 @@ do_restore (const char *fn, const char *oname, int verbose)
 
 # else
 
+/******************************************************************************/
+
+static size_t
+fread_full (void *p, size_t n, FILE *f)
+{
+  unsigned char *d = (unsigned char *)p;
+  size_t got = 0, r;
+
+  while (got < n && (r = fread (d + got, 1, n - got, f)) != 0)
+    got += r;
+
+  return got;
+}
+
+/******************************************************************************/
+
 static int
 do_restore (const char *fn, const char *oname, int verbose)
 {
@@ -3617,10 +3672,9 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (!f)
     f = fopen (fn, "r");
 
-  if (!f
-      || fread (hdr, 1, (size_t)LITCNT, f) != (size_t)LITCNT
-      || fread (buf + srcoff, 1, (size_t)pllen, f) != (size_t)pllen
-      || fread (lit, 1, (size_t)LITCNT, f) != (size_t)LITCNT)
+  if (!f || fread_full (hdr, (size_t)LITCNT, f) != (size_t)LITCNT
+         || fread_full (buf + srcoff, (size_t)pllen, f) != (size_t)pllen
+         || fread_full (lit, (size_t)LITCNT, f) != (size_t)LITCNT)
     {
       if (f)
         (void)fclose (f);

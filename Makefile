@@ -176,13 +176,14 @@ cpm-opt cpm80-opt cpm56 cpm-56k: cs8080.h csz80.h csr8080.h csrz80.h \
 # CP/M-86 build using the tsupplis Aztec C v4.2 CP/M-86 cross-toolchain.
 # https://github.com/tsupplis/cpm86-crossdev
 
-cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
+cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c lz86body.asm .lz86gen.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx aztec42_cc aztec42_sqz aztec42_link \
 		pcdev_cmdinfo)
 	@mkdir -p ./cpm-86/
-	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd)
+	@(cd cpm-86 && rm -f ./lzpack.o ./lzpack.cmd ./stubasm.o ./stubasm.cmd \
+		./lz86.c ./lz86.o)
 	aztec42_cc -B "+CA" -D__AZTEC_C_42T__=1 \
 		-DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768 ./stubasm.c \
 		-o ./cpm-86/stubasm.o
@@ -192,6 +193,9 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 	@pcdev_cmdinfo ./cpm-86/stubasm.cmd
 	(upx -q -9 --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
+	sh ./.lz86gen.sh aztec ./lz86body.asm > ./cpm-86/lz86.c
+	aztec42_cc -B "+CA" -D__AZTEC_C_42T__=1 ./cpm-86/lz86.c \
+		-o ./cpm-86/lz86.o
 	aztec42_cc -I. -B "+CA" -D__AZTEC_C_42T__=1 \
 		-DLZPACK_STREAM=1 -DLZPACK_OPT=1 -DHSZ=1024 -DMZXFILE=65535L \
 		./lzpack.c -o ./cpm-86/lzpack.o
@@ -199,7 +203,7 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 	# +D reserves data-segment headroom for the run-time stack: the optimal
 	# parser recurses deeper than the greedy path and overflows the default
 	aztec42_link -V +D 12288 -t -o ./cpm-86/lzpack.cmd \
-		./cpm-86/lzpack.o -lc86
+		./cpm-86/lzpack.o ./cpm-86/lz86.o -lc86
 	@pcdev_cmdinfo ./cpm-86/lzpack.cmd
 	(upx -q -9 --8086 ./cpm-86/lzpack.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
@@ -209,10 +213,10 @@ cpm86 cpm-86: cs8080.h csz80.h stubasm.c lzpack.c
 # Real-mode MS-DOS build using Open Watcom V2.0's "owcc" compiler driver.
 # https://github.com/open-watcom/open-watcom-v2
 
-msdos dos pcdos: cs8080.h csz80.h stubasm.c lzpack.c
+msdos dos pcdos: cs8080.h csz80.h stubasm.c lzpack.c lz86body.asm .lz86gen.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
-		find_command upx owcc)
+		find_command upx owcc wasm)
 	@mkdir -p ./msdos/
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DMAXSYM=96 -DMAXREF=96 \
@@ -220,10 +224,12 @@ msdos dos pcdos: cs8080.h csz80.h stubasm.c lzpack.c
 		-DNDEBUG ../stubasm.c)
 	(upx -q -9 --8086 ./msdos/stubasm.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
+	sh ./.lz86gen.sh watcom ./lz86body.asm > ./msdos/lz86.asm
+	(cd msdos && wasm -q -0 -mt -fo=lz86.obj lz86.asm)
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DLZPACK_STREAM=1 -DHSZ=1024 \
 		-DMZXFILE=65535L -s -I.. -fm=lzpack.map -o ./lzpack.com \
-		-DNDEBUG ../lzpack.c)
+		-DNDEBUG ../lzpack.c ./lz86.obj)
 	(upx -q -9 --8086 ./msdos/lzpack.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
@@ -268,15 +274,16 @@ djgpp: cs8080.h csz80.h stubasm.c lzpack.c
 # ELKS 8086 (https://github.com/ghaerr/elks) build using IA16-GCC.
 # https://gitlab.com/tkchia/build-ia16
 
-elks: cs8080.h csz80.h stubasm.c lzpack.c
+elks: cs8080.h csz80.h stubasm.c lzpack.c lz86body.asm .lz86gen.sh
 	@mkdir -p ./elks/
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command "$${IA16_ELF_GCC:-ia16-elf-gcc}")
+	sh ./.lz86gen.sh ia16 ./lz86body.asm > ./elks/lz86.s
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
 		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DLZPACK_OPT=1 \
 		-DHSZ=1024 -DMZXFILE=65535L -maout-heap=32767 \
-		-o ./elks/lzpack ./lzpack.c
+		-o ./elks/lzpack ./lzpack.c ./elks/lz86.s
 
 ################################################################################
 
