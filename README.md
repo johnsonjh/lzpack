@@ -127,7 +127,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   **standard** compression results representing **LZPACK** performance on a
   low-memory CP/M‑80 system are still respectable.
 
-* The above files were "trimmed" to "near‑exact" length (determined up
+* The above files were "trimmed" to "near‑exact" length (determined by
   discarding up to, but *not* including, the final `0x00` or `0x1A` bytes
   in the last 128‑byte "record") of the file on the Linux host system used
   for testing.
@@ -141,7 +141,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
 * Because the `tnylpo` and `cpm` emulators used for testing do *not* emulate
-  CP/M‑Plus (and thus do not provide LRBC metadata) so any file not ending on
+  CP/M‑Plus (and thus do not provide LRBC metadata), any file not ending on
   an exact record boundary is automatically padded to the size of the next
   full record.  This applies to both **LZPACK** and *PopCom!* results in
   the table.
@@ -182,7 +182,7 @@ which differ in how much effort is expended compressing and how much memory
 is required:
 
 1. The **standard** in‑memory compression engine loads the entire file into
-   memory and uses a fast hash‑chained‑based L77 match finder.
+   memory and uses a fast hash‑chain‑based LZ77 match finder.
 
 2. The **extra** compression engine (`-e`) is a cost‑optimal shortest‑path
    parser that looks for the smallest possible encoding.  It needs more
@@ -191,8 +191,8 @@ is required:
 
 3. The **streaming** compression engine reads the input through a sliding
    window and writes the compressed data to a temporary file, so the working
-   memory size is independent of file input size, allowing memory constrained
-   systems pack large executables.
+   memory size is independent of file input size, allowing memory‑constrained
+   systems to pack large executables.
 
 #### Decompressors
 
@@ -267,7 +267,7 @@ depends on how much memory is available on the system that will actually run
 the **LZPACK** program.
 
 * **CP/M‑80**  The **extra** compression engine needs a large block of working
-  memory that, on a 48K TPA machine, only can fit by shrinking the compression
+  memory that, on a 48K TPA machine, can only fit by shrinking the compression
   window down so far that it actually compresses **much worse** than the
   **standard** engine, so the plain CP/M‑80 builds, for systems with
   <56K&nbsp;TPA
