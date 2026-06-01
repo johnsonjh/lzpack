@@ -149,7 +149,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
 * Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) and
-* [`cpm`](https://github.com/jhallen/cpm) emulators used for testing do *not*
+  [`cpm`](https://github.com/jhallen/cpm) emulators used for testing do *not*
   emulate CP/M‑Plus (and thus do not provide LRBC metadata), any file not
   ending at an exact record boundary would be automatically padded to the size
   of the next full record.
@@ -170,7 +170,8 @@ compares the **LZPACK** decompression stubs against those from the
   *PopCom!*'s 230 bytes, nearly **20% smaller**.
 * *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
   decompressor weighs in at only **\~11%** larger than the *PopCom!* Z80 code.
-* No **LZPACK** stub is larger than two CP/M‑80 disk records or 256 bytes.
+  No **LZPACK** stub will ever be larger than two CP/M‑80 disk records
+  (256 bytes).
 
 ### Operation
 
@@ -316,9 +317,9 @@ Most users will only be interested in the native binary build.
 | Make Target | Description            | Toolchain |
 |------------:|:-----------------------|:----------|
 | `all`       | Native&nbsp;binary     | ANSI&nbsp;C89 |
-| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(20250501+) |
-| `cpm-opt`   | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(20250501+) |
-| `cpm86`     | CP/M‑86&nbsp;8086/8088 | cross‑Aztec&nbsp;C&nbsp;v4.2&nbsp;([tsupplis](https://github.com/tsupplis/cpm86-crossdev)) |
+| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(2025‑05‑01+) |
+| `cpm-opt`   | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(2025‑05‑01+) |
+| `cpm86`     | CP/M‑86&nbsp;8086/8088 | [cross‑Aztec&nbsp;C&nbsp;v4.2](https://github.com/tsupplis/cpm86-crossdev)&nbsp;([tsupplis](https://github.com/tsupplis)) |
 | `msdos`     | MS‑DOS&nbsp;8086/8088  | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2) |
 | `djgpp`     | MS‑DOS&nbsp;80386      | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/) |
 | `elks`      | ELKS&nbsp;8086/8088    | [IA16‑GCC](https://gitlab.com/tkchia/build-ia16) |
