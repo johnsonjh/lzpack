@@ -60,7 +60,7 @@ The *compressor* runs on just about anything with an ANSI C89 compiler.  You
 can pack CP/M‑80 programs on any modern UNIX (even **ELKS**), Windows, MS‑DOS
 system without emulation, as well as pack natively on the CP/M‑80 target.
 
-The *decompressor* that embedded in each packed executable is hand‑written
+The *decompressor* that is embedded in each packed executable is hand‑written
 and highly optimized 8080 or Z80 assembly.
 
 Pre‑compiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
@@ -137,8 +137,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   for testing.
 
 * On CP/M‑80 2.2 systems, files do not have exact lengths but instead occupy
-  fixed‑size records of 1024‑bits (128‑bytes).  When **LZPACK** is operating
-  on CP/M‑Plus (CP/M-80 or CP/M‑86 3+) or DOS‑PLUS (CP/M‑86 4+), the
+  fixed‑size records of 1024 bits (128 bytes).  When **LZPACK** is operating
+  on CP/M‑Plus (CP/M‑80 or CP/M‑86 3+) or DOS‑PLUS (CP/M‑86 4+), the
   [LRBC](https://www.seasip.info/Cpm/bytelen.html) (Last Record Byte Count)
   metadata is used to determine how many bytes of the final record should be
   packed.  On CP/M 2.2 systems, all bytes in the final record are packed.
@@ -217,9 +217,9 @@ engines, differing in execution speed, code size, and memory usage:
 
 * While **LZPACK**‑generated executables are often smaller, more compatible,
   and always *decompress* faster than those produced by *PopCom!*, the
-  **LZPACK** *compressor* is *much* slower than *PopCom!*, especially on
+  **LZPACK** *compressor* is *much* slower than *PopCom!*'s, especially on
   vintage hardware, because the *PopCom!* compression engine is written in
-  highly‑optimized Z80 assembly vs. **LZPACK**'s portable ANSI C.
+  highly‑optimized Z80 assembly vs. **LZPACK**'s portable ANSI C89.
 
 * While compression speed (and ratios) should improve in the future,
   development focused on providing the fastest possible *unpacking*, since
@@ -280,8 +280,8 @@ the **LZPACK** program.
   [`LZPKOZ80.ARC`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOZ80.ARC)
   for Z80).  It is *highly recommended* that you use a build appropriate to
   your TPA size.  While the 56K TPA builds will likely still *run* on a machine
-  with less memory, compression will suffer greatly vs. the "lesser" standard
-  build.
+  with less memory, compression will suffer greatly vs. the "lesser"
+  standard 48K&nbsp;TPA builds.
 
 * **MS‑DOS**  The real‑mode MS‑DOS build
   ([`LZPCK86R.ZIP`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP))
