@@ -193,9 +193,10 @@ engines, differing in execution speed, code size, and memory usage:
 
 1. The **standard** portable decompression engine is written in pure ANSI C89.
 
-2. The **8080** assembly‑language decompression engine (built by StubASM).
+2. The **8080** assembly‑language decompression engine (built by **StubASM**).
 
-3. The **Z80** assembly‑language decompression engine (also built by StubASM).
+3. The **Z80** assembly‑language decompression engine (also built
+   by **StubASM**).
 
 4. The **8086** assembly‑language decompression engine, which is used for
    the `-R` restore option on 8086/8088 systems (*i.e.*, CP/M‑86, MS‑DOS,
@@ -287,8 +288,8 @@ the **LZPACK** program.
 **LZPACK** needs **only an ANSI C89 compiler** to build on any
 UNIX‑like system.
 
-To build a native binary just run `make` (or `gmake`), which builds StubASM,
-assembles the stubs, and then compiles `lzpack`:
+To build a native binary just run `make` (or `gmake`), which builds
+**StubASM**, assembles the stubs, and then compiles `lzpack`:
 
 ```sh
 make
