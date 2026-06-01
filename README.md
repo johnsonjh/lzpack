@@ -113,7 +113,10 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
 * The **/N** builds are native Linux, while the **/C** builds are running
   on CP/M‑80.  The **+`-e`** indicates that the **extra** compression mode
-  was used.
+  was used.  Native builds using **extra** compression will **always** beat
+  *PopCom!*, while the CP/M‑80 builds using **extra** compression still beat
+  *PopCom!* in five out of the eleven tests.  The **standard** compression
+  results are still respectable.
 
 * The above files were "trimmed" to "near‑exact" length (determined up
   discarding up to, but *not* including, the final `0x00` or `0x1A` bytes
