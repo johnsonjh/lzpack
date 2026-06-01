@@ -366,7 +366,7 @@ invocation will be automatically determined by the build system.
 * The canonical home of this software is
   [`https://github.com/johnsonjh/lzpack`](https://github.com/johnsonjh/lzpack),
   with a mirror at
-  [https://gitlab.com/johnsonjh/lzpack/](https://gitlab.com/johnsonjh/lzpack/).
+  [`https://gitlab.com/johnsonjh/lzpack`](https://gitlab.com/johnsonjh/lzpack).
 * This software is intended to be **secure** 🛡️.
 * If you find any security‑related problems, please don't hesitate to
   [open a GitHub Issue](https://github.com/johnsonjh/lzpack/issues/new).
