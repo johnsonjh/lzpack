@@ -150,7 +150,7 @@ is required:
    memory and uses a fast hash‑chained‑based L77 match finder.
 
 2. The **extra** compression engine (`-e`) is a cost‑optimal shortest‑path
-   parser that looks for the smallest possible encodings.  It needs more
+   parser that looks for the smallest possible encoding.  It needs more
    memory, so it is only available on CP/M‑80 builds that target machines with
    **`56K`** or larger TPAs.
 
@@ -257,7 +257,7 @@ the LZPACK program.
 
 ## Building from source
 
-LZPACK needs **only an ANSI C90 compiler** to build on any UNIX‑like system.
+LZPACK needs **only an ANSI C89 compiler** to build on any UNIX‑like system.
 
 To build a native binary just run `make` (or `gmake`), which builds StubASM,
 assembles the stubs, and then compiles `lzpack`:
