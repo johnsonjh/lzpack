@@ -146,13 +146,15 @@ compares the **LZPACK** decompression stubs against those from the
 |      CPU | LZPACK          | PopCom! 1.0 |
 |---------:|:----------------|:------------|
 | **Z80**  | **`187` bytes** | `230` bytes |
-| **8080** | **`256` bytes** | `---------` |
+| **8080** | **`256` bytes** | Unsupported |
 
-**LZPACK**'s Z80 code is just **`187` bytes** versus *PopCom!*'s `230` bytes,
-nearly **20% smaller**.  *PopCom!* has no 8080 support at all, while
-**LZPACK**'s pure 8080 decompressor weighs in at only **~11%** larger than the
-*PopCom!* Z80 code.  In any case, no **LZPACK** stub is larger than (two
-CP/M‑80 disk records) or 256 bytes bytes.
+* **LZPACK**'s Z80 code is just **187 bytes** versus *PopCom!*'s 230 bytes,
+nearly **20% smaller**.
+
+* *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
+decompressor weighs in at only **~11%** larger than the *PopCom!* Z80 code.
+
+* No **LZPACK** stub is larger than (two CP/M‑80 disk records) or 256 bytes.
 
 ### Operation
 
