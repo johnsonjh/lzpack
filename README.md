@@ -194,7 +194,7 @@ engines, differing in execution speed, code size, and memory usage:
 ## Usage
 
 ```
-LZPACK v0.99983 - 48K CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.99984 - 48K CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
