@@ -148,9 +148,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
 * Because the `tnylpo` and `cpm` emulators used for testing do *not* emulate
   CP/M‑Plus (and thus do not provide LRBC metadata), any file not ending at
-  an exact record boundary is automatically padded to the size of the next
-  full record.  This applies to both **LZPACK** and *PopCom!* results in
-  the table.
+  an exact record boundary would be automatically padded to the size of the
+  next full record.
 
 ### Decompression stubs
 
@@ -159,10 +158,10 @@ it's vital that the code is as small (and fast) as possible.  The table below
 compares the **LZPACK** decompression stubs against those from the
 *PopCom!* packer.
 
-|      CPU | PopCom! 1.0 | LZPACK          |
-|---------:|:------------|:----------------|
-| **Z80**  | `230` bytes | **`187` bytes** |
-| **8080** | Unsupported | **`256` bytes** |
+|      CPU |         PopCom! | LZPACK          |
+|---------:|:----------------|:----------------|
+| **Z80**  | **`230` bytes** | **`187` bytes** |
+| **8080** |  (Unsupported)  | **`256` bytes** |
 
 * **LZPACK**'s Z80 code is just **187 bytes** (including setup code) versus
   *PopCom!*'s 230 bytes, nearly **20% smaller**.
