@@ -77,7 +77,7 @@ making it simple to decompress (and recompress) already packed executables.
 **LZPACK** (and **LZPACK**‑packed binaries) can run on a *plain 8080*, not
 just the Z80.  **LZPACK** analyzes the file to be packed and automatically
 detects if the program actually uses Z80 instructions, and picks a matching
-stub extractor.
+extraction stub.
 
 Users can also specify `-8` to explicitly use the 8080 stub, or `-Z` to force
 the Z80 stub, in case the automatic detection gets it wrong (which can happen).
@@ -99,7 +99,7 @@ completely exclude the `-R` decompression code, which might save a few
 precious bytes.
 
 **LZPACK** should build easily anywhere from source code, and requires only an
-ANSI C89‑conforming compiler, without using any external assemblers.  The
+ANSI C89‑conforming compiler, without requiring any external assemblers.  The
 source repository does not include any binary blobs.  Instead, the 8080 and
 Z80 stubs are assembled from their included sources during the build process
 using an included custom assembler, **StubASM**, also written in portable C89.
@@ -130,14 +130,13 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   Native **LZPACK** builds using **extra** compression should **always** beat
   *PopCom!*, while CP/M‑80 **LZPACK** builds using **extra** compression
   *still* beat *PopCom!* in five out of the eleven tests.  The last column
-  shows  **streaming** compression results (representative of **LZPACK**'s
-  performance on a low-memory CP/M‑80 system) is still respectable, usually
+  shows that **streaming** compression results (representative of **LZPACK**'s
+  performance on a low‑memory CP/M‑80 system) are still respectable, usually
   only larger than the native **standard** results by a few bytes.
 
-* The above files were "trimmed" to "near‑exact" length (determined by
-  discarding up to, but *not* including, the final `0x00` or `0x1A` bytes
-  in the last 128‑byte "record") of the file on the Linux host system used
-  for testing.
+* The above files were "trimmed" to their "near‑exact" length on the Linux
+  host system used for testing (determined by discarding up to, but *not*
+  including, the final `0x00` or `0x1A` bytes in the last 128‑byte "record").
 
 * On CP/M‑80 2.2 systems, files do not have exact lengths but instead occupy
   fixed‑size records of 1024 bits (128 bytes).  When **LZPACK** is operating
@@ -148,7 +147,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
 * Because the `tnylpo` and `cpm` emulators used for testing do *not* emulate
-  CP/M‑Plus (and thus do not provide LRBC metadata), any file not ending on
+  CP/M‑Plus (and thus do not provide LRBC metadata), any file not ending at
   an exact record boundary is automatically padded to the size of the next
   full record.  This applies to both **LZPACK** and *PopCom!* results in
   the table.
@@ -156,7 +155,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 ### Decompression stubs
 
 Because every packed program must include a copy of the decompression stub,
-it's vital that code is as small (and fast) as possible.  The table below
+it's vital that the code is as small (and fast) as possible.  The table below
 compares the **LZPACK** decompression stubs against those from the
 *PopCom!* packer.
 
