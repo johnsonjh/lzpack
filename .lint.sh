@@ -556,14 +556,14 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
-    rm -f "${TMPFILE}"
+    rm -f "${TMPFILE:?}" || :
     if (
       set -x
       "${SCAN_BUILD_CMD:-scan-build}" \
         --status-bugs \
         -o "${TMPFILE:?}" "${MAKE:-make}" all > /dev/null 2>&1
     ); then
-      :
+      rm -rf "${TMPFILE:?}" || :
     else
       printf '%s\n' "****** FAILURE DETECTED ******"
       printf \
@@ -581,7 +581,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
-    rm -f "${TMPFILE}"
+    rm -f "${TMPFILE:?}" || :
     if (
       set -x
       "${SCAN_BUILD_CMD:-scan-build}" \
@@ -589,7 +589,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
         -o "${TMPFILE:?}" "${MAKE:-make}" \
         CFLAGS="-O -DLZPACK_NO_OPT" all > /dev/null 2>&1
     ); then
-      :
+      rm -rf "${TMPFILE:?}" || :
     else
       printf '%s\n' "****** FAILURE DETECTED ******"
       printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
@@ -606,7 +606,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
-    rm -f "${TMPFILE}"
+    rm -f "${TMPFILE:?}" || :
     if (
       set -x
       "${SCAN_BUILD_CMD:-scan-build}" \
@@ -614,7 +614,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
         -o "${TMPFILE:?}" "${MAKE:-make}" \
         CFLAGS="-O -DLZPACK_NO_PROGRESS" all > /dev/null 2>&1
     ); then
-      :
+      rm -rf "${TMPFILE:?}" || :
     else
       printf '%s\n' "****** FAILURE DETECTED ******"
       printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
@@ -727,7 +727,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
-    rm -f "${TMPFILE}"
+    rm -f "${TMPFILE:?}"
     if (
       set -x
       "${SCAN_BUILD_CMD:-scan-build}" \
@@ -735,7 +735,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
         -o "${TMPFILE:?}" "${MAKE:-make}" \
         CFLAGS="-O -DLZPACK_STREAM" all > /dev/null 2>&1
     ); then
-      :
+      rm -rf "${TMPFILE:?}" || :
     else
       printf '%s\n' "****** FAILURE DETECTED ******"
       printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
@@ -752,7 +752,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
-    rm -f "${TMPFILE}"
+    rm -f "${TMPFILE:?}"
     if (
       set -x
       "${SCAN_BUILD_CMD:-scan-build}" \
@@ -760,7 +760,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
         -o "${TMPFILE:?}" "${MAKE:-make}" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT" all > /dev/null 2>&1
     ); then
-      :
+      rm -rf "${TMPFILE:?}" || :
     else
       printf '%s\n' "****** FAILURE DETECTED ******"
       printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
@@ -778,7 +778,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
     "${MAKE:-make}" distclean > /dev/null 2>&1 || :
     # shellcheck disable=SC2119
     TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
-    rm -f "${TMPFILE}"
+    rm -f "${TMPFILE:?}"
     if (
       set -x
       "${SCAN_BUILD_CMD:-scan-build}" \
@@ -787,7 +787,7 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS" \
         all > /dev/null 2>&1
     ); then
-      :
+      rm -rf "${TMPFILE:?}" || :
     else
       printf '%s\n' "****** FAILURE DETECTED ******"
       printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
