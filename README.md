@@ -103,30 +103,32 @@ using an included custom assembler, **StubASM**, also written in portable C89.
 The table below compares **LZPACK** against *PopCom!* 1.0 (the most popular
 CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
-|   Program |  Original |  PopCom! | LZPACK/N+`-e` | LZPACK/C+`-e` |  LZPACK/N |  LZPACK/C |
-|----------:|----------:|---------:|--------------:|--------------:|----------:|----------:|
-| `BLS`     | `19,210`  | `12,160` | `11,884`      | `12,150`      | `12,542`  | `12,552`  |
-| `FORTH80` | `8,136`   | `6,272`  | `6,093`       | `6,139`       | `6,454`   | `6,458`   |
-| `M80`     | `20,023`  | `13,952` | `13,702`      | `14,024`      | `14,528`  | `14,545`  |
-| `MBASIC`  | `24,313`  | `19,456` | `19,178`      | `19,569`      | `20,139`  | `20,160`  |
-| `PILOT`   | `30,902`  | `13,184` | `12,792`      | `13,277`      | `13,582`  | `13,588`  |
-| `SARGON`  | `14,592`  | `8,704`  | `8,593`       | `8,689`       | `9,183`   | `9,178`   |
-| `VDT1398` | `17,443`  | `13,056` | `12,874`      | `13,117`      | `13,633`  | `13,639`  |
-| `VDT139Z` | `16,485`  | `12,544` | `12,325`      | `12,561`      | `12,894`  | `12,902`  |
-| `VDT232Z` | `24,304`  | `18,688` | `18,430`      | `18,893`      | `19,363`  | `19,375`  |
-| `WS30`    | `15,872`  | `11,648` | `11,425`      | `11,539`      | `12,221`  | `12,224`  |
-| `ZORK1`   | `8,426`   | `5,376`  | `5,276`       | `5,338`       | `5,542`   | `5,546`   |
+|   Program |  Original |                PopCom! |          LZPACK/N+`-e` |          LZPACK/C+`-e` |               LZPACK/N |               LZPACK/C |
+|----------:|----------:|-----------------------:|-----------------------:|-----------------------:|-----------------------:|-----------------------:|
+| `BLS`     | `19,210`  | `12,160`&nbsp;(‑36.7%) | `11,884`&nbsp;(‑38.1%) | `12,150`&nbsp;(‑36.8%) | `12,542`&nbsp;(‑34.7%) | `12,552`&nbsp;(‑34.7%) |
+| `FORTH80` | `8,136`   |  `6,272`&nbsp;(‑22.9%) |  `6,093`&nbsp;(‑25.1%) |  `6,139`&nbsp;(‑24.5%) |  `6,454`&nbsp;(‑20.7%) |  `6,458`&nbsp;(‑20.6%) |
+| `M80`     | `20,023`  | `13,952`&nbsp;(‑30.3%) | `13,702`&nbsp;(‑31.6%) | `14,024`&nbsp;(‑30.0%) | `14,528`&nbsp;(‑27.4%) | `14,545`&nbsp;(‑27.4%) |
+| `MBASIC`  | `24,313`  | `19,456`&nbsp;(‑20.0%) | `19,178`&nbsp;(‑21.1%) | `19,569`&nbsp;(‑19.5%) | `20,139`&nbsp;(‑17.2%) | `20,160`&nbsp;(‑17.1%) |
+| `PILOT`   | `30,902`  | `13,184`&nbsp;(‑57.3%) | `12,792`&nbsp;(‑58.6%) | `13,277`&nbsp;(‑57.0%) | `13,582`&nbsp;(‑56.0%) | `13,588`&nbsp;(‑56.0%) |
+| `SARGON`  | `14,592`  |  `8,704`&nbsp;(‑40.4%) |  `8,593`&nbsp;(‑41.1%) |  `8,689`&nbsp;(‑40.5%) |  `9,183`&nbsp;(‑37.1%) |  `9,178`&nbsp;(‑37.1%) |
+| `VDT1398` | `17,443`  | `13,056`&nbsp;(‑25.2%) | `12,874`&nbsp;(‑26.2%) | `13,117`&nbsp;(‑24.8%) | `13,633`&nbsp;(‑21.8%) | `13,639`&nbsp;(‑21.8%) |
+| `VDT139Z` | `16,485`  | `12,544`&nbsp;(‑23.9%) | `12,325`&nbsp;(‑25.2%) | `12,561`&nbsp;(‑23.8%) | `12,894`&nbsp;(‑21.8%) | `12,902`&nbsp;(‑21.7%) |
+| `VDT232Z` | `24,304`  | `18,688`&nbsp;(‑23.1%) | `18,430`&nbsp;(‑24.2%) | `18,893`&nbsp;(‑22.3%) | `19,363`&nbsp;(‑20.3%) | `19,375`&nbsp;(‑20.3%) |
+| `WS30`    | `15,872`  | `11,648`&nbsp;(‑26.6%) | `11,425`&nbsp;(‑28.0%) | `11,539`&nbsp;(‑27.3%) | `12,221`&nbsp;(‑23.0%) | `12,224`&nbsp;(‑23.0%) |
+| `ZORK1`   | `8,426`   |  `5,376`&nbsp;(‑36.2%) |  `5,276`&nbsp;(‑37.4%) |  `5,338`&nbsp;(‑36.6%) |  `5,542`&nbsp;(‑34.2%) |  `5,546`&nbsp;(‑34.2%) |
 
-* The **/N** builds are native Linux, while the **/C** builds are running
-  on CP/M‑80.  The **+`-e`** indicates that the **extra** compression mode
-  was used.  Native builds using **extra** compression will **always** beat
-  *PopCom!*, while the CP/M‑80 builds using **extra** compression still beat
-  *PopCom!* in five out of the eleven tests.  The **standard** compression
-  results are still respectable.
+* The **/N** builds are native (Linux, x86_64), while the **/C** builds are
+  running on CP/M‑80.  The **+`-e`** indicates that the **extra** compression
+  mode was used.  Native **LZPACK** builds using **extra** compression should
+  **always** beat *PopCom!*, while CP/M‑80 **LZPACK** builds using **extra**
+  compression *still* beat *PopCom!* in five out of the eleven tests.  The
+  **standard** compression results representing **LZPACK** performance on a
+  low-memory CP/M‑80 system are still respectable.
 
 * The above files were "trimmed" to "near‑exact" length (determined up
   discarding up to, but *not* including, the final `0x00` or `0x1A` bytes
-  in the last 128‑byte "record") on the Linux host systems used for testing.
+  in the last 128‑byte "record") of the file on the Linux host system used
+  for testing.
 
 * On CP/M‑80 2.2 systems, files do not have exact lengths but instead occupy
   fixed‑size records of 1024‑bits (128‑bytes).  When **LZPACK** is operating
@@ -149,18 +151,16 @@ it's vital that code is as small (and fast) as possible.  The table below
 compares the **LZPACK** decompression stubs against those from the
 *PopCom!* packer.
 
-|      CPU | LZPACK          | PopCom! 1.0 |
-|---------:|:----------------|:------------|
-| **Z80**  | **`187` bytes** | `230` bytes |
-| **8080** | **`256` bytes** | Unsupported |
+|      CPU | PopCom! 1.0 | LZPACK          |
+|---------:|:------------|:----------------|
+| **Z80**  | `230` bytes | **`187` bytes** |
+| **8080** | Unsupported | **`256` bytes** |
 
 * **LZPACK**'s Z80 code is just **187 bytes** (including setup code) versus
   *PopCom!*'s 230 bytes, nearly **20% smaller**.
-
 * *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
   decompressor weighs in at only **~11%** larger than the *PopCom!* Z80 code.
-
-* No **LZPACK** stub is larger than (two CP/M‑80 disk records) or 256 bytes.
+* No **LZPACK** stub is larger than two CP/M‑80 disk records or 256 bytes.
 
 ### Operation
 
@@ -214,7 +214,7 @@ engines, differing in execution speed, code size, and memory usage:
 
 #### Performance
 
-* While **LZPACK**‑generated executables can pack smaller, are more compatible,
+* While **LZPACK**‑generated executables are often smaller, more compatible,
   and always *decompress* faster than than those produced by *PopCom!*, the
   **LZPACK** *compressor* is *much* slower than *PopCom!*, especially on
   vintage hardware, because the *PopCom!* compression engine is written in
