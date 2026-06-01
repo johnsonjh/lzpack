@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.99982"
+#define LZPACK_VER "v0.99983"
 
 /******************************************************************************/
 
@@ -3568,16 +3568,10 @@ fread_full (void *p, size_t n, FILE *f)
 {
   unsigned char *d = (unsigned char *)p;
   size_t got = 0;
+  int c;
 
-  while (got < n && !feof (f) && !ferror (f))
-    {
-      size_t r = fread (d + got, 1, n - got, f);
-
-      if (r == 0)
-        break;
-
-      got += r;
-    }
+  while (got < n && (c = getc (f)) != EOF)
+    d[got++] = (unsigned char)c;
 
   return got;
 }
