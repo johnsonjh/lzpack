@@ -6,10 +6,10 @@
 
 **LZPACK** is an executable compressor for CP/M‑80 binaries.
 
-It shrinks 8080 and Z80 `.COM` programs to roughly half their size while
-leaving them directly executable: every packed file is a *self‑extracting*
-`.COM` that decompresses itself and runs without any separate unpacker, and
-requires no changes to how the program is invoked.
+It shrinks 8080 and Z80 `.COM` programs, often to half their original size,
+while leaving them directly executable: every packed file is a
+*self‑extracting* `.COM` that decompresses itself and runs without any
+separate unpacker, and requires no changes to how the program is invoked.
 
 It works very much like Yoshihiko Mino's classic *PopCom!* utility, but can
 compress tighter and decompress faster, thanks to its smaller hand‑optimized
