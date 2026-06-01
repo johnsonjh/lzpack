@@ -12,12 +12,15 @@ the program is invoked.
 
 It works very much like Yoshihiko Mino's classic *PopCom!* utility, but can
 compress tighter and extracts faster thanks to smaller hand‑optimized
-decompression stubs.  The program itself as well as the packed executables it
-generates run in far more places, such as non‑Z80 CP/M‑80 systems with
-8080 or 8085 processors that *PopCom!* doesn't support, while maintaining the
-same ~47K TPA footprint.  Running the compressor on a system without CP/M‑80's
-tight memory constraints (such as on MS‑DOS, Windows, Linux, or in a
-UNIX‑like environment) gives even better compression results.
+decompression stubs.
+
+The **LZPACK** program, as well as the packed executables it generates, run
+in far more places, such as CP/M‑80 systems with 8080 or 8085 processors that
+*PopCom!* doesn't support, while maintaining the same ~47K TPA footprint.
+
+Running the compressor on a system without CP/M‑80's memory constraints (such
+as on MS‑DOS, Windows, Linux, or in a UNIX‑like environment) gives even
+better compression results.
 
 ---
 
@@ -43,94 +46,105 @@ UNIX‑like environment) gives even better compression results.
 
 ## Overview
 
-LZPACK is a single, ultra‑portable ANSI C89 program.  The *compressor* runs on
-just about anything with a C compiler.  You can pack CP/M‑80 programs from a
-modern UNIX (even ELKS), Windows, MS‑DOS system, or pack natively on the
-CP/M‑80 target.  The *decompressor* that is embedded in each packed executable
-is hand‑written and highly optimized 8080 or Z80 assembly.
+**LZPACK** is a single, ultra‑portable ANSI C89 program.  The *compressor*
+runs on just about anything with a C compiler.  You can pack CP/M‑80 programs
+on any modern UNIX (even **ELKS**), Windows, MS‑DOS system, or pack natively
+on the CP/M‑80 target.  The *decompressor* that is embedded in each packed
+executable is hand‑written and highly optimized 8080 or Z80 assembly.
 
 Pre‑compiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
 **MS‑DOS** (8086/8088 real‑mode and 386 DPMI), **ELKS**, and **Windows** (both
 32‑ and 64‑bit versions).  The CP/M‑80 builds also runs on **MSX‑DOS** (and so
 do the packed executables it generates).
 
-LZPACK's `-R` (restore) and `-L` (list) commands recognize both LZPACK and
-PopCom!‑packed files, making it simple to decompress (or recompress) already
-packed executables.
+**LZPACK**'s `-R` (restore) and `-L` (list) commands recognize both **LZPACK**
+and *PopCom!*‑packed files (as they use the same container and stream format),
+making it simple to decompress (and recompress) already packed executables.
 
-LZPACK (and LZPACK‑packed binaries) can run on a plain 8080, not just the Z80.
-LZPACK analyzes the file to be packed and automatically detects if the program
-actually uses Z80 instructions and picks a matching extractor.  Users can also
-specify to `-8` explicitly use the 8080 stub, or `-Z` to forces the Z80 stub.
-While packed 8080 programs runs on 8080/8085 system, they can sometimes be
-packed smaller with the Z80 stub, at the cost of a 8080 compatibility.
+**LZPACK** (and **LZPACK**‑packed binaries) can run on a *plain 8080*, not
+just the Z80.  **LZPACK** analyzes the file to be packed and automatically
+detects if the program actually uses Z80 instructions, and picks a matching
+stub extractor.
 
-LZPACK also includes a hand‑written and optimized 8086 assembly decompressor
-used for the `-R` (restore) feature when built for 8086/8088 targets such as
-CP/M‑86, real‑mode MS‑DOS, and ELKS, which is not only faster than the ANSI C
-version but smaller, which leaves more memory available for compression.
+Users can also specify `-8` explicitly use the 8080 stub, or `-Z` to force the
+Z80 stub, in case the automatic detection gets it wrong (which can happen).
+
+While packed 8080 programs using the 8080 stub will run on any 8080 (or 8085)
+system, they can sometimes be packed smaller by using the Z80 stub, at the
+cost of 8080 compatibility.  If you aren't packing executables for public
+distribution, you might want to use the Z80 stub unconditionally if you have
+a Z80‑powered system.
+
+**LZPACK** also includes a hand‑written and optimized 8086/8088 assembly
+decompressor used for the `-R` (restore) feature when built for 8086/8088
+targets such as CP/M‑86, real‑mode MS‑DOS, and ELKS.  This is not only faster
+than the ANSI C version but also smaller, which leaves more memory available
+for compression.
 
 For extremely memory constrained systems, custom builds can be created that
 completely exclude the `-R` decompression code, which might save a few
 precious bytes.
 
-LZPACK should build easily anywhere from source code, and requires only an
+**LZPACK** should build easily anywhere from source code, and requires only an
 ANSI C89‑conforming compiler, without using any external assemblers.  The
 source repository does not include any binary blobs.  Instead, the 8080 and
 Z80 stubs are assembled from their included sources during the build process
-using an included custom assembler, StubASM, also written in portable C89.
+using an included custom assembler, **StubASM**, also written in portable C89.
 
 ### Compression results
 
-The table below compares LZPACK against PopCom! 1.0 (the most popular CP/M‑80
-packer) on a few real‑world CP/M‑80 executables.
+The table below compares **LZPACK** against *PopCom!* 1.0 (the most popular
+CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
-|   Program | Original | PopCom! | LZPACK/Linux | LZPACK/Linux `-e` | LZPACK/CP/M‑80 | LZPACK/CP/M‑80 `-e` |
-|----------:|---------:|--------:|-------------:|------------------:|---------------:|--------------------:|
-| `BLS`     | `19210`  | `12160` | `12542`      | `11884`           | `12552`        | `12150`             |
-| `FORTH80` | `8136`   | `6272`  | `6454`       | `6093`            | `6458`         | `6139`              |
-| `M80`     | `20023`  | `13952` | `14528`      | `13702`           | `14545`        | `14024`             |
-| `MBASIC`  | `24313`  | `19456` | `20139`      | `19178`           | `20160`        | `19569`             |
-| `PILOT`   | `30902`  | `13184` | `13582`      | `12792`           | `13588`        | `13277`             |
-| `SARGON`  | `14592`  | `8704`  | `9183`       | `8593`            | `9178`         | `8689`              |
-| `VDT1398` | `17443`  | `13056` | `13633`      | `12874`           | `13639`        | `13117`             |
-| `VDT139Z` | `16485`  | `12544` | `12894`      | `12325`           | `12902`        | `12561`             |
-| `VDT232Z` | `24304`  | `18688` | `19363`      | `18430`           | `19375`        | `18893`             |
-| `WS30`    | `15872`  | `11648` | `12221`      | `11425`           | `12224`        | `11539`             |
-| `ZORK1`   | `8426`   | `5376`  | `5542`       | `5276`            | `5546`         | `5338`              |
+|   Program | Original | PopCom! | LZPACK/Linux `-e` | LZPACK/CP/M‑80 `-e` | LZPACK/Linux | LZPACK/CP/M‑80 |
+|----------:|---------:|--------:|------------------:|--------------------:|-------------:|---------------:|
+| `BLS`     | `19210`  | `12160` | `11884`           | `12150`             | `12542`      | `12552`        |
+| `FORTH80` | `8136`   | `6272`  | `6093`            | `6139`              | `6454`       | `6458`         |
+| `M80`     | `20023`  | `13952` | `13702`           | `14024`             | `14528`      | `14545`        |
+| `MBASIC`  | `24313`  | `19456` | `19178`           | `19569`             | `20139`      | `20160`        |
+| `PILOT`   | `30902`  | `13184` | `12792`           | `13277`             | `13582`      | `13588`        |
+| `SARGON`  | `14592`  | `8704`  | `8593`            | `8689`              | `9183`       | `9178`         |
+| `VDT1398` | `17443`  | `13056` | `12874`           | `13117`             | `13633`      | `13639`        |
+| `VDT139Z` | `16485`  | `12544` | `12325`           | `12561`             | `12894`      | `12902`        |
+| `VDT232Z` | `24304`  | `18688` | `18430`           | `18893`             | `19363`      | `19375`        |
+| `WS30`    | `15872`  | `11648` | `11425`           | `11539`             | `12221`      | `12224`        |
+| `ZORK1`   | `8426`   | `5376`  | `5276`            | `5338`              | `5542`       | `5546`         |
 
 * The above files were "trimmed" to "near‑exact" length (determined up
   discarding up to, but *not* including, the final `0x00` or `0x1A` bytes
   in the last 128‑byte "record") on the Linux host systems used for testing.
 
 * On CP/M‑80 2.2 systems, files do not have exact lengths but instead occupy
-  fixed‑size records of 1024‑bits (128‑bytes).  When LZPACK is operating on
-  CP/M‑Plus (CP/M-80 or CP/M‑86 3+) or **DOS‑PLUS** (CP/M‑86 4+), the
+  fixed‑size records of 1024‑bits (128‑bytes).  When **LZPACK** is operating
+  on CP/M‑Plus (CP/M-80 or CP/M‑86 3+) or DOS‑PLUS (CP/M‑86 4+), the
   [LRBC](https://www.seasip.info/Cpm/bytelen.html) (Last Record Byte Count)
   metadata is used to determine how many bytes of the final record should be
   packed.  On CP/M 2.2 systems, all bytes in the final record are packed.
-  PopCom! does not support sizing via the LRBC and compresses all records.
+  *PopCom!* does not support sizing via the LRBC and compresses all records.
 
 * Because the `tnylpo` and `cpm` emulators used for testing do *not* emulate
   CP/M‑Plus (and thus do not provide LRBC metadata) so any file not ending on
   an exact record boundary is automatically padded to the size of the next
-  full record.  This applies to both LZPACK and PopCom! results in the table.
+  full record.  This applies to both **LZPACK** and *PopCom!* results in
+  the table.
 
 ### Decompression stubs
 
 Because every packed program must include a copy of the decompression stub,
 it's vital that code is as small (and fast) as possible.  The table below
-compares the LZPACK decompression stubs against those from the PopCom! packer.
+compares the **LZPACK** decompression stubs against those from the
+*PopCom!* packer.
 
 |      CPU | LZPACK          | PopCom! 1.0 |
 |---------:|:----------------|:------------|
 | **Z80**  | **`187` bytes** | `230` bytes |
 | **8080** | **`256` bytes** | `---------` |
 
-LZPACK's Z80 code is just **187 bytes** versus PopCom!'s 230 bytes, nearly
-**20% smaller**.  PopCom! has no 8080 support at all,  and LZPACK's pure 8080
-decompressor comes in at only about 11% larger than the PopCom! code.  In any
-cases, no LZPACK stub is larger than 256 bytes, or two CP/M‑80 disk records.
+**LZPACK**'s Z80 code is just **`187` bytes** versus *PopCom!*'s `230` bytes,
+nearly **20% smaller**.  *PopCom!* has no 8080 support at all, while
+**LZPACK**'s pure 8080 decompressor weighs in at only **~11%** larger than the
+*PopCom!* Z80 code.  In any case, no **LZPACK** stub is larger than (two
+CP/M‑80 disk records) or 256 bytes bytes.
 
 ### Operation
 
@@ -145,8 +159,8 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 
 #### Compressors
 
-LZPACK actually includes **three** independent **compression** engines, which
-differ in how much effort is expended compressing and how much memory
+**LZPACK** actually includes **three** independent **compression** engines,
+which differ in how much effort is expended compressing and how much memory
 is required:
 
 1. The **standard** in‑memory compression engine loads the entire file into
@@ -164,7 +178,7 @@ is required:
 
 #### Decompressors
 
-LZPACK includes **four** independent (but equivalent) **decompression**
+**LZPACK** includes **four** independent (but equivalent) **decompression**
 engines, differing in execution speed, code size, and memory usage:
 
 1. The **standard** portable decompression engine is written in pure ANSI C89.
@@ -182,11 +196,11 @@ engines, differing in execution speed, code size, and memory usage:
 
 #### Performance
 
-* While LZPACK‑generated executables can pack smaller, are more compatible,
-  and always *decompress* faster than than those produced by PopCom!, the
-  LZPACK *compressor* is much slower than PopCom!, especially on vintage
-  hardware, because the PopCom! compression engine is written in
-  highly‑optimized Z80 assembly vs. LZPACK's ANSI C.
+* While **LZPACK**‑generated executables can pack smaller, are more compatible,
+  and always *decompress* faster than than those produced by *PopCom!*, the
+  **LZPACK** *compressor* is *much* slower than *PopCom!*, especially on
+  vintage hardware, because the *PopCom!* compression engine is written in
+  highly‑optimized Z80 assembly vs. **LZPACK**'s portable ANSI C.
 
 * While compression speed (and ratios) should improve in the future,
   development focused on providing the fastest possible *unpacking*, since
@@ -230,7 +244,7 @@ single byte counts* when the compressor has to compete with its own sliding
 compression window for memory.  A smaller compression window will find fewer
 matches and achieve lower compression ratios, so the best build to use
 depends on how much memory is available on the system that will actually run
-the LZPACK program.
+the **LZPACK** program.
 
 * **CP/M‑80**  The **extra** compression engine needs a large block of working
   memory that, on a 48K TPA machine, only can fit by shrinking the compression
@@ -260,7 +274,8 @@ the LZPACK program.
 
 ## Building from source
 
-LZPACK needs **only an ANSI C89 compiler** to build on any UNIX‑like system.
+**LZPACK** needs **only an ANSI C89 compiler** to build on any
+UNIX‑like system.
 
 To build a native binary just run `make` (or `gmake`), which builds StubASM,
 assembles the stubs, and then compiles `lzpack`:
@@ -313,11 +328,11 @@ invocation will be automatically determined by the build system.
   [`tnylpo`](https://gitlab.com/gbrein/tnylpo) and Joe Hallen's
   [CPM](https://github.com/jhallen/cpm) emulators installed.
 
-* If you would like to contribute to LZPACK development, it's extremely
-  important that you have *all* of the optional linters, static analysis
-  tools, emulators, and cross‑toolchains installed and that that **both**
-  `make lint` and `make test` pass completely clean, as this is a prerequisite
-  for any change.
+* If you would like to contribute to **LZPACK** development, it's *extremely*
+  *important* that you have ***all*** of the optional linters, static analysis
+  tools, emulators, and cross‑toolchains installed, and that **both**
+  `make lint` and `make test` passes completely clean, as this is a
+  prerequisite for any change.
 
 * Usage of AI (artificial intelligence) tools by contributors is currently
   permitted, subject to the
