@@ -11,7 +11,7 @@ itself and runs without any separate unpacker, and requires no changes to how
 the program is invoked.
 
 It works very much like Yoshihiko Mino's classic *PopCom!* utility, but can
-compress tighter and extracts faster thanks to smaller hand‑optimized
+compress tighter and decompress faster, thanks to it's smaller hand‑optimized
 decompression stubs.
 
 The **LZPACK** program, as well as the packed executables it generates, run
