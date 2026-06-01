@@ -58,8 +58,10 @@ executable is hand‑written and highly optimized 8080 or Z80 assembly.
 
 Pre‑compiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
 **MS‑DOS** (8086/8088 real‑mode and 386 DPMI), **ELKS**, and **Windows** (both
-32‑ and 64‑bit versions).  The CP/M‑80 builds also runs on **MSX‑DOS** (and so
-do the packed executables it generates).
+32‑ and 64‑bit versions).
+
+The CP/M‑80 builds also run on **MSX‑DOS** (and so do the packed executables
+they generate).
 
 **LZPACK**'s `-R` (restore) and `-L` (list) commands recognize both **LZPACK**
 and *PopCom!*‑packed files (as they use the same container and stream format),
