@@ -16,7 +16,8 @@ decompression stubs.
 
 The **LZPACK** program, as well as the packed executables it generates, run
 in far more places, such as CP/M‑80 systems with 8080, 8085, or V20 processors
-that *PopCom!* doesn't support, while maintaining the same ~47K TPA footprint.
+that *PopCom!* doesn't support, while maintaining the same or smaller
+footprint.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
 as on MS‑DOS, Windows, Linux, or in a UNIX‑like environment) gives even
