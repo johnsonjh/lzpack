@@ -330,6 +330,24 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
 ################################################################################
 
 command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck unix32 <<<<<<<<<<<<<<<<"
+  if (
+    set -x
+    # shellcheck disable=SC2086
+    "${CPPCHECK:-cppcheck}" \
+      ${CPPCHECK_FLAGS:?} --platform=unix32 \
+      ./stubasm.c ./lzpack.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck win64 <<<<<<<<<<<<<<<<"
   if (
     "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
