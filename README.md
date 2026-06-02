@@ -29,6 +29,7 @@ better compression results.
 <!-- toc -->
 
 - [Overview](#overview)
+- [Details](#details)
   * [Compression results](#compression-results)
   * [Decompression stubs](#decompression-stubs)
   * [Operation](#operation)
@@ -64,6 +65,8 @@ Pre‑compiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑
 
 The CP/M‑80 builds also run on **MSX‑DOS** (and so do the packed executables
 they generate).
+
+## Details
 
 **LZPACK**'s `-R` (restore) and `-L` (list) commands recognize both **LZPACK**
 and *PopCom!*‑packed files (as they use the same container and stream format),
