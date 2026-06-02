@@ -111,7 +111,7 @@ undocumented functionality of any hardware or software).
 The table below compares **LZPACK** against *PopCom!* 1.0 (the most popular
 CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
-| Program   | Original |                  PopCom! |                 LZPACK/N |            LZPACK/N+`-e` |                 LZPACK/C |
+| Program   | Original |                  PopCom! |                 LZPACK/N |                LZPACK/N+ |                 LZPACK/C |
 |:----------|---------:|-------------------------:|-------------------------:|-------------------------:|-------------------------:|
 | `BLS`     | `19,210` | `12,160`&nbsp;(`‑36.7%`) | `11,890`&nbsp;(`‑38.1%`) | `11,884`&nbsp;(`‑38.1%`) | `11,945`&nbsp;(`‑37.8%`) |
 | `FORTH80` |  `8,136` |  `6,272`&nbsp;(`‑22.9%`) |  `6,094`&nbsp;(`‑25.1%`) |  `6,093`&nbsp;(`‑25.1%`) |  `6,106`&nbsp;(`‑25.0%`) |
@@ -125,24 +125,20 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 | `WS30`    | `15,872` | `11,648`&nbsp;(`‑26.6%`) | `11,427`&nbsp;(`‑28.0%`) | `11,425`&nbsp;(`‑28.0%`) | `11,455`&nbsp;(`‑27.8%`) |
 | `ZORK1`   |  `8,426` |  `5,376`&nbsp;(`‑36.2%`) |  `5,280`&nbsp;(`‑37.3%`) |  `5,276`&nbsp;(`‑37.4%`) |  `5,297`&nbsp;(`‑37.1%`) |
 
-* The "**/N**" builds are native (Linux/x86_64), while the "**/C**" builds are
-  running on CP/M‑80 (here under [`tnylpo`](https://gitlab.com/gbrein/tnylpo)).
+* The "**/N**" builds are native Linux x86_64; the "**/C**" builds are CP/M‑80.
 
 * **LZPACK** beats *PopCom!* on **every** file in **every** configuration.
 
-* The "**+`-e`**" column is the **extra compression** mode.  On a memory‑rich
+* The "**/N+**" column is the **extra compression** mode.  On a memory‑rich
   host it parses the whole file at once beats the **standard** mode by at
-  least few bytes (**/N+`-e`** vs **/N**).  On CP/M‑80, where the window is
-  capped by the stream format (\~8K) with no room for a block, the two modes
-  converge, so the **/C** column would be identical there between the standard
-  and extra modes, so only a single column is shown.
+  least few bytes (**/N+`-e`** vs **/N**).
 
-* The **/C** figures were measured under `tnylpo` (with a \~63K TPA).  On
-  CP/M‑80 (or other memory memory constrained systems), the match window (and
-  compression ratio) scales with the available memory: a small TPA means a
+* The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
+  CP/M‑80 (or other memory memory constrained systems), the match window and
+  compression ratio scales with the available memory: a small TPA means a
   small window and somewhat larger output.
 
-* The above files were "trimmed" to their "near‑exact" length on the Linux
+* The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
   including, the final `0x00` or `0x1A` bytes in the last 128‑byte "record").
 
@@ -154,8 +150,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   packed.  On CP/M 2.2 systems, all bytes in the final record are packed.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
-* Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) and
-  [`cpm`](https://github.com/jhallen/cpm) emulators used for testing do *not*
+* Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) (and
+  [`cpm`](https://github.com/jhallen/cpm)) emulators used for testing do *not*
   emulate CP/M‑Plus (and thus do not provide LRBC metadata), any file not
   ending at an exact record boundary would be automatically padded to the size
   of the next full record.
@@ -285,13 +281,12 @@ matches and achieve lower compression ratios, so the best build to use
 depends on how much memory is available on the system that will actually run
 the **LZPACK** program.
 
-* **MS‑DOS**  The real‑mode MS‑DOS build
+* The real‑mode MS‑DOS build
   ([`LZPCK86R.ZIP`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP))
-  is designed to run on any 8086/8088 PC with as little as 48K of memory using
-  the **streaming** engine.  The protected‑mode DPMI MS‑DOS build
+  is designed to run on any 8086/8088 PC with as little as **48K** of memory
+  using the **streaming** engine.  The protected‑mode DPMI MS‑DOS build
   ([`LZPCK86P.ZIP`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP))
-  requires an 80386 or better but offers the **standard** and **extra**
-  compression engines.
+  requires an 80386 or better and offers the **extra compression** mode.
 
 ## Building from source
 
