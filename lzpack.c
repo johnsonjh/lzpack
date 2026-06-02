@@ -754,7 +754,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
   lnk = (int *)lxmalloc (sizeof (int) * (size_t)(n > 0 ? n : 1));
 
   {
-    int j;
+    long j;
 
     for (j = 0; j < HSZ; j++)
       head[j] = -1;
@@ -2322,7 +2322,7 @@ compress_stream (FILE *in, long n, int start, FILE *out, int depth,
                  unsigned char *first16)
 {
   long i;
-  int k;
+  long k;
 
   s_in = in;
   s_N = n;
@@ -2516,7 +2516,7 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
                      unsigned char *first16)
 {
   long seg_start, apos, ins;
-  int k;
+  long k;
 
   s_in = in;
   s_N = n;
