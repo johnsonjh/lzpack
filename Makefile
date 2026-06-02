@@ -305,18 +305,24 @@ lint: .lint.sh .common.sh
 
 ################################################################################
 
+megalint everything-lint: .lint.sh .common.sh tests/run.sh
+	"$${MAKE:-make}" distclean
+	"$${MAKE:-make}" lint
+	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
+	"$${MAKE:-make}" test
+
+################################################################################
+
 # Runs the binary release process for CP/M-80, CP/M-86, and MS-DOS binaries.
 # Not for end users.
 
 bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
-		find_command arc compress "$${GIT_CMD:-git}" "$${MAKE:-make}" \
-		zip)
+		find_command arc compress "$${GIT_CMD:-git}" \
+		"$${MAKE:-make}" zip)
 	"$${MAKE:-make}" distclean
-	"$${MAKE:-make}" lint
 	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
-	"$${MAKE:-make}" test
 	mkdir -p ./bindist/
 	# CP/M-80 8080
 	test -f ./cpm-8080/lzpack.com
@@ -427,7 +433,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
-	scspell-fix dos pcdos
+	scspell-fix dos pcdos everything-lint megalint
 
 ################################################################################
 
