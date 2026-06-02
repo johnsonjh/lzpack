@@ -285,8 +285,20 @@ command -v cppi > /dev/null 2>&1 && {
 
 ################################################################################
 
+CPPCHECK_FLAGS="--enable=warning,style,performance"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?},portability,unusedFunction"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --force ${CHECK_LEVEL:-}"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --std=c89"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --inline-suppr"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --inconclusive"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --quiet"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --error-exitcode=2"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} -D__CPPCHECK__"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} -D__LINT__"
+CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} -j 1"
+
 command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
-  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck <<<<<<<<<<<<<<<<"
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck unix64 <<<<<<<<<<<<<<<<"
   if (
     "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
       | grep -q 'unrecognized command line option' \
@@ -296,10 +308,53 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
     set -x
     # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
-      --enable=warning,style,performance,portability,unusedFunction \
-      --force ${CHECK_LEVEL:-} --std=c89 --platform=unix64 \
-      --inline-suppr --inconclusive --quiet --error-exitcode=2 \
-      -D__CPPCHECK__ -D__LINT__ -j 1 \
+      ${CPPCHECK_FLAGS:?} --platform=unix64 \
+      ./stubasm.c ./lzpack.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck win64 <<<<<<<<<<<<<<<<"
+  if (
+    "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
+      | grep -q 'unrecognized command line option' \
+      || {
+        CHECK_LEVEL="--check-level=exhaustive"
+      } || :
+    set -x
+    # shellcheck disable=SC2086
+    "${CPPCHECK:-cppcheck}" \
+      ${CPPCHECK_FLAGS:?} --platform=win64 \
+      ./stubasm.c ./lzpack.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck avr8 <<<<<<<<<<<<<<<<"
+  if (
+    "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
+      | grep -q 'unrecognized command line option' \
+      || {
+        CHECK_LEVEL="--check-level=exhaustive"
+      } || :
+    set -x
+    # shellcheck disable=SC2086
+    "${CPPCHECK:-cppcheck}" \
+      ${CPPCHECK_FLAGS:?} --platform=avr8 \
       ./stubasm.c ./lzpack.c
   ); then
     :
