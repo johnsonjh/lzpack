@@ -1457,11 +1457,15 @@ extern int bdos ();
 # endif
 #endif
 
-#ifndef BDOS_FCB
-# ifdef __Z88DK
-#  define BDOS_FCB(p) ((int)(p))
-# else
-#  define BDOS_FCB(p) (p)
+/******************************************************************************/
+
+#ifdef LZ_CPM
+# ifndef BDOS_FCB
+#  ifdef __Z88DK
+#   define BDOS_FCB(p) ((int)(p))
+#  else
+#   define BDOS_FCB(p) (p)
+#  endif
 # endif
 #endif
 
