@@ -315,7 +315,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 		zip)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" lint
-	"$${MAKE:-make}" all cpm-opt cpm cpm86 msdos djgpp elks windows
+	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
 	"$${MAKE:-make}" test
 	mkdir -p ./bindist/
 	# CP/M-80 8080
