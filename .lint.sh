@@ -210,7 +210,10 @@ printf '\n%s\n\n' ">>>>>>>>>>>>>>>> dangling words <<<<<<<<<<<<<<<<"
 
 if (
   set -x
-  (grep -xi '[^[:space:]]\+' README.md | grep -Ev '(`|<|>|\[|\]|:)') && {
+  (awk '/^```/ { f = !f; next } !f' README.md \
+    | grep -xi '[^[:space:]]\+' \
+    | grep -Ev '(`|<|>|\[|\]|:)' \
+    | grep -Ev '^[-*_]{3,}$') && {
     : ERROR: Dangling words found
     exit 1
   } || exit 0
@@ -285,6 +288,15 @@ command -v cppi > /dev/null 2>&1 && {
 
 ################################################################################
 
+CHECK_LEVEL=""
+command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
+  "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
+    | grep -q 'unrecognized command line option' \
+    || CHECK_LEVEL="--check-level=exhaustive"
+}
+
+################################################################################
+
 CPPCHECK_FLAGS="--enable=warning,style,performance"
 CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?},portability,unusedFunction"
 CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} --force ${CHECK_LEVEL:-}"
@@ -297,14 +309,11 @@ CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} -D__CPPCHECK__"
 CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} -D__LINT__"
 CPPCHECK_FLAGS="${CPPCHECK_FLAGS:?} -j 1"
 
+################################################################################
+
 command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppcheck unix64 <<<<<<<<<<<<<<<<"
   if (
-    "${CPPCHECK:-cppcheck}" --check-level=exhaustive 2>&1 \
-      | grep -q 'unrecognized command line option' \
-      || {
-        CHECK_LEVEL="--check-level=exhaustive"
-      } || :
     set -x
     # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
