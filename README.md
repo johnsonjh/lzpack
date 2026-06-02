@@ -209,7 +209,7 @@ Each implementation has **two modes**, which trade memory for size:
 1. The **standard compression** mode uses a small parse block, keeping its
    working set tiny and leaving the most room for a large match window.
 
-2. The **extra compression ** mode (`-e`) enlarges the block for the tightest
+2. The **extra compression** mode (`-e`) enlarges the block for the tightest
    possible parse.
 
 On a memory‑rich host, using `-e` trims down files by at least a few more
