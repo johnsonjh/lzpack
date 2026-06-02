@@ -130,6 +130,12 @@ static const int never =0;
 
 /******************************************************************************/
 
+#ifdef LZ_CPM
+static int opt_lrbc_isx = 0;
+#endif
+
+/******************************************************************************/
+
 #ifndef LZPACK_STREAM
 static unsigned char g_a[BUFSZ];
 static unsigned char g_b[BUFSZ];
@@ -199,9 +205,9 @@ lxmalloc (size_t n)
 
 #ifndef LZ_STDBLK
 # ifdef LZPACK_STREAM
-#  define LZ_STDBLK 512
+#  define LZ_STDBLK 512L
 # else
-#  define LZ_STDBLK 2048
+#  define LZ_STDBLK 2048L
 # endif
 #endif
 
@@ -1451,9 +1457,25 @@ extern int bdos ();
 # endif
 #endif
 
+#ifndef BDOS_FCB
+# ifdef __Z88DK
+#  define BDOS_FCB(p) ((int)(p))
+# else
+#  define BDOS_FCB(p) (p)
+# endif
+#endif
+
 /******************************************************************************/
 
 #ifdef LZ_CPM
+
+static int
+cpm_has_lrbc (void)
+{
+  return (bdos (12, 0) & 0x00ff) >= 0x30;
+}
+
+/******************************************************************************/
 
 static void
 cpm_setfcb (unsigned char *fcb, const char *fn)
@@ -1468,7 +1490,14 @@ cpm_setfcb (unsigned char *fcb, const char *fn)
     fcb[i] = ' ';
 
   if (p[0] && p[1] == ':')
-    p += 2;
+    {
+      if (p[0] >= 'A' && p[0] <= 'Z')
+        fcb[0] = (unsigned char)(p[0] - 'A' + 1);
+      else if (p[0] >= 'a' && p[0] <= 'z')
+        fcb[0] = (unsigned char)(p[0] - 'a' + 1);
+
+      p += 2;
+    }
 
   i = 1;
 
@@ -1510,11 +1539,11 @@ cpm_file_size (const char *fn)
   long records, last_ext;
   int lrbc;
 
-  if ((bdos (12, 0) & 0x00ff) < 0x30)
+  if (!cpm_has_lrbc ())
     return -1;
 
   cpm_setfcb (fcb, fn);
-  (void)bdos (35, (int)fcb);
+  (void)bdos (35, BDOS_FCB (fcb));
   records = ((long)fcb[33])
           | ((long)fcb[34] << 8)
           | ((long)fcb[35] << 16);
@@ -1528,16 +1557,19 @@ cpm_file_size (const char *fn)
   fcb[12] = (unsigned char)(last_ext & 0x1f);
   fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
 
-  if ((bdos (15, (int)fcb) & 0x00ff) == 0xff)
+  if ((bdos (15, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
     return -1;
 
   lrbc = fcb[13] & 0xff;
-  (void)bdos (16, (int)fcb);
+  (void)bdos (16, BDOS_FCB (fcb));
 
-  if (lrbc > 0 && lrbc <= 128)
-    return (records - 1L) * 128L + lrbc;
+  if (lrbc <= 0 || lrbc >= 128)
+    return records * 128L;
 
-  return records * 128L;
+  if (opt_lrbc_isx)
+    return records * 128L - (long)lrbc;
+
+  return (records - 1L) * 128L + lrbc;
 }
 
 /******************************************************************************/
@@ -1552,22 +1584,26 @@ cpm_set_byte_count (const char *fn, long nbytes)
   if (nbytes <= 0)
     return -1;
 
-  if ((bdos (12, 0) & 0x00ff) < 0x30)
+  if (!cpm_has_lrbc ())
     return -1;
 
   records = (nbytes + 127L) / 128L;
   last_ext = (records - 1L) / 128L;
-  lrbc = (int)(nbytes - (records - 1L) * 128L);
+
+  if (opt_lrbc_isx)
+    lrbc = (int)(records * 128L - nbytes);
+  else
+    lrbc = (int)(nbytes - (records - 1L) * 128L);
 
   cpm_setfcb (fcb, fn);
   fcb[12] = (unsigned char)(last_ext & 0x1f);
   fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
 
-  if ((bdos (15, (int)fcb) & 0x00ff) == 0xff)
+  if ((bdos (15, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
     return -1;
 
   fcb[13] = (unsigned char)(lrbc & 0x7f);
-  (void)bdos (16, (int)fcb);
+  (void)bdos (16, BDOS_FCB (fcb));
 
   return 0;
 }
@@ -2190,7 +2226,7 @@ s_hinsert (long i)
 #  endif
 
 #  ifndef LZ_STDBLK_MIN
-#   define LZ_STDBLK_MIN 128
+#   define LZ_STDBLK_MIN 128L
 #  endif
 
 /*
@@ -3595,6 +3631,15 @@ do_list (const char *fn)
 
   (void)fclose (f);
 
+#ifdef LZ_CPM
+  {
+    long exact = cpm_file_size (fn);
+
+    if (exact > 0 && exact <= n && n - exact < 128)
+      n = exact;
+  }
+#endif
+
   if (got < (size_t)LITCNT || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
       (void)printf ("  %-16s (not a PopCom! or LZPACK file)\n", fn);
@@ -3654,9 +3699,16 @@ usage (void)
 #endif
     "  lzpack -L <file>            list stored sizes\n"
     "  lzpack -O <name>            set output name\n"
+#ifdef LZ_CPM
+    "%s"
+#endif
     "  lzpack -V                   show LZPACK information\n"
 #ifndef LZPACK_DECODE_ONLY
     , exopt, expad, extra
+#endif
+#ifdef LZ_CPM
+    , (cpm_has_lrbc () ?
+    "  lzpack -I                   use ISX LRBC convention\n" : "")
 #endif
     );
 }
@@ -3704,7 +3756,7 @@ version (void)
       unsigned mcb[3];
 
       mcb[1] = 0xFFFFU;
-      (void)bdos (53, (int)mcb);
+      (void)bdos (53, BDOS_FCB (mcb));
       tk = mcb[1] / 64U;
     }
 
@@ -3779,13 +3831,27 @@ main (int argc, char **argv)
             {
               if (i + 1 >= argc)
                 {
-                  (void)fprintf (stderr, "ERROR: -o requires an argument\n");
+                  (void)fprintf (stderr, "ERROR: -O requires an argument\n");
 
                   return 2;
                 }
 
               oname = argv[++i];
             }
+#ifdef LZ_CPM
+          else if (c == 'i' || c == 'I')
+            {
+              if (cpm_has_lrbc ())
+                opt_lrbc_isx = 1;
+              else
+                {
+                  (void)fprintf (stderr,
+                    "ERROR: -I requires CP/M with LRBC support\n");
+
+                  return 2;
+                }
+            }
+#endif
           else if (c == 'V' || c == 'v')
             showver = 1;
           else if (c == 'h' || c == 'H')
@@ -3821,7 +3887,7 @@ main (int argc, char **argv)
 
   if (oname && nfiles > 1)
     {
-      (void)fprintf (stderr, "ERROR: -o cannot be used with multiple files\n");
+      (void)fprintf (stderr, "ERROR: -O cannot be used with multiple files\n");
 
       return 2;
     }
