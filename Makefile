@@ -115,8 +115,6 @@ distclean reallyclean: clean
 	rm -f -r ./pvsreport 2> /dev/null
 	rm -f -r ./cpm-8080 2> /dev/null
 	rm -f -r ./cpm-z80 2> /dev/null
-	rm -f -r ./cpm-8080-opt 2> /dev/null
-	rm -f -r ./cpm-z80-opt 2> /dev/null
 	rm -f -r ./cpm-86 2> /dev/null
 	rm -f -r ./windows 2> /dev/null
 	rm -f -r ./msdos 2> /dev/null
@@ -156,20 +154,6 @@ cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h \
 cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h csrz80.h \
 		stubasm.c lzpack.c .build-cpm.sh .common.sh
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
-
-################################################################################
-
-# Second CP/M-80 build set, with the optimal parser (-e) enabled, into
-# cpm-z80-opt/ and cpm-8080-opt/.  -e's DP block does not fit beside a usable
-# window on a 48K system, so this set targets 56K+ TPAs (the fit check uses the
-# 0xDDFF = 56K ceiling and reserves room for a minimum window plus the block).
-# The standard 'cpm' set stays greedy-only for 48K machines.
-
-cpm-opt cpm80-opt cpm56 cpm-56k: cs8080.h csz80.h csr8080.h csrz80.h \
-		stubasm.c lzpack.c .build-cpm.sh .common.sh
-	@env CPM_BACKEND="auto" LZPACK_EXTRA_DEFS="-DLZPACK_OPT=1" \
-		OUT_SUFFIX="-opt" TPA48="0xDDFF" CHECK_RESERVE="8714" \
-		./.build-cpm.sh
 
 ################################################################################
 
@@ -344,16 +328,6 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	(cd cpm-z80 && mv -f lzpack.com LZPACK.COM && \
 		arc as LZPCKZ80.ARC LZPACK.COM)
 	mv -f ./cpm-z80/LZPCKZ80.ARC ./bindist/LZPCKZ80.ARC
-	# CP/M-80 8080, optimal parser (-e), for 56K+ TPA systems
-	test -f ./cpm-8080-opt/lzpack.com
-	(cd cpm-8080-opt && mv -f lzpack.com LZPACK.COM && \
-		arc as LZPKOI80.ARC LZPACK.COM)
-	mv -f ./cpm-8080-opt/LZPKOI80.ARC ./bindist/LZPKOI80.ARC
-	# CP/M-80 Z80, optimal parser (-e), for 56K+ TPA systems
-	test -f ./cpm-z80-opt/lzpack.com
-	(cd cpm-z80-opt && mv -f lzpack.com LZPACK.COM && \
-		arc as LZPKOZ80.ARC LZPACK.COM)
-	mv -f ./cpm-z80-opt/LZPKOZ80.ARC ./bindist/LZPKOZ80.ARC
 	# CP/M-86
 	test -f ./cpm-86/lzpack.cmd
 	(cd cpm-86 && mv -f lzpack.cmd LZPACK.CMD && \
@@ -452,8 +426,8 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 .PHONY: all build clean distclean reallyclean stub stubs strip cpm cpm80 \
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
-	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag cpm-opt \
-	cpm80-opt cpm56 cpm-56k scspell scspell-fix dos pcdos
+	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
+	scspell-fix dos pcdos
 
 ################################################################################
 

@@ -189,9 +189,21 @@ lxmalloc (size_t n)
 #define TPA 0x100
 #define LITCNT 16
 
+/******************************************************************************/
+
 #define MAXDIST 8192
 #define MAXLEN 256
 #define MEMTOP 0xBDFF
+
+/******************************************************************************/
+
+#ifndef LZ_STDBLK
+# ifdef LZPACK_STREAM
+#  define LZ_STDBLK 512
+# else
+#  define LZ_STDBLK 2048
+# endif
+#endif
 
 /******************************************************************************/
 
@@ -288,7 +300,9 @@ prog_show (const char *tag, long done)
     return;
 
   pg_next = done + pg_step;
-  pct = (int)(done * 100L / pg_total);
+
+  pct =
+    (int)((done * 1000L / pg_total) * (HSZ + done) / (HSZ + pg_total) / 10);
 
   if (pct == pg_pct)
     return;
@@ -681,153 +695,6 @@ hinsert (long i)
 /******************************************************************************/
 
 static int
-mlen_min (int dist)
-{
-  return ((dist <= 128) ? 2 : 3);
-}
-
-/******************************************************************************/
-
-# ifndef LZPACK_STREAM
-
-static int
-findmatch (long i, int *bestdist, int maxdepth)
-{
-  int h, bl = 0, bd = 0, depth = maxdepth;
-  long p;
-
-  if (i + 2 >= N)
-    return 0;
-
-  h = hash3 (i);
-
-  for (p = head[h]; p >= 0 && depth-- > 0; p = lnk[p])
-    {
-      long d = i - p;
-      int ml, mx;
-
-      if (d > MAXDIST)
-        break;
-
-      mx = MAXLEN;
-
-      if (mx > (int)(N - i))
-        mx = (int)(N - i);
-
-      if (bl > 0 && bl < mx && D[p + bl] != D[i + bl])
-        continue;
-
-      ml = 0;
-
-      while (ml < mx && D[p + ml] == D[i + ml])
-        ml++;
-
-      if (ml < mlen_min ((int)d))
-        continue;
-
-      if (ml > bl || (ml == bl && d < bd))
-        {
-          bl = ml;
-          bd = (int)d;
-
-          if (bl >= mx)
-            break;
-        }
-    }
-
-  *bestdist = bd;
-
-  return bl;
-}
-
-/******************************************************************************/
-
-static long
-compress (const unsigned char *data, long n, int start, unsigned char *out,
-          int depth)
-{
-  long i;
-  int d, d2;
-
-  D = data;
-  N = n;
-  lnk = (int *)lxmalloc (sizeof (int) * (size_t)(n > 0 ? n : 1));
-
-  {
-    long j;
-
-    for (j = 0; j < HSZ; j++)
-      head[j] = -1;
-  }
-
-  e_init (out);
-
-  for (i = 0; i < start && i + 2 < n; i++)
-    hinsert (i);
-
-  i = start;
-
-  while (i < n)
-    {
-      int L;
-
-      prog_show ("", i - start);
-
-      d = 0;
-      L = findmatch (i, &d, depth);
-
-      if (L >= mlen_min (d))
-        {
-          int L2;
-
-          d2 = 0;
-          L2 = 0;
-
-          if (i + 1 < n)
-            {
-              hinsert (i);
-              L2 = findmatch (i + 1, &d2, depth);
-            }
-
-          if (L2 > L)
-            {
-              e_lit (data[i]);
-              i++;
-
-              continue;
-            }
-
-          e_match (d, L);
-          {
-            long e = i + L;
-
-            i++;
-
-            for (; i < e; i++)
-              hinsert (i);
-          }
-        }
-      else
-        {
-          e_lit (data[i]);
-          hinsert (i);
-          i++;
-        }
-    }
-
-  free (lnk);
-
-  return ol;
-}
-
-# endif
-
-/******************************************************************************/
-
-# ifndef LZPACK_NO_OPT
-
-
-static int
 extlen_bits (int v)
 {
   int B = 0, t = v;
@@ -893,24 +760,41 @@ match_bits (int dist, int L)
 
 /******************************************************************************/
 
-#  ifndef LZPACK_STREAM
+# ifndef LZPACK_STREAM
+
+/*
+ * The standard engine is a bounded-block cost-optimal parser.  It runs the
+ * same shortest-path DP as the -e engine, but only over a small sliding block
+ * at a time (LZ_STDBLK positions), so its working set is a few KB regardless
+ * of file size, leaving room for a large match window even on a 48K TPA.
+ * Matches are found against the full preceding dictionary (hash chains span
+ * back up to MAXDIST); only the parse DP is blocked.  Because matches never
+ * exceed MAXLEN and the block is many times larger, the loss from not letting
+ * a match cross a block boundary is negligible, yet the parse is dramatically
+ * better than the old greedy+lazy heuristic.  The -e engine raises the block
+ * size (and so the memory) to remove even that residual boundary loss.
+ */
 
 static long
-compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
-              int depth)
+compress (const unsigned char *data, long n, int start, unsigned char *out,
+          int depth, long blk)
 {
-  long i;
+  long seg_start, ins;
   long *cost;
-  int *tlen, *tdist;
+  int *tlen, *tdist, *stk;
   static int l2d[MAXLEN + 1];
 
   D = data;
   N = n;
 
+  if (blk < 1)
+    blk = 1;
+
   lnk = (int *)lxmalloc (sizeof (int) * (size_t)(n > 0 ? n : 1));
-  cost = (long *)lxmalloc (sizeof (long) * (size_t)(n + 1));
-  tlen = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
-  tdist = (int *)lxmalloc (sizeof (int) * (size_t)(n + 1));
+  cost = (long *)lxmalloc (sizeof (long) * (size_t)(blk + 1));
+  tlen = (int *)lxmalloc (sizeof (int) * (size_t)(blk + 1));
+  tdist = (int *)lxmalloc (sizeof (int) * (size_t)(blk + 1));
+  stk = (int *)lxmalloc (sizeof (int) * (size_t)(blk + 1));
 
   {
     long j;
@@ -919,53 +803,78 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
       head[j] = -1;
   }
 
-  for (i = 0; i < start && i + 2 < n; i++)
-    hinsert (i);
+  e_init (out);
 
-  for (i = start; i <= n; i++)
+  for (ins = 0; ins < start && ins + 2 < n; ins++)
+    hinsert (ins);
+
+  ins = start;
+
+  for (seg_start = start; seg_start < n;)
     {
-      cost[i] = 0x3fffffffL;
-      tlen[i] = 0;
-      tdist[i] = 0;
-    }
+      long seg_end = seg_start + blk;
+      long span, j, apos;
 
-  cost[start] = 0;
+      if (seg_end > n)
+        seg_end = n;
 
-  for (i = start; i < n; i++)
-    {
-      prog_show ("-e", i - start);
+      span = seg_end - seg_start;
 
-      if (cost[i] != 0x3fffffffL)
+      for (j = 0; j <= span; j++)
         {
-          if (cost[i] + 9 < cost[i + 1])
+          cost[j] = 0x3fffffffL;
+          tlen[j] = 0;
+          tdist[j] = 0;
+        }
+
+      cost[0] = 0;
+
+      for (apos = seg_start; apos < seg_end; apos++)
+        {
+          long jc = apos - seg_start;
+          int cap;
+
+          while (ins < apos)
             {
-              cost[i + 1] = cost[i] + 9;
-              tlen[i + 1] = 1;
-              tdist[i + 1] = 0;
+              hinsert (ins);
+              ins++;
             }
 
-          if (i + 2 < n)
+          if (cost[jc] + 9 < cost[jc + 1])
             {
-              int h = hash3 (i), dep = depth, maxml = 0, cap = MAXLEN;
-              long p;
+              cost[jc + 1] = cost[jc] + 9;
+              tlen[jc + 1] = 1;
+              tdist[jc + 1] = 0;
+            }
 
-              if (cap > (int)(n - i))
-                cap = (int)(n - i);
+          cap = MAXLEN;
+
+          if ((long)cap > seg_end - apos)
+            cap = (int)(seg_end - apos);
+
+          if ((long)cap > n - apos)
+            cap = (int)(n - apos);
+
+          if (cap >= 3 && apos + 2 < n)
+            {
+              int h = hash3 (apos), dep = depth, maxml = 0;
+              long p;
 
               for (p = head[h]; p >= 0 && dep-- > 0; p = lnk[p])
                 {
-                  long d = i - p;
+                  long d = apos - p;
                   int ml;
 
                   if (d > MAXDIST)
                     break;
 
-                  if (maxml > 0 && maxml < cap && D[p + maxml] != D[i + maxml])
+                  if (maxml > 0 && maxml < cap
+                      && D[p + maxml] != D[apos + maxml])
                     continue;
 
                   ml = 0;
 
-                  while (ml < cap && D[p + ml] == D[i + ml])
+                  while (ml < cap && D[p + ml] == D[apos + ml])
                     ml++;
 
                   if (ml > maxml)
@@ -987,34 +896,34 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
 
                 for (L = 3; L <= maxml; L++)
                   {
-                    int d = l2d[L];
-                    long c2 = cost[i] + match_bits (d, L);
+                    int dd = l2d[L];
+                    long c2 = cost[jc] + match_bits (dd, L);
 
-                    if (c2 < cost[i + L])
+                    if (c2 < cost[jc + L])
                       {
-                        cost[i + L] = c2;
-                        tlen[i + L] = L;
-                        tdist[i + L] = d;
+                        cost[jc + L] = c2;
+                        tlen[jc + L] = L;
+                        tdist[jc + L] = dd;
                       }
                   }
               }
             }
 
-          if (i + 1 < n)
+          if (cap >= 2 && apos + 1 < n)
             {
-              long lo = (i > 128) ? (i - 128) : 0;
+              long lo = (apos > 128) ? (apos - 128) : 0;
               long p;
 
-              for (p = i - 1; p >= lo; p--)
-                if (data[p] == data[i] && data[p + 1] == data[i + 1])
+              for (p = apos - 1; p >= lo; p--)
+                if (data[p] == data[apos] && data[p + 1] == data[apos + 1])
                   {
-                    long c2 = cost[i] + match_bits ((int)(i - p), 2);
+                    long c2 = cost[jc] + match_bits ((int)(apos - p), 2);
 
-                    if (c2 < cost[i + 2])
+                    if (c2 < cost[jc + 2])
                       {
-                        cost[i + 2] = c2;
-                        tlen[i + 2] = 2;
-                        tdist[i + 2] = (int)(i - p);
+                        cost[jc + 2] = c2;
+                        tlen[jc + 2] = 2;
+                        tdist[jc + 2] = (int)(apos - p);
                       }
 
                     break;
@@ -1022,44 +931,47 @@ compress_opt (const unsigned char *data, long n, int start, unsigned char *out,
             }
         }
 
-      hinsert (i);
+      {
+        long sp = 0, kk;
+
+        for (kk = span; kk > 0;)
+          {
+            stk[sp++] = (int)kk;
+            kk -= (tlen[kk] > 1 ? tlen[kk] : 1);
+          }
+
+        for (kk = sp - 1; kk >= 0; kk--)
+          {
+            int e = stk[kk];
+            int L = tlen[e];
+
+            if (L > 1)
+              e_match (tdist[e], L);
+            else
+              e_lit (data[seg_start + e - 1]);
+          }
+      }
+
+      while (ins < seg_end)
+        {
+          hinsert (ins);
+          ins++;
+        }
+
+      seg_start = seg_end;
+
+      prog_show ("", seg_start - start);
     }
-
-  {
-    long *st = (long *)lxmalloc (sizeof (long) * (size_t)(n + 1));
-    long sp = 0, k;
-
-    for (k = n; k > start;)
-      {
-        st[sp++] = k;
-        k -= (tlen[k] > 1 ? tlen[k] : 1);
-      }
-
-    e_init (out);
-
-    for (k = sp - 1; k >= 0; k--)
-      {
-        long e = st[k];
-        int L = tlen[e];
-
-        if (L > 1)
-          e_match (tdist[e], L);
-        else
-          e_lit (data[e - 1]);
-      }
-
-    free (st);
-  }
 
   free (lnk);
   free (cost);
   free (tlen);
   free (tdist);
+  free (stk);
 
   return ol;
 }
 
-#  endif
 # endif
 #endif
 
@@ -2023,10 +1935,10 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
 
-  pllen = compress (data, n, LITCNT, pl, 1024);
+  pllen = compress (data, n, LITCNT, pl, 1024, LZ_STDBLK);
 #  else
-  pllen = (optimal ? compress_opt (data, n, LITCNT, pl, 4096)
-                   : compress (data, n, LITCNT, pl, 1024));
+  pllen = (optimal ? compress (data, n, LITCNT, pl, 4096, n)
+                   : compress (data, n, LITCNT, pl, 1024, LZ_STDBLK));
 #  endif
 
   prog_done ();
@@ -2096,24 +2008,30 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 # else
 
 /*
- * Streaming compressor for tiny (CP/M-80) hosts.  The input is read from disk
- * through a fixed sliding window and the payload is written to a temp file, so
- * working memory does not depend on file size and large executables can be
- * packed on a 64K machine.  Match choices may differ from the in-RAM path, but
- * the emitted format is identical and self-extracts the same way.
+ * Streaming compressor for tiny (CP/M-80) hosts.  The input is read from
+ * disk through a fixed sliding window and the payload is written to a temp
+ * file, so working memory does not depend on file size and large executables
+ * can be packed on a 64K machine.  Match choices may differ from the in-RAM
+ * path, but the emitted format is identical and self-extracts the same way.
  *
- * The sliding window (window bytes + a 2-byte link per slot, = 3*WINSZ of RAM)
- * is allocated dynamically: at startup the largest power-of-two window that
- * fits in the available heap is chosen, from WIN_MAX down to WINMIN, so the
- * compressor uses as big a window -- and packs as tightly -- as the host's TPA
- * allows.  The effective match distance is min(WINSZ - MAXLEN - 1, MAXDIST).
+ * The sliding window (window bytes + a 2-byte link per slot, = 3*WINSZ of
+ * RAM) is allocated dynamically: at startup the largest power-of-two window
+ * that fits in the available heap is chosen, from WIN_MAX down to WINMIN,
+ * so the compressor uses as big a window -- and packs as tightly -- as the
+ * host's TPA allows.
  *
- * WIN_MAX is not a tunable: a window larger than 2*MAXDIST cannot help, since
- * the format caps match distance at MAXDIST, so that is where the probe starts.
+ * The effective match distance is min(WINSZ - MAXLEN - 1, MAXDIST).
+ *
+ * WIN_MAX is not a tunable: a window larger than 2*MAXDIST cannot help,
+ * since the format caps match distance at MAXDIST, so that is where the
+ * probe starts.
  */
 
 #  define LOOKAHEAD MAXLEN
-#  define WIN_MAX (MAXDIST * 2)
+
+#  ifndef WIN_MAX
+#   define WIN_MAX (MAXDIST * 2)
+#  endif
 
 #  ifndef WINMIN
 #   define WINMIN 1024
@@ -2254,187 +2172,52 @@ s_hinsert (long i)
  * distance test.
  */
 
-static int
-findmatch_stream (long i, int *bestdist, int maxdepth)
-{
-  int bl = 0, bd = 0, stored, ml, depth = maxdepth;
-  long base;
-
-  if (i + 2 >= s_N)
-    return 0;
-
-  base = i & ~s_wmask;
-  stored = head[s_hash3 (i)];
-
-  while (stored >= 0 && depth-- > 0)
-    {
-      long p = base | (long)stored;
-      long d;
-      int mx;
-
-      if (p > i)
-        p -= s_winsz;
-
-      d = i - p;
-
-      if (d <= 0 || d > s_maxback)
-        break;
-
-      mx = MAXLEN;
-
-      if ((long)mx > s_N - i)
-        mx = (int)(s_N - i);
-
-      if (bl > 0 && bl < mx
-          && s_win[(p + bl) & s_wmask] != s_win[(i + bl) & s_wmask])
-        {
-          stored = s_lnk[p & s_wmask];
-
-          continue;
-        }
-
-      ml = 0;
-
-      while (ml < mx && s_win[(p + ml) & s_wmask] == s_win[(i + ml) & s_wmask])
-        ml++;
-
-      if (ml >= mlen_min ((int)d) && (ml > bl || (ml == bl && d < bd)))
-        {
-          bl = ml;
-          bd = (int)d;
-
-          if (bl >= mx)
-            break;
-        }
-
-      stored = s_lnk[p & s_wmask];
-    }
-
-  *bestdist = bd;
-
-  return bl;
-}
-
 /******************************************************************************/
 
-static long
-compress_stream (FILE *in, long n, int start, FILE *out, int depth,
-                 unsigned char *first16)
-{
-  long i;
-  long k;
-
-  s_in = in;
-  s_N = n;
-  s_loaded = 0;
-
-  for (k = 0; k < HSZ; k++)
-    head[k] = -1;
-
-  e_init_stream (out);
-
-  win_load ((long)LOOKAHEAD + 1);
-
-  for (k = 0; k < LITCNT && (long)k < n; k++)
-    first16[k] = s_win[k & s_wmask];
-
-  for (i = 0; i < start && i + 2 < n; i++)
-    {
-      win_load (i + LOOKAHEAD + 1);
-      s_hinsert (i);
-    }
-
-  i = start;
-
-  while (i < n)
-    {
-      int d, L;
-
-      prog_show ("", i - start);
-
-      win_load (i + LOOKAHEAD + 1);
-      d = 0;
-      L = findmatch_stream (i, &d, depth);
-
-      if (L >= mlen_min (d))
-        {
-          int d2 = 0, L2 = 0;
-
-          if (i + 1 < n)
-            {
-              s_hinsert (i);
-              win_load (i + 1 + LOOKAHEAD + 1);
-              L2 = findmatch_stream (i + 1, &d2, depth);
-            }
-
-          if (L2 > L)
-            {
-              e_lit (s_win[i & s_wmask]);
-              i++;
-
-              continue;
-            }
-
-          e_match (d, L);
-          {
-            long e = i + L;
-
-            i++;
-
-            for (; i < e; i++)
-              {
-                win_load (i + LOOKAHEAD + 1);
-                s_hinsert (i);
-              }
-          }
-        }
-      else
-        {
-          e_lit (s_win[i & s_wmask]);
-          s_hinsert (i);
-          i++;
-        }
-    }
-
-  obuf_flush (ol);
-
-  return ol;
-}
-
-/******************************************************************************/
+/*
+ * Bounded-block parse-DP infrastructure, shared by the standard streaming
+ * engine and the -e engine.  Both run the same cost-optimal shortest-path
+ * parser over a sliding block of positions; they differ only in the block
+ * size (and so the working memory): the standard engine uses a small block
+ * that leaves the largest possible match window even on a 48K TPA, while -e
+ * uses a large block for the tightest possible parse.
+ */
 
 #  ifndef LZPACK_NO_OPT
-
 #   ifndef LZ_OPTBLK
-#    define LZ_OPTBLK 2048
+#    define LZ_OPTBLK 2048 /* -e parse block; standard engine never uses it */
 #   endif
+#  endif
 
-#   ifndef LZ_OPTBLK_MIN
-#    define LZ_OPTBLK_MIN 512
-#   endif
+#  ifndef LZ_STDBLK_MIN
+#   define LZ_STDBLK_MIN 128
+#  endif
 
-#   ifndef LZ_OPT_WINMAX
-#    define LZ_OPT_WINMAX MAXDIST
-#   endif
+/*
+ * Heap to reserve below the match window for the parse-DP arrays: enough
+ * for the smallest block both engines fall back to.  opt_alloc then grows
+ * the block into any heap left beyond the window, so the window is never
+ * shrunk by more than this minimum.
+ */
 
-#   ifndef LZ_OPT_RESERVE
-#    define LZ_OPT_RESERVE \
-  ((long)(LZ_OPTBLK_MIN + 1) * (sizeof (long) + 3 * sizeof (int)) + 512L)
-#   endif
+#  ifndef LZ_STD_RESERVE
+#   define LZ_STD_RESERVE \
+  ((long)(LZ_STDBLK_MIN + 1) * (sizeof (long) + 3 * sizeof (int)) + 512L)
+#  endif
 
-#   ifndef LZ_OPTDEPTH
-#    define LZ_OPTDEPTH 1024
-#   endif
+#  ifndef LZ_OPTDEPTH
+#   define LZ_OPTDEPTH 1024
+#  endif
 
-#   ifndef LZ_OPT_ALLOC
-#    define LZ_OPT_ALLOC(n) malloc ((n))
-#   endif
+#  ifndef LZ_OPT_ALLOC
+#   define LZ_OPT_ALLOC(n) malloc ((n))
+#  endif
 
-#   ifndef LZ_OPT_FREE
-#    define LZ_OPT_FREE(p) free ((p))
-#   endif
+#  ifndef LZ_OPT_FREE
+#   define LZ_OPT_FREE(p) free ((p))
+#  endif
 
-#   define OFREE(p)    \
+#  define OFREE(p)     \
   do {                 \
     LZ_OPT_FREE ((p)); \
     (p) = NULL;        \
@@ -2452,7 +2235,7 @@ static int o_mb0[MAXLEN + 1];
 static int o_mb1[MAXLEN + 1];
 static int o_mb3[MAXLEN + 1];
 
-#   define OMBITS(d, L) \
+#  define OMBITS(d, L) \
   ((d) <= 128 ? o_mb0[L] : (d) <= 1152 ? o_mb1[L] : o_mb3[L])
 
 /******************************************************************************/
@@ -2474,10 +2257,16 @@ opt_cost_tables (void)
 
 /******************************************************************************/
 
+/*
+ * Allocate the parse-DP arrays.  The block size is probed from `want' down
+ * to `lo' (halving), so the largest block that fits the heap left over after
+ * the window is used.  o_blk records the size actually obtained.
+ */
+
 static int
-opt_alloc (void)
+opt_alloc (long want, long lo)
 {
-  for (o_blk = LZ_OPTBLK; o_blk >= LZ_OPTBLK_MIN; o_blk >>= 1)
+  for (o_blk = want; o_blk >= lo; o_blk >>= 1)
     {
       size_t s = (size_t)(o_blk + 1);
 
@@ -2512,11 +2301,15 @@ opt_free (void)
 /******************************************************************************/
 
 static long
-compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
-                     unsigned char *first16)
+compress_stream (FILE *in, long n, int start, FILE *out, int depth,
+                 unsigned char *first16, const char *ptag)
 {
   long seg_start, apos, ins;
   long k;
+
+#  ifdef LZPACK_NO_PROGRESS
+  (void)ptag; /* progress is compiled out; prog_show() ignores its tag */
+#  endif
 
   s_in = in;
   s_N = n;
@@ -2564,7 +2357,7 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
       for (apos = seg_start; apos < seg_end; apos++)
         {
           long jc = apos - seg_start;
-          int cap, maxml = 0;
+          int cap;
 
           while (ins < apos)
             {
@@ -2594,7 +2387,7 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
             {
               long base = apos & ~s_wmask;
               int stored = head[s_hash3 (apos)];
-              int dep = depth;
+              int dep = depth, maxml = 0;
 
               while (stored >= 0 && dep-- > 0)
                 {
@@ -2714,15 +2507,13 @@ compress_opt_stream (FILE *in, long n, int start, FILE *out, int depth,
 
       seg_start = seg_end;
 
-      prog_show ("-e", seg_start - start);
+      prog_show (ptag, seg_start - start);
     }
 
   obuf_flush (ol);
 
   return ol;
 }
-
-#  endif
 
 /******************************************************************************/
 
@@ -3158,6 +2949,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   FILE *in, *tmp, *outf;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
   long stub_dst_top, dcmp_dsttop;
+  long dp_blk = LZ_STDBLK; /* parse-DP block target (LZ_OPTBLK for -e) */
+  const char *dp_tag = ""; /* progress tag, "-e" for the -e engine */
   unsigned char first16[LITCNT];
   char nb[64];
   static unsigned short wshown = 0;
@@ -3231,6 +3024,13 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
     (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
+
+#  else
+  if (optimal)
+    {
+      dp_blk = LZ_OPTBLK; /* -e: grow the parse block into spare heap */
+      dp_tag = "-e";
+    }
 #  endif
 
 #  ifndef LZPACK_NO_AUTOARCH
@@ -3278,10 +3078,15 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-#  ifndef LZPACK_NO_OPT
-  s_win_start = optimal ? LZ_OPT_WINMAX : WIN_MAX;
-  s_win_reserve = optimal ? LZ_OPT_RESERVE : 0;
-#  endif
+  /*
+   * Window first: both engines reserve only enough heap for the smallest DP
+   * block, so the match window is made as large as the TPA allows (a bigger
+   * window helps far more than a bigger parse block).  opt_alloc then grabs
+   * whatever heap is left over for the block -- up to LZ_OPTBLK for -e, which
+   * is the only thing that distinguishes the two engines' memory use.
+   */
+  s_win_start = WIN_MAX;
+  s_win_reserve = LZ_STD_RESERVE;
 
   if (win_alloc ())
     {
@@ -3293,8 +3098,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-#  ifndef LZPACK_NO_OPT
-  if (optimal && opt_alloc ())
+  if (opt_alloc (dp_blk, LZ_STDBLK_MIN))
     {
       win_free ();
       (void)fclose (in);
@@ -3304,7 +3108,6 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
       return 1;
     }
-#  endif
 
   if (verbose && !wshown) {
     (void)fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
@@ -3314,16 +3117,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   prog_begin (verbose, n - LITCNT, fn);
 
-#  ifndef LZPACK_NO_OPT
-  pllen = optimal
-            ? compress_opt_stream (in, n, LITCNT, tmp, LZ_OPTDEPTH, first16)
-            : compress_stream (in, n, LITCNT, tmp, 1024, first16);
+  pllen = compress_stream (in, n, LITCNT, tmp, LZ_OPTDEPTH, first16, dp_tag);
 
-  if (optimal)
-    opt_free ();
-#  else
-  pllen = compress_stream (in, n, LITCNT, tmp, 1024, first16);
-#  endif
+  opt_free ();
 
   prog_done ();
 

@@ -11,9 +11,9 @@ while leaving them directly executable: every packed file is a
 *self‑extracting* `.COM` that decompresses itself and runs without any
 separate unpacker, and requires no changes to how the program is invoked.
 
-It works very much like Yoshihiko Mino's classic *PopCom!* utility, but can
-compress tighter and decompress faster, thanks to its smaller hand‑optimized
-decompression stubs.
+It works very much like Yoshihiko Mino's classic *PopCom!* utility, but packs
+tighter by using a better compression engine and decompresses faster by using
+smaller hand‑optimized decompression stubs.
 
 The **LZPACK** program, as well as the packed executables it generates, run
 in far more places, such as CP/M‑80 systems with 8080, 8085, or V20 processors
@@ -111,30 +111,36 @@ undocumented functionality of any hardware or software).
 The table below compares **LZPACK** against *PopCom!* 1.0 (the most popular
 CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
-|   Program |  Original |                  PopCom! |            LZPACK/N+`-e` |            LZPACK/C+`-e` |                 LZPACK/N |                 LZPACK/C |
-|----------:|----------:|-------------------------:|-------------------------:|-------------------------:|-------------------------:|-------------------------:|
-| `BLS`     | `19,210`  | `12,160`&nbsp;(`‑36.7%`) | `11,884`&nbsp;(`‑38.1%`) | `12,150`&nbsp;(`‑36.8%`) | `12,542`&nbsp;(`‑34.7%`) | `12,552`&nbsp;(`‑34.7%`) |
-| `FORTH80` | `8,136`   |  `6,272`&nbsp;(`‑22.9%`) |  `6,093`&nbsp;(`‑25.1%`) |  `6,139`&nbsp;(`‑24.5%`) |  `6,454`&nbsp;(`‑20.7%`) |  `6,458`&nbsp;(`‑20.6%`) |
-| `M80`     | `20,023`  | `13,952`&nbsp;(`‑30.3%`) | `13,702`&nbsp;(`‑31.6%`) | `14,024`&nbsp;(`‑30.0%`) | `14,528`&nbsp;(`‑27.4%`) | `14,545`&nbsp;(`‑27.4%`) |
-| `MBASIC`  | `24,313`  | `19,456`&nbsp;(`‑20.0%`) | `19,178`&nbsp;(`‑21.1%`) | `19,569`&nbsp;(`‑19.5%`) | `20,139`&nbsp;(`‑17.2%`) | `20,160`&nbsp;(`‑17.1%`) |
-| `PILOT`   | `30,902`  | `13,184`&nbsp;(`‑57.3%`) | `12,792`&nbsp;(`‑58.6%`) | `13,277`&nbsp;(`‑57.0%`) | `13,582`&nbsp;(`‑56.0%`) | `13,588`&nbsp;(`‑56.0%`) |
-| `SARGON`  | `14,592`  |  `8,704`&nbsp;(`‑40.4%`) |  `8,593`&nbsp;(`‑41.1%`) |  `8,689`&nbsp;(`‑40.5%`) |  `9,183`&nbsp;(`‑37.1%`) |  `9,178`&nbsp;(`‑37.1%`) |
-| `VDT1398` | `17,443`  | `13,056`&nbsp;(`‑25.2%`) | `12,874`&nbsp;(`‑26.2%`) | `13,117`&nbsp;(`‑24.8%`) | `13,633`&nbsp;(`‑21.8%`) | `13,639`&nbsp;(`‑21.8%`) |
-| `VDT139Z` | `16,485`  | `12,544`&nbsp;(`‑23.9%`) | `12,325`&nbsp;(`‑25.2%`) | `12,561`&nbsp;(`‑23.8%`) | `12,894`&nbsp;(`‑21.8%`) | `12,902`&nbsp;(`‑21.7%`) |
-| `VDT232Z` | `24,304`  | `18,688`&nbsp;(`‑23.1%`) | `18,430`&nbsp;(`‑24.2%`) | `18,893`&nbsp;(`‑22.3%`) | `19,363`&nbsp;(`‑20.3%`) | `19,375`&nbsp;(`‑20.3%`) |
-| `WS30`    | `15,872`  | `11,648`&nbsp;(`‑26.6%`) | `11,425`&nbsp;(`‑28.0%`) | `11,539`&nbsp;(`‑27.3%`) | `12,221`&nbsp;(`‑23.0%`) | `12,224`&nbsp;(`‑23.0%`) |
-| `ZORK1`   | `8,426`   |  `5,376`&nbsp;(`‑36.2%`) |  `5,276`&nbsp;(`‑37.4%`) |  `5,338`&nbsp;(`‑36.6%`) |  `5,542`&nbsp;(`‑34.2%`) |  `5,546`&nbsp;(`‑34.2%`) |
+| Program   | Original |                  PopCom! |                 LZPACK/N |            LZPACK/N+`-e` |                 LZPACK/C |
+|:----------|---------:|-------------------------:|-------------------------:|-------------------------:|-------------------------:|
+| `BLS`     | `19,210` | `12,160`&nbsp;(`‑36.7%`) | `11,890`&nbsp;(`‑38.1%`) | `11,884`&nbsp;(`‑38.1%`) | `11,945`&nbsp;(`‑37.8%`) |
+| `FORTH80` |  `8,136` |  `6,272`&nbsp;(`‑22.9%`) |  `6,094`&nbsp;(`‑25.1%`) |  `6,093`&nbsp;(`‑25.1%`) |  `6,106`&nbsp;(`‑25.0%`) |
+| `M80`     | `20,023` | `13,952`&nbsp;(`‑30.3%`) | `13,711`&nbsp;(`‑31.5%`) | `13,702`&nbsp;(`‑31.6%`) | `13,755`&nbsp;(`‑31.3%`) |
+| `MBASIC`  | `24,313` | `19,456`&nbsp;(`‑20.0%`) | `19,182`&nbsp;(`‑21.1%`) | `19,178`&nbsp;(`‑21.1%`) | `19,239`&nbsp;(`‑20.9%`) |
+| `PILOT`   | `30,902` | `13,184`&nbsp;(`‑57.3%`) | `12,798`&nbsp;(`‑58.6%`) | `12,792`&nbsp;(`‑58.6%`) | `12,876`&nbsp;(`‑58.3%`) |
+| `SARGON`  | `14,592` |  `8,704`&nbsp;(`‑40.4%`) |  `8,598`&nbsp;(`‑41.1%`) |  `8,593`&nbsp;(`‑41.1%`) |  `8,619`&nbsp;(`‑40.9%`) |
+| `VDT1398` | `17,443` | `13,056`&nbsp;(`‑25.2%`) | `12,876`&nbsp;(`‑26.2%`) | `12,874`&nbsp;(`‑26.2%`) | `12,914`&nbsp;(`‑26.0%`) |
+| `VDT139Z` | `16,485` | `12,544`&nbsp;(`‑23.9%`) | `12,333`&nbsp;(`‑25.2%`) | `12,325`&nbsp;(`‑25.2%`) | `12,371`&nbsp;(`‑25.0%`) |
+| `VDT232Z` | `24,304` | `18,688`&nbsp;(`‑23.1%`) | `18,437`&nbsp;(`‑24.1%`) | `18,430`&nbsp;(`‑24.2%`) | `18,500`&nbsp;(`‑23.9%`) |
+| `WS30`    | `15,872` | `11,648`&nbsp;(`‑26.6%`) | `11,427`&nbsp;(`‑28.0%`) | `11,425`&nbsp;(`‑28.0%`) | `11,455`&nbsp;(`‑27.8%`) |
+| `ZORK1`   |  `8,426` |  `5,376`&nbsp;(`‑36.2%`) |  `5,280`&nbsp;(`‑37.3%`) |  `5,276`&nbsp;(`‑37.4%`) |  `5,297`&nbsp;(`‑37.1%`) |
 
 * The "**/N**" builds are native (Linux/x86_64), while the "**/C**" builds are
-  running on CP/M‑80.
+  running on CP/M‑80 (here under [`tnylpo`](https://gitlab.com/gbrein/tnylpo)).
 
-* The "**+`-e`**" indicates that the **extra** compression mode was used.
-  Native **LZPACK** builds using **extra** compression should **always** beat
-  *PopCom!*, while CP/M‑80 **LZPACK** builds using **extra** compression
-  *still* beat *PopCom!* in five out of the eleven tests.  The last column
-  shows that **streaming** compression results (representative of **LZPACK**'s
-  performance on a low‑memory CP/M‑80 system) are still respectable, usually
-  only larger than the native **standard** results by a few bytes.
+* **LZPACK** beats *PopCom!* on **every** file in **every** configuration.
+
+* The "**+`-e`**" column is the **extra compression** mode.  On a memory‑rich
+  host it parses the whole file at once beats the **standard** mode by at
+  least few bytes (**/N+`-e`** vs **/N**).  On CP/M‑80, where the window is
+  capped by the stream format (\~8K) with no room for a block, the two modes
+  converge, so the **/C** column would be identical there between the standard
+  and extra modes, so only a single column is shown.
+
+* The **/C** figures were measured under `tnylpo` (with a \~63K TPA).  On
+  CP/M‑80 (or other memory memory constrained systems), the match window (and
+  compression ratio) scales with the available memory: a small TPA means a
+  small window and somewhat larger output.
 
 * The above files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
@@ -186,20 +192,29 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 
 #### Compressors
 
-**LZPACK** actually includes **three** independent **compression** engines,
-which differ in how much effort is expended compressing and how much memory
-is required:
+**LZPACK** compresses using a cost‑optimal shortest‑path parser and includes
+**two implementations**:
 
-1. The **standard** in‑memory compression engine loads the entire file into
-   memory and uses a fast hash‑chain‑based LZ77 match finder.
-2. The **extra** compression engine (`-e`) is a cost‑optimal shortest‑path
-   parser that looks for the smallest possible encoding.  It needs more
-   memory, so it is only available on CP/M‑80 builds that target machines with
-   **\~56K** (or larger) TPAs.
-3. The **streaming** compression engine reads the input through a sliding
-   window and writes the compressed data to a temporary file, so the working
-   memory size is independent of file input size, allowing memory‑constrained
-   systems to pack large executables.
+1. The **in‑memory** implementation loads the entire file into RAM and finds
+   matches with a hash‑chain over the entire file.  It is used by native,
+   Windows, and DOS 386 DPMI builds.
+
+2. The **streaming** variant reads the input through a sliding window and
+   writes the output to a temporary file, so its working memory is independent
+   of the file size.  This lets memory‑constrained systems (*e.g.*, CP/M‑80,
+   CP/M‑86, real‑mode MS‑DOS, ELKS) pack arbitrarily large executables.
+
+Each implementation has **two modes**, which trade memory for size:
+
+* The **standard** mode uses a small parse block, keeping its working set tiny
+  and leaving the most room for a large match window.
+
+* The **extra** mode (`-e`) enlarges the block for the tightest possible parse.
+
+On a memory‑rich host (native, DPMI) `-e` trims a few more bytes off the
+**standard** engine results.  On CP/M‑80, because the match window is limited
+by the stream format and already uses all the available RAM, there is no room
+for `-e`'s larger block, so the two modes will emit **identical** output.
 
 #### Decompressors
 
@@ -224,14 +239,15 @@ engines, differing in execution speed, code size, and memory usage:
 * While **LZPACK**‑generated executables are often smaller, more compatible,
   and always *decompress* faster than those produced by *PopCom!*, the
   **LZPACK** *compressor* is *much* slower than *PopCom!*'s, especially on
-  vintage hardware, because the *PopCom!* compression engine is written in
-  highly‑optimized Z80 assembly vs. **LZPACK**'s portable ANSI C89.
+  vintage hardware: *PopCom!* uses hand‑written Z80 assembly, whereas
+  **LZPACK** runs a portable ANSI C89 cost‑optimal parser that does far more
+  work per byte.
 
-* While compression speed (and ratios) should improve in the future,
-  development focused on providing the fastest possible *unpacking*, since
-  it happens *every time a program is executed*, while the *packing* operation
-  is performed rarely (especially on vintage systems) and can be easily run on
-  modern hardware (which almost everyone has now, in the year 2026).
+* **LZPACK** prioritizes the smallest output with the fastest possible
+  *unpacking*, because decompression happens *every time the packed program
+  is run*, while packing is done rarely (especially on vintage systems) and
+  can be run on modern hardware (which almost everyone has now, in the
+  year 2026).
 
 ## Usage
 
@@ -253,8 +269,6 @@ Usage:
 |-----------------------------------------------------------------------------------------------:|:------------|:------------------------------------------|
 | [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(8080)                    |
 | [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                     |
-| [LZPKOI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOI80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(8080&nbsp;**≥**56K&nbsp;TPA) |
-| [LZPKOZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOZ80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(Z80&nbsp;**≥**56K&nbsp;TPA)  |
 | [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)               |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)                |
 | [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)               |
@@ -270,24 +284,6 @@ compression window for memory.  A smaller compression window will find fewer
 matches and achieve lower compression ratios, so the best build to use
 depends on how much memory is available on the system that will actually run
 the **LZPACK** program.
-
-* **CP/M‑80**  The **extra** compression engine needs a large block of working
-  memory that, on a **\~48K**&nbsp;TPA machine, can only fit by shrinking the
-  compression window down so far that it actually compresses **much worse**
-  than the **standard** engine, so the plain CP/M‑80 builds, for systems with
-  **<**56K&nbsp;TPA
-  ([`LZPCKI80.ARC`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC)
-  for 8080, and
-  [`LZPCKZ80.ARC`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC)
-  for Z80), are **streaming** engine only.  The **extra** compression engine
-  ships as a separate build for systems with **≥**56K&nbsp;TPA
-  ([`LZPKOI80.ARC`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOI80.ARC)
-  for 8080, and
-  [`LZPKOZ80.ARC`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPKOZ80.ARC)
-  for Z80).  It is *highly recommended* that you use a build appropriate to
-  your TPA size.  While the 56K&nbsp;TPA builds will likely still *run* on a
-  machine with smaller memory, compression will suffer greatly vs. the "lesser"
-  standard **\~48K**&nbsp;TPA builds.
 
 * **MS‑DOS**  The real‑mode MS‑DOS build
   ([`LZPCK86R.ZIP`](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP))
@@ -319,7 +315,6 @@ Most users will only be interested in the native binary build.
 |------------:|:-----------------------|:----------|
 | `all`       | Native&nbsp;binary     | ANSI&nbsp;C89 |
 | `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(2025‑05‑01+) |
-| `cpm-opt`   | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(2025‑05‑01+) |
 | `cpm86`     | CP/M‑86&nbsp;8086/8088 | [cross‑Aztec&nbsp;C&nbsp;v4.2](https://github.com/tsupplis/cpm86-crossdev)&nbsp;([tsupplis](https://github.com/tsupplis)) |
 | `msdos`     | MS‑DOS&nbsp;8086/8088  | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2) |
 | `djgpp`     | MS‑DOS&nbsp;80386      | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/) |
