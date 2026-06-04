@@ -799,14 +799,14 @@ match_bits (int dist, int L)
 
 /*
  * The standard engine is a bounded-block cost-optimal parser.  It runs the
- * same shortest-path DP as the -e engine, but only over a small sliding block
+ * same shortest-path DP as the -E engine, but only over a small sliding block
  * at a time (LZ_STDBLK positions), so its working set is a few KB regardless
  * of file size, leaving room for a large match window even on a 48K TPA.
  * Matches are found against the full preceding dictionary (hash chains span
  * back up to MAXDIST); only the parse DP is blocked.  Because matches never
  * exceed MAXLEN and the block is many times larger, the loss from not letting
  * a match cross a block boundary is negligible, yet the parse is dramatically
- * better than the old greedy+lazy heuristic.  The -e engine raises the block
+ * better than the old greedy+lazy heuristic.  The -E engine raises the block
  * size (and so the memory) to remove even that residual boundary loss.
  */
 
@@ -2041,7 +2041,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
-    (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
+    (void)fprintf (stderr, "  (note: -E is not available in this build)\n");
 
   pllen = compress (data, n, LITCNT, pl, 1024, LZ_STDBLK);
 #  else
@@ -2284,16 +2284,16 @@ s_hinsert (long i)
 
 /*
  * Bounded-block parse-DP infrastructure, shared by the standard streaming
- * engine and the -e engine.  Both run the same cost-optimal shortest-path
+ * engine and the -E engine.  Both run the same cost-optimal shortest-path
  * parser over a sliding block of positions; they differ only in the block
  * size (and so the working memory): the standard engine uses a small block
- * that leaves the largest possible match window even on a 48K TPA, while -e
+ * that leaves the largest possible match window even on a 48K TPA, while -E
  * uses a large block for the tightest possible parse.
  */
 
 #  ifndef LZPACK_NO_OPT
 #   ifndef LZ_OPTBLK
-#    define LZ_OPTBLK 2048 /* -e parse block; standard engine never uses it */
+#    define LZ_OPTBLK 2048 /* -E parse block; standard engine never uses it */
 #   endif
 #  endif
 
@@ -3070,8 +3070,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   FILE *in, *tmp, *outf;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
   long stub_dst_top, dcmp_dsttop;
-  long dp_blk = LZ_STDBLK; /* parse-DP block target (LZ_OPTBLK for -e) */
-  const char *dp_tag = ""; /* progress tag, "-e" for the -e engine */
+  long dp_blk = LZ_STDBLK; /* parse-DP block target (LZ_OPTBLK for -E) */
+  const char *dp_tag = ""; /* progress tag, "-E" for the -E engine */
   unsigned char first16[LITCNT];
   char nb[64];
 
@@ -3143,13 +3143,13 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
-    (void)fprintf (stderr, "  (note: -e is not available in this build)\n");
+    (void)fprintf (stderr, "  (note: -E is not available in this build)\n");
 
 #  else
   if (optimal)
     {
-      dp_blk = LZ_OPTBLK; /* -e: grow the parse block into spare heap */
-      dp_tag = "-e";
+      dp_blk = LZ_OPTBLK; /* -E: grow the parse block into spare heap */
+      dp_tag = "-E";
     }
 #  endif
 
@@ -3202,7 +3202,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
    * Window first: both engines reserve only enough heap for the smallest DP
    * block, so the match window is made as large as the TPA allows (a bigger
    * window helps far more than a bigger parse block).  opt_alloc then grabs
-   * whatever heap is left over for the block -- up to LZ_OPTBLK for -e, which
+   * whatever heap is left over for the block -- up to LZ_OPTBLK for -E, which
    * is the only thing that distinguishes the two engines' memory use.
    */
   s_win_start = WIN_MAX;
@@ -3851,9 +3851,9 @@ usage (void)
   static const char *expad = "     ";
   static const char *extra = "";
 # else
-  static const char *exopt = "[-e] ";
+  static const char *exopt = "[-E] ";
   static const char *expad = "";
-  static const char *extra = "-e: extra, ";
+  static const char *extra = "-E: extra, ";
 # endif
 #endif
 
@@ -3954,7 +3954,7 @@ version (void)
 #  endif
 # endif
 
-    (void)printf ("%s build; extra compression (-e) %s; %uK %s free.\n",
+    (void)printf ("%s build; extra compression (-E) %s; %uK %s free.\n",
                   cpu, eopt, tk, memword);
   }
 #endif
