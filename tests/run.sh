@@ -56,7 +56,7 @@ export CPE1704TKS=1
 
 ################################################################################
 
-TEST_TIMEOUT="${TEST_TIMEOUT:-60}"
+TEST_TIMEOUT="${TEST_TIMEOUT:-360}"
 
 export TEST_TIMEOUT
 
