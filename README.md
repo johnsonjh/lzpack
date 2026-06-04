@@ -287,7 +287,7 @@ can be used to override this check, for example:
 
 `<top>` accepts three formats:
 
-|              Fromat | Example                    | Description                    |
+|              Format | Example                    | Description                    |
 |--------------------:|:---------------------------|:-------------------------------|
 | KB size (≤64)       | `-m 32` (or `-m 32K`)      | kilobytes (48 is default)      |
 | hex address         | `-m 0x7DFF`                | literal *MEMTOP* address       |
