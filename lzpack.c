@@ -267,7 +267,7 @@ lxmalloc (size_t n)
 /******************************************************************************/
 
 /*
- * Runtime MEMTOP (-m) override.  memtop is only the accept/reject ceiling
+ * Runtime MEMTOP (-M) override.  memtop is only the accept/reject ceiling
  * for the relocated stub: it never changes the bytes a fitting file gets.
  * The floor is 4K plus the worst-case (8080) relocated stub tail plus a
  * 128-byte record of stack slop, and tracks the stubs if they ever grow.
@@ -275,7 +275,7 @@ lxmalloc (size_t n)
 
 # define MEMTOP_MIN (0x1000 + 51 + S8_DLEN + 128)
 
-/* Set to MEMTOP at startup (-m overrides): zero-initialized so it stays in
+/* Set to MEMTOP at startup (-M overrides): zero-initialized so it stays in
  * BSS, where the CP/M-80 build's trailing-zero .COM trim can elide it. */
 static unsigned memtop;
 
@@ -3756,7 +3756,7 @@ herald (FILE *f)
 #ifndef LZPACK_DECODE_ONLY
 
 /*
- * -m argument: a bare number up to 64 (optionally with a trailing K) is a
+ * -M argument: a bare number up to 64 (optionally with a trailing K) is a
  * memory size in KB, mapped so that 48 gives the built-in 0xBDFF default
  * (K*1024 - 0x201); a larger bare number or a 0x-prefixed hex value is the
  * literal MEMTOP address.  CP/M's CCP upper-cases the command tail, so
@@ -3872,7 +3872,7 @@ usage (void)
     "  lzpack -L <file>            list stored sizes\n"
     "  lzpack -O <name>            set output name\n"
 #ifndef LZPACK_DECODE_ONLY
-    "  lzpack -m <top>             set memory top (default 48K)\n"
+    "  lzpack -M <top>             set memory top (default 48K)\n"
     "  lzpack -C                   stub verifies memory at run time\n"
 #endif
 #ifdef LZ_CPM
