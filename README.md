@@ -256,15 +256,15 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v0.99996 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.99998 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
-  lzpack [-e] [-8|-Z] <file>  compress (-e: extra, -8/-Z: force 8080/Z80 stub)
+  lzpack [-E] [-8|-Z] <file>  compress (-E: extra, -8/-Z: force 8080/Z80 stub)
   lzpack -R <file>            restore (decompress)
   lzpack -L <file>            list stored sizes
   lzpack -O <name>            set output name
-  lzpack -m <top>             set memory top (default 48K)
+  lzpack -M <top>             set memory top (default 48K)
   lzpack -C                   stub verifies memory at run time
   lzpack -V                   show LZPACK information
 ```
