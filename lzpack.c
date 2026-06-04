@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.99997"
+#define LZPACK_VER "v0.99998"
 
 /******************************************************************************/
 
@@ -1496,6 +1496,16 @@ extern int bdos ();
 #   define BDOS_FCB(p) (p)
 #  endif
 # endif
+#endif
+
+/******************************************************************************/
+
+#ifdef __AZTEC_C_42T__
+# define LZ_STACK_RESERVE 2048
+extern void rsvstk ();
+# define LZ_GUARD_STACK() rsvstk (LZ_STACK_RESERVE)
+#else
+# define LZ_GUARD_STACK() ((void)0)
 #endif
 
 /******************************************************************************/
@@ -3974,6 +3984,8 @@ main (int argc, char **argv)
   const char *oname = 0;
   int use8080 = DEFAULT_USE8080, auto_stub = 1, optimal = 0;
   int showver = 0;
+
+  LZ_GUARD_STACK (); /* before the first allocation; see LZ_STACK_RESERVE */
 
 #ifndef LZPACK_DECODE_ONLY
   memtop = MEMTOP;

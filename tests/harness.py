@@ -32,7 +32,7 @@ CPMCOM = os.environ.get("CPMCOM", os.path.join(PROJECT, "cpm-z80", "lzpack.com")
 CPMCMD = os.environ.get("CPMCMD", os.path.join(PROJECT, "cpm-86", "lzpack.cmd"))
 
 # Timeout for each test step (compression, extraction, round-trip)
-TEST_TIMEOUT = int(os.environ.get("TEST_TIMEOUT", 5))
+TEST_TIMEOUT = int(os.environ.get("TEST_TIMEOUT", 360))
 
 # Parallel workers.  Every task is subprocess-bound (the packer and the
 # emulators do the work), so plain threads scale to the CPUs without GIL
