@@ -566,18 +566,38 @@ def test_checked_small(runner, results):
             )
             return
         shutil.copy(os.path.join(wd, "b24.pop"), os.path.join(wd, "runb.com"))
+        # Functional probe for the tnylpo -m (TPA size) patch: -m 64K is just
+        # above the largest possible TPA, so a working patch must refuse it at
+        # startup ("argument out of range").  A stock tnylpo rejects -m as an
+        # unknown option, and a stale or half-patched build can ACCEPT -m yet
+        # silently run with the full 64K TPA -- the usage text alone cannot
+        # tell those apart, and either one would fail the small-TPA leg for
+        # reasons that have nothing to do with the -C stub, so SKIP instead.
+        probe = run_tnylpo(wd, "runb.com", pre=["-m", "64K"])
+        if "out of range" not in probe:
+            emit(
+                results,
+                "big24.com -C @16K",
+                "SKIP",
+                "-",
+                "tnylpo -m (TPA size) patch missing or inactive",
+            )
+            return
         full = run_tnylpo(wd, "runb.com")
         small = run_tnylpo(wd, "runb.com", pre=["-m", "16K"])
         pos_ok = "BIG24-MARK-E5" in full
         neg_ok = "No room" in small and "BIG24-MARK-E5" not in small
         ok = pos_ok and neg_ok
+        note = "full-TPA=%s 16K-TPA=%s" % (
+            "OK" if pos_ok else "BAD",
+            "refused" if neg_ok else "NOT REFUSED",
+        )
+        # surface the emulator's actual output on failure so a remote
+        # report is diagnosable without a repro
+        if not neg_ok:
+            note += " out=" + re.sub(r"\s+", " ", small).strip()[:60]
         emit(
-            results,
-            "big24.com -C @16K",
-            "PASS" if ok else "FAIL",
-            str(len(data)),
-            "full-TPA=%s 16K-TPA=%s"
-            % ("OK" if pos_ok else "BAD", "refused" if neg_ok else "NOT REFUSED"),
+            results, "big24.com -C @16K", "PASS" if ok else "FAIL", str(len(data)), note
         )
     finally:
         shutil.rmtree(wd, ignore_errors=True)
@@ -695,8 +715,13 @@ def main():
             guarded(t, fn, a)
 
     npass = sum(1 for r in results if r[1] == "PASS")
-    print("\n  **** %d/%d passed ****" % (npass, len(results)), flush=True)
-    return 0 if npass == len(results) else 1
+    nskip = sum(1 for r in results if r[1] == "SKIP")
+    print(
+        "\n  **** %d/%d passed%s ****"
+        % (npass, len(results) - nskip, " (%d skipped)" % nskip if nskip else ""),
+        flush=True,
+    )
+    return 0 if npass + nskip == len(results) else 1
 
 
 if __name__ == "__main__":
