@@ -1600,6 +1600,41 @@ static int s_sl_off[MAXREF];
 
 /******************************************************************************/
 
+/* Shared emitters (one copy of the format strings keeps the CP/M-80 hosted
+ * build inside its 48K footprint): the per-file fixup pair table ... */
+
+static void
+emit_fixes (const char *name, const char *uname, const int *off,
+            const int *tgt, int n)
+{
+  int i;
+
+  (void)printf ("static const unsigned short %s_fix[][2] = {\n", name);
+
+  for (i = 0; i < n; i++)
+    (void)printf ("    { %#4x, %#5x },\n",
+                  (unsigned int)off[i], (unsigned int)tgt[i]);
+
+  (void)printf ("};\n\n# define %s_FIX_N %d\n", uname, n);
+}
+
+/* ... and the named patch-slot offsets. */
+
+static void
+emit_slots (const char *const *patch, const char *pfx,
+            const char nm[][NAMELEN], const int *off, int n)
+{
+  int p, i;
+
+  for (p = 0; patch[p]; p++)
+    for (i = 0; i < n; i++)
+      if (!strcmp (nm[i], patch[p]))
+        (void)printf ("# define %s%s 0x%x\n",
+                      pfx, nm[i], (unsigned int)off[i]);
+}
+
+/******************************************************************************/
+
 static int
 zoff (const char *name)
 {
@@ -1713,8 +1748,6 @@ static const char *RESTORE_PATCH[] =
 static void
 emit_restore8080 (const char *path)
 {
-  int i, p;
-
   assemble (path, 0);
   collect (RESTORE_PATCH);
 
@@ -1724,19 +1757,8 @@ emit_restore8080 (const char *path)
 
   emit_bytes ("decompr8080", code, clen);
 
-  (void)printf ("static const unsigned short decompr8080_fix[][2] = {\n");
-
-  for (i = 0; i < nfx; i++)
-    (void)printf ("    { %#4x, %#5x },\n",
-                  (unsigned int)fx_off[i], (unsigned int)fx_tgt[i]);
-
-  (void)printf ("};\n\n# define DECOMPR8080_FIX_N %d\n", nfx);
-
-  for (p = 0; RESTORE_PATCH[p]; p++)
-    for (i = 0; i < nsl; i++)
-      if (!strcmp (sl_name[i], RESTORE_PATCH[p]))
-        (void)printf ("# define S8R_%s 0x%x\n",
-                      sl_name[i], (unsigned int)sl_off[i]);
+  emit_fixes ("decompr8080", "DECOMPR8080", fx_off, fx_tgt, nfx);
+  emit_slots (RESTORE_PATCH, "S8R_", sl_name, sl_off, nsl);
 
   (void)printf ("\n#endif\n");
 }
@@ -1746,8 +1768,6 @@ emit_restore8080 (const char *path)
 static void
 emit_restorez80 (const char *path)
 {
-  int i, p;
-
   assemble (path, 1);
   collect (RESTORE_PATCH);
 
@@ -1757,19 +1777,38 @@ emit_restorez80 (const char *path)
 
   emit_bytes ("decomprz80", code, clen);
 
-  (void)printf ("static const unsigned short decomprz80_fix[][2] = {\n");
+  emit_fixes ("decomprz80", "DECOMPRZ80", fx_off, fx_tgt, nfx);
+  emit_slots (RESTORE_PATCH, "SRZ_", sl_name, sl_off, nsl);
 
-  for (i = 0; i < nfx; i++)
-    (void)printf ("    { %#4x, %#5x },\n",
-                  (unsigned int)fx_off[i], (unsigned int)fx_tgt[i]);
+  (void)printf ("\n#endif\n");
+}
 
-  (void)printf ("};\n\n# define DECOMPRZ80_FIX_N %d\n", nfx);
+/******************************************************************************/
 
-  for (p = 0; RESTORE_PATCH[p]; p++)
-    for (i = 0; i < nsl; i++)
-      if (!strcmp (sl_name[i], RESTORE_PATCH[p]))
-        (void)printf ("# define SRZ_%s 0x%x\n",
-                      sl_name[i], (unsigned int)sl_off[i]);
+static const char *CHECK_PATCH[] = { "DST_LIM", "SP_LIM", 0 };
+
+/*
+ * Emit the optional (-C) runtime memory-check block prefixed to either stub.
+ * Pure 8080 code (runs on the Z80 too), so one block serves both: internal
+ * JMP/data-label operands become +stub_v fixups and DST_LIM/SP_LIM are the
+ * two per-file patch slots.  Distinct names (chkstub, CHK_*) let cschk.h
+ * coexist with the other stub headers in one translation unit.
+ */
+
+static void
+emit_check (const char *path)
+{
+  assemble (path, 0);
+  collect (CHECK_PATCH);
+
+  (void)printf ("#ifndef STUBASM_CSCHK_H\n");
+  (void)printf ("# define STUBASM_CSCHK_H\n\n");
+  (void)printf ("# define CHK_LEN %d\n\n", clen);
+
+  emit_bytes ("chkstub", code, clen);
+
+  emit_fixes ("chkstub", "CHKSTUB", fx_off, fx_tgt, nfx);
+  emit_slots (CHECK_PATCH, "CHK_", sl_name, sl_off, nsl);
 
   (void)printf ("\n#endif\n");
 }
@@ -1809,10 +1848,17 @@ main (int argc, char **argv)
       return 0;
     }
 
+  if (argc == 3 && !strcmp (argv[1], "-chk"))
+    {
+      emit_check (argv[2]);
+
+      return 0;
+    }
+
   if (argc < 3)
     {
       (void)fprintf (stderr,
-        "Usage: stubasm [-z80|-r|-z80] setup.asm decomp.asm > stub.h\n");
+        "Usage: stubasm [-z80|-r|-rz80|-chk] setup.asm [decomp.asm] >stub.h\n");
 
       return 2;
     }
@@ -1854,40 +1900,12 @@ main (int argc, char **argv)
   emit_bytes ("setup8080", setup, slen);
   emit_bytes ("decomp8080", decomp, dlen);
 
-  (void)printf ("static const unsigned short setup8080_fix[][2] = {\n");
+  emit_fixes ("setup8080", "SETUP8080", s_fx_off, s_fx_tgt, s_nfx);
+  (void)printf ("\n");
+  emit_fixes ("decomp8080", "DECOMP8080", fx_off, fx_tgt, nfx);
 
-  for (i = 0; i < s_nfx; i++)
-    (void)printf ("    { %#4x, %#4x },\n",
-                  (unsigned int)s_fx_off[i], (unsigned int)s_fx_tgt[i]);
-
-  (void)printf ("};\n\n# define SETUP8080_FIX_N %d\n", s_nfx);
-  (void)printf ("\nstatic const unsigned short decomp8080_fix[][2] = {\n");
-
-  for (i = 0; i < nfx; i++)
-    (void)printf ("    { %#4x, %#5x },\n",
-                  (unsigned int)fx_off[i], (unsigned int)fx_tgt[i]);
-
-  (void)printf ("};\n\n# define DECOMP8080_FIX_N %d\n", nfx);
-
-  {
-    int p;
-
-    for (p = 0; SETUP_PATCH[p]; p++)
-      for (i = 0; i < s_nsl; i++)
-        if (!strcmp (s_sl_name[i], SETUP_PATCH[p]))
-          (void)printf ("# define S8S_%s 0x%x\n",
-                        s_sl_name[i], (unsigned int)s_sl_off[i]);
-  }
-
-  {
-    int p;
-
-    for (p = 0; DECOMP_PATCH[p]; p++)
-      for (i = 0; i < nsl; i++)
-        if (!strcmp (sl_name[i], DECOMP_PATCH[p]))
-          (void)printf ("# define S8D_%s 0x%x\n",
-                        sl_name[i], (unsigned int)sl_off[i]);
-  }
+  emit_slots (SETUP_PATCH, "S8S_", s_sl_name, s_sl_off, s_nsl);
+  emit_slots (DECOMP_PATCH, "S8D_", sl_name, sl_off, nsl);
 
   (void)printf ("\n#endif\n");
 

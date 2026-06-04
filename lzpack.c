@@ -1,5 +1,5 @@
 /*
- * LZPACK - 48K CP/M-80 (8080 and Z80) executable compressor
+ * LZPACK - CP/M-80 (8080 and Z80) executable compressor
  * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
  * SPDX-License-Identifier: MIT-0
  * scspell-id: a5653bbc-585c-11f1-954d-80ee73e9b8e7
@@ -30,6 +30,9 @@
 /******************************************************************************/
 
 #ifdef LZPACK_STREAM
+# ifdef LZPACK_DECODE_ONLY
+#  error "LZPACK_STREAM and LZPACK_DECODE_ONLY are mutually exclusive"
+# endif
 # ifndef LZPACK_OPT
 #  ifndef LZPACK_NO_OPT
 #   define LZPACK_NO_OPT
@@ -252,6 +255,7 @@ lxmalloc (size_t n)
 
 # include "csz80.h"
 # include "cs8080.h"
+# include "cschk.h"
 
 # define Z80_HEADROOM 51
 # define STUBLEN (Z80_SETUP_LEN + Z80_DCMP_LEN)
@@ -259,6 +263,31 @@ lxmalloc (size_t n)
 # if S8_DLEN > 256
 #  error "8080 decompressor exceeds 256 bytes; widen SL3 counter in s8080s.asm"
 # endif
+
+/******************************************************************************/
+
+/*
+ * Runtime MEMTOP (-m) override.  memtop is only the accept/reject ceiling
+ * for the relocated stub: it never changes the bytes a fitting file gets.
+ * The floor is 4K plus the worst-case (8080) relocated stub tail plus a
+ * 128-byte record of stack slop, and tracks the stubs if they ever grow.
+ */
+
+# define MEMTOP_MIN (0x1000 + 51 + S8_DLEN + 128)
+
+/* Set to MEMTOP at startup (-m overrides): zero-initialized so it stays in
+ * BSS, where the CP/M-80 build's trailing-zero .COM trim can elide it. */
+static unsigned memtop;
+
+/*
+ * -C prefixes the stub with the runtime memory check (chk.asm): it refuses
+ * to unpack when the highest write would reach the BDOS base (word at
+ * 0x0006) or come within CHK_SP_SLACK bytes of the live inherited stack.
+ */
+
+# define CHK_SP_SLACK 16
+
+static int opt_checked = 0;
 
 /******************************************************************************/
 
@@ -1751,6 +1780,36 @@ static const unsigned char op8080_len[256] = {
 
 /******************************************************************************/
 
+/*
+ * Emit the optional (-C) runtime memory-check block, which loads at stub_v
+ * ahead of the setup block and falls through into it.  Patches the internal
+ * +stub_v references and the two limits: wtop is the highest address the
+ * unpack will write (Z80 stub_dst_top / 8080 dcmp_dsttop).  Returns the
+ * number of bytes emitted (0 when -C is off); the caller shifts the setup
+ * block and everything measured from it by that amount.
+ */
+
+static long
+put_check (unsigned char *dst, long stub_v, long wtop)
+{
+  int i;
+
+  if (!opt_checked)
+    return 0;
+
+  (void)memcpy (dst, chkstub, CHK_LEN);
+
+  for (i = 0; i < CHKSTUB_FIX_N; i++)
+    put16 (dst + chkstub_fix[i][0], (unsigned)(stub_v + chkstub_fix[i][1]));
+
+  put16 (dst + CHK_DST_LIM, (unsigned)(wtop + 1));
+  put16 (dst + CHK_SP_LIM, (unsigned)(wtop + 1 + CHK_SP_SLACK));
+
+  return CHK_LEN;
+}
+
+/******************************************************************************/
+
 # ifndef LZPACK_STREAM
 
 static void
@@ -1775,8 +1834,9 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
   long stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
   unsigned char *stub;
+  long chk;
 
-  if (stub_dst_top > MEMTOP)
+  if (stub_dst_top > (long)memtop)
     return -1;
 
   put_header (outf, data, stub_v, outlen);
@@ -1786,10 +1846,13 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
 
   stub = outf + LITCNT + pllen + LITCNT;
 
+  chk = put_check (stub, stub_v, stub_dst_top);
+  stub += chk;
+
   (void)memcpy (stub, z80_stub, STUBLEN);
 
   put16 (stub + P_LIT_SRC, (unsigned)lit_src);
-  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + (STUBLEN - 1)));
+  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + chk + (STUBLEN - 1)));
   put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
   put16 (stub + P_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
@@ -1811,7 +1874,7 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
       put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
   }
 
-  return LITCNT + pllen + LITCNT + STUBLEN;
+  return LITCNT + pllen + LITCNT + chk + STUBLEN;
 }
 
 /******************************************************************************/
@@ -1822,13 +1885,14 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
 {
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
-  long decomp_file_v = stub_v + S8_SLEN;
+  long decomp_file_v;
   long stub_run = pl_dst_top + 51;
   long dcmp_dsttop = stub_run + S8_DLEN - 1;
   unsigned char *su, *de;
+  long chk;
   int i;
 
-  if (dcmp_dsttop > MEMTOP)
+  if (dcmp_dsttop > (long)memtop)
     return -1;
 
   put_header (outf, data, stub_v, outlen);
@@ -1837,14 +1901,18 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   (void)memcpy (outf + LITCNT + pllen, data, LITCNT);
 
   su = outf + LITCNT + pllen + LITCNT;
+
+  chk = put_check (su, stub_v, dcmp_dsttop);
+  su += chk;
   de = su + S8_SLEN;
+  decomp_file_v = stub_v + chk + S8_SLEN;
 
   (void)memcpy (su, setup8080, S8_SLEN);
   (void)memcpy (de, decomp8080, S8_DLEN);
 
   for (i = 0; i < SETUP8080_FIX_N; i++)
     put16 (su + setup8080_fix[i][0],
-           (unsigned)(stub_v + setup8080_fix[i][1]));
+           (unsigned)(stub_v + chk + setup8080_fix[i][1]));
 
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
@@ -1863,7 +1931,7 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (de + S8D_PL_LEN, (unsigned)pllen);
 
-  return LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN;
+  return LITCNT + pllen + LITCNT + chk + S8_SLEN + S8_DLEN;
 }
 
 /******************************************************************************/
@@ -2786,8 +2854,8 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
   long stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
-  unsigned char hdr[LITCNT], stub[STUBLEN];
-  long k;
+  unsigned char hdr[LITCNT], stub[STUBLEN], chkb[CHK_LEN];
+  long chk, k;
 
   (void)memcpy (hdr, first16, LITCNT);
   hdr[0] = 0xc3;
@@ -2809,10 +2877,15 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
 
   (void)fwrite (first16, 1, LITCNT, outf);
 
+  chk = put_check (chkb, stub_v, stub_dst_top);
+
+  if (chk)
+    (void)fwrite (chkb, 1, (size_t)chk, outf);
+
   (void)memcpy (stub, z80_stub, STUBLEN);
 
   put16 (stub + P_LIT_SRC, (unsigned)lit_src);
-  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + (STUBLEN - 1)));
+  put16 (stub + P_STUB_SRCTOP, (unsigned)(stub_v + chk + (STUBLEN - 1)));
   put16 (stub + P_STUB_DSTTOP, (unsigned)stub_dst_top);
   put16 (stub + P_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (stub + P_PL_DSTTOP, (unsigned)pl_dst_top);
@@ -2836,7 +2909,7 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
 
   (void)fwrite (stub, 1, STUBLEN, outf);
 
-  return LITCNT + pllen + LITCNT + STUBLEN;
+  return LITCNT + pllen + LITCNT + chk + STUBLEN;
 }
 
 /******************************************************************************/
@@ -2847,11 +2920,11 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
 {
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
-  long decomp_file_v = stub_v + S8_SLEN;
+  long decomp_file_v;
   long stub_run = pl_dst_top + 51;
   long dcmp_dsttop = stub_run + S8_DLEN - 1;
-  unsigned char hdr[LITCNT], su[S8_SLEN], de[S8_DLEN];
-  long k;
+  unsigned char hdr[LITCNT], su[S8_SLEN], de[S8_DLEN], chkb[CHK_LEN];
+  long chk, k;
   int i;
 
   (void)memcpy (hdr, first16, LITCNT);
@@ -2874,11 +2947,19 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
 
   (void)fwrite (first16, 1, LITCNT, outf);
 
+  chk = put_check (chkb, stub_v, dcmp_dsttop);
+
+  if (chk)
+    (void)fwrite (chkb, 1, (size_t)chk, outf);
+
+  decomp_file_v = stub_v + chk + S8_SLEN;
+
   (void)memcpy (su, setup8080, S8_SLEN);
   (void)memcpy (de, decomp8080, S8_DLEN);
 
   for (i = 0; i < SETUP8080_FIX_N; i++)
-    put16 (su + setup8080_fix[i][0], (unsigned)(stub_v + setup8080_fix[i][1]));
+    put16 (su + setup8080_fix[i][0],
+           (unsigned)(stub_v + chk + setup8080_fix[i][1]));
 
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
@@ -2899,7 +2980,7 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)fwrite (su, 1, S8_SLEN, outf);
   (void)fwrite (de, 1, S8_DLEN, outf);
 
-  return LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN;
+  return LITCNT + pllen + LITCNT + chk + S8_SLEN + S8_DLEN;
 }
 
 /******************************************************************************/
@@ -2993,7 +3074,6 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   const char *dp_tag = ""; /* progress tag, "-e" for the -e engine */
   unsigned char first16[LITCNT];
   char nb[64];
-  static unsigned short wshown = 0;
 
   /* cppcheck-suppress variableScope */
   const char *oom = "ERROR: out of memory for compression window\n";
@@ -3149,11 +3229,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-  if (verbose && !wshown) {
+  if (verbose)
     (void)fprintf (stderr, "  %-12s window %ld bytes (max distance %ld)\n",
                    fn, s_winsz, s_maxback);
-    wshown++;
-  }
 
   prog_begin (verbose, n - LITCNT, fn);
 
@@ -3194,7 +3272,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
   dcmp_dsttop = (pl_dst_top + 51) + S8_DLEN - 1;
 
-  if (use8080 ? (dcmp_dsttop > MEMTOP) : (stub_dst_top > MEMTOP))
+  if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
     {
       (void)remove (LZTMP);
       (void)fprintf (stderr, "ERROR: %s would not fit in memory\n", fn);
@@ -3203,7 +3281,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
   body = (use8080 ? (LITCNT + pllen + LITCNT + S8_SLEN + S8_DLEN)
-                  : (LITCNT + pllen + LITCNT + STUBLEN));
+                  : (LITCNT + pllen + LITCNT + STUBLEN))
+         + (opt_checked ? CHK_LEN : 0);
 
   total = body;
 
@@ -3667,10 +3746,99 @@ static void
 herald (FILE *f)
 {
   (void)fprintf (f,
-    "LZPACK %s - 48K CP/M-80 (8080 and Z80) executable compressor\n"
+    "LZPACK %s - CP/M-80 (8080 and Z80) executable compressor\n"
     "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n",
     LZPACK_VER);
 }
+
+/******************************************************************************/
+
+#ifndef LZPACK_DECODE_ONLY
+
+/*
+ * -m argument: a bare number up to 64 (optionally with a trailing K) is a
+ * memory size in KB, mapped so that 48 gives the built-in 0xBDFF default
+ * (K*1024 - 0x201); a larger bare number or a 0x-prefixed hex value is the
+ * literal MEMTOP address.  CP/M's CCP upper-cases the command tail, so
+ * everything is accepted in either case.  Pure 16-bit unsigned arithmetic:
+ * the single-compare guards stop any accumulation past 0xFFFF except
+ * 65536..65539, which wrap to 0..3 and are then caught by the KB-form
+ * floor, so no accepted parse can exceed 16 bits and the 0xFFFF ceiling is
+ * structural.  Returns 0 (never a valid MEMTOP) if the value is malformed
+ * or outside [MEMTOP_MIN, 0xFFFF].
+ */
+
+static unsigned
+parse_memtop (const char *s)
+{
+  /* function static direct addressing is far smaller than IX-relative
+   * stack locals under sccz80, and a CLI parser needs no reentrancy */
+  static unsigned v;
+
+  v = 0;
+
+  if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+    {
+      for (s += 2;; s++)
+        {
+          static unsigned char c;
+
+          c = (unsigned char)(*s | 0x20);
+
+          if (c >= '0' && c <= '9')
+            c = (unsigned char)(c - '0');
+          else if (c >= 'a' && c <= 'f')
+            c = (unsigned char)(c - 'a' + 10);
+          else
+            break;
+
+          if (v > 0x0FFFU) /* another digit cannot fit in 16 bits */
+            return 0;
+
+          v = (v << 4) + c;
+        }
+    }
+  else
+    {
+      for (; *s >= '0' && *s <= '9'; s++)
+        {
+          if (v > 6553U) /* v*10 cannot fit in 16 bits */
+            return 0;
+
+          v = v * 10 + (unsigned char)(*s - '0');
+        }
+
+# if UINT_MAX > 0xFFFFU
+      /* On 16-bit ints 65536..65539 wrap to 0..3 and the KB-form floor
+       * rejects them below; wider ints must reject the range explicitly. */
+      if (v > 0xFFFFU)
+        return 0;
+# endif
+
+      if (*s == 'k' || *s == 'K') /* trailing K: the KB form only */
+        {
+          s++;
+
+          if (v > 64U)
+            return 0;
+        }
+
+      if (v <= 64U) /* KB form: K*1024 - 0x201, so 48 -> 0xBDFF */
+        {
+          if (v < 5U)
+            return 0;
+
+          v = v * 1024U - 0x201U;
+        }
+    }
+
+  if (*s || v < MEMTOP_MIN)
+    return 0;
+
+  return v;
+}
+
+#endif
 
 /******************************************************************************/
 
@@ -3703,6 +3871,10 @@ usage (void)
 #endif
     "  lzpack -L <file>            list stored sizes\n"
     "  lzpack -O <name>            set output name\n"
+#ifndef LZPACK_DECODE_ONLY
+    "  lzpack -m <top>             set memory top (default 48K)\n"
+    "  lzpack -C                   stub verifies memory at run time\n"
+#endif
 #ifdef LZ_CPM
     "%s"
 #endif
@@ -3803,6 +3975,10 @@ main (int argc, char **argv)
   int use8080 = DEFAULT_USE8080, auto_stub = 1, optimal = 0;
   int showver = 0;
 
+#ifndef LZPACK_DECODE_ONLY
+  memtop = MEMTOP;
+#endif
+
   /*
    * First pass: gather options (which may appear anywhere on the line) and
    * count the input files.  CP/M's CCP upper-cases the command tail, so each
@@ -3831,6 +4007,23 @@ main (int argc, char **argv)
             }
           else if (c == 'e' || c == 'E')
             optimal = 1;
+#ifndef LZPACK_DECODE_ONLY
+          else if (c == 'c' || c == 'C')
+            opt_checked = 1;
+          else if (c == 'm' || c == 'M')
+            {
+              unsigned v = (i + 1 < argc) ? parse_memtop (argv[++i]) : 0;
+
+              if (!v)
+                {
+                  (void)fprintf (stderr, "ERROR: bad -m value\n");
+
+                  return 2;
+                }
+
+              memtop = v;
+            }
+#endif
           else if (c == 'o' || c == 'O')
             {
               if (i + 1 >= argc)
@@ -3904,7 +4097,7 @@ main (int argc, char **argv)
         {
           char c = argv[i][1];
 
-          if (c == 'o' || c == 'O')
+          if (c == 'o' || c == 'O' || c == 'm' || c == 'M')
             i++;
 
           continue;

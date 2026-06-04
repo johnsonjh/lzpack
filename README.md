@@ -256,7 +256,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v0.99996 - 48K CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.99996 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
@@ -264,8 +264,51 @@ Usage:
   lzpack -R <file>            restore (decompress)
   lzpack -L <file>            list stored sizes
   lzpack -O <name>            set output name
+  lzpack -m <top>             set memory top (default 48K)
+  lzpack -C                   stub verifies memory at run time
   lzpack -V                   show LZPACK information
 ```
+
+### Memory ceiling (`-m`)
+
+As a packed program decompresses in place on the target machine, the image
+expands to its full original size at `0x100` with the relocated decompressor
+sitting just above it (up to 271 bytes past the image top).  At pack time,
+**LZPACK** verifies that everything fits below a memory ceiling (*MEMTOP*),
+and refuses to produce the file otherwise, by default at `0xBDFF`, so packed
+programs are guaranteed to run on a **48K TPA** system.  The `-m <top>` option
+can be used to override this check, for example:
+
+* Using `-m 64` to pack programs too large for **48K TPA**, but the result will
+  *requires* a correspondingly larger TPA at run time.
+* Using `-m 32` to guarantee the output runs on smaller systems, to keep the
+  unpacker away from a resident driver that might have stolen the top of the
+  TPA, or to enforce a maximum size budget while developing.
+
+`<top>` accepts three formats:
+
+|              Fromat | Example                    | Description                    |
+|--------------------:|:---------------------------|:-------------------------------|
+| KB size (≤64)       | `-m 32` (or `-m 32K`)      | kilobytes (48 is default)      |
+| hex address         | `-m 0x7DFF`                | literal *MEMTOP* address       |
+| decimal address     | `-m 65023`                 | literal *MEMTOP* address (>64) |
+
+Values below `0x1190` (4K) or above `0xFFFF` are rejected.
+
+### Runtime memory check (`-C`)
+
+The pack‑time checks cannot know the machine the packed program will
+eventually runs on, for example, a smaller TPA than the one packed for, or
+a system that has a resident driver that might lower the BDOS pointer at
+`0x0006`, which would be silently overwritten during decompression.  The `-C`
+option enhances the stub with a small (48‑byte) runtime check.  It verifies
+the highest address the unpacker will write to lies below the BDOS base *and*
+that at least 16 bytes are clear of the live inherited stack.  If the program
+does not fit, it prints `No room` and gives up.
+
+Because this check adds an extra 48 bytes to every packed file it is off by
+default.  Enabling it does not consume any high memory and it is never
+relocated, so it does not change what fits under any given `-m` setting.
 
 ## Downloads
 

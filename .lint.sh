@@ -259,7 +259,7 @@ command -v flawfinder > /dev/null 2>&1 && {
   if (
     set -x
     flawfinder --quiet --dataonly --omittime --error-level=3 --context \
-      --minlevel=3 stubasm.c lzpack.c tests/t_autoarch.c
+      --minlevel=3 stubasm.c lzpack.c tests/t_autoarch.c tests/t_memtop.c
   ); then
     :
   else
@@ -272,8 +272,8 @@ command -v flawfinder > /dev/null 2>&1 && {
 
 command -v cppi > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
-  for f in ./cs8080.h ./csz80.h ./csr8080.h ./csrz80.h ./stubasm.c \
-    ./lzpack.c ./tests/t_autoarch.c; do
+  for f in ./cs8080.h ./csz80.h ./csr8080.h ./csrz80.h ./cschk.h \
+    ./stubasm.c ./lzpack.c ./tests/t_autoarch.c ./tests/t_memtop.c; do
     if (
       set -x
       cppi -a --check "${f}"
@@ -1008,6 +1008,15 @@ command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
     printf '%s\n' "****** FAILURE DETECTED ******"
     rc=1
   fi
+  if (
+    set -x
+    (cd tests && "${CH_CMD:-ch}" -n ./t_memtop.c)
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
 }
 
 ################################################################################
@@ -1112,6 +1121,32 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
       -O -fd -std=c89 -err=warn -XCC=no -DLZPACK_STREAM \
       -errchk=structarg,parentheses,locfmtchk -erroff=E_NAME_DEF_NOT_USED2 \
       t_autoarch.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    cd tests
+    set -x
+    "${OLINT:?}" \
+      -O -fd -std=c89 -err=warn -XCC=no \
+      -errchk=structarg,parentheses,locfmtchk -erroff=E_NAME_DEF_NOT_USED2 \
+      t_memtop.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    cd tests
+    set -x
+    "${OLINT:?}" \
+      -O -fd -std=c89 -err=warn -XCC=no -DLZPACK_STREAM \
+      -errchk=structarg,parentheses,locfmtchk -erroff=E_NAME_DEF_NOT_USED2 \
+      t_memtop.c
   ); then
     :
   else

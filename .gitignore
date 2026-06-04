@@ -26,6 +26,7 @@ core-*
 /cpm-86/
 /cpm-z80/
 /cs8080.h
+cschk.h
 /csr8080.h
 /csrz80.h
 /csz80.h

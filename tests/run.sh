@@ -62,6 +62,56 @@ export TEST_TIMEOUT
 
 ################################################################################
 
+# Parallel harness workers: every harness task is an independent
+# pack/extract in a private scratch dir, so it scales to the CPU count.
+# LZ_TEST_JOBS=1 forces the old serial order.
+
+if [ -z "${LZ_TEST_JOBS:-}" ]; then
+  LZ_TEST_JOBS="$(nproc 2> /dev/null || getconf _NPROCESSORS_ONLN \
+    2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || printf '%s\n' 1)"
+fi
+
+case ${LZ_TEST_JOBS} in
+'' | *[!0-9]*)
+  LZ_TEST_JOBS=1
+  ;;
+*) : ;;
+esac
+
+export LZ_TEST_JOBS
+
+################################################################################
+
+# Wall-clock section timing ('date +%s' is non-POSIX but ubiquitous; where
+# it is unsupported the sections simply report 0s).
+
+now_s()
+{
+  _n="$(date +%s 2> /dev/null)" || _n=
+  case ${_n} in
+  '' | *[!0-9]*)
+    _n=0
+    ;;
+  *) : ;;
+  esac
+  printf '%s\n' "${_n}"
+}
+
+SUITE_T0="$(now_s)"
+
+sec_begin()
+{
+  SEC_T0="$(now_s)"
+}
+
+sec_end()
+{
+  # shellcheck disable=SC2312
+  printf '%s\n' ">> section time: $(($(now_s) - SEC_T0))s"
+}
+
+################################################################################
+
 CC="$(command -v cc 2> /dev/null || command -v "${GCC_CMD:-gcc}" 2> /dev/null \
   || command -v "${CLANG_CMD:-clang}" 2> /dev/null || printf '%s\n' cc)"
 
@@ -137,10 +187,26 @@ fi
 printf '\n%s' ">> Starting tests; "
 printf '%s\n' \
   "test timeout is ${TEST_TIMEOUT} seconds (override via TEST_TIMEOUT)."
+printf '%s\n' \
+  ">> Parallel harness jobs: ${LZ_TEST_JOBS} (override via LZ_TEST_JOBS)."
+
+################################################################################
+
+# Generate any missing test corpus up front: harness.py would lazily rebuild
+# it, but doing it once here keeps parallel consumers from ever racing on it.
+
+for cf in tiny small med big16 big24 big46 incomp over z80 \
+  ckzero cktext ckrep; do
+  test -f "./tests/corpus/${cf}.com" || {
+    python3 ./tests/gen.py
+    break
+  }
+done
 
 ################################################################################
 
 printf '\n%s\n' "================== UNIT ==================="
+sec_begin
 
 # The autodetector "stop at the logical/LRBC length and not at physical EOF"
 # logic cannot be reached through the CP/M 2.2 test emulations (no LRBC, so
@@ -148,25 +214,30 @@ printf '\n%s\n' "================== UNIT ==================="
 # program that #includes lzpack.c and calls the detector, once for streaming
 # as is_z80_file(), and once as the in-RAM is_z80_image(), and we check that
 # both stop at the correct logical length.  Needs only a working C compiler.
+# t_memtop.c likewise unit-tests the -m (MEMTOP) value parser in both builds.
 
 # shellcheck disable=SC2119
 ut="$(mktemp 2> /dev/null || mktemp_lzpack)"
 
-for udef in "-DLZPACK_STREAM" ""; do
-  # shellcheck disable=SC2086,SC2248
-  if "${CC:-cc}" ${udef} -I. -o "${ut}" tests/t_autoarch.c \
-    && ${_TIMEOUT:-} "${ut}"; then
-    :
-  else
-    rc=1
-  fi
+for usrc in tests/t_autoarch.c tests/t_memtop.c; do
+  for udef in "-DLZPACK_STREAM" ""; do
+    # shellcheck disable=SC2086,SC2248
+    if "${CC:-cc}" ${udef} -I. -o "${ut}" "${usrc}" \
+      && ${_TIMEOUT:-} "${ut}"; then
+      :
+    else
+      rc=1
+    fi
+  done
 done
 
 rm -f "${ut}"
+sec_end
 
 ################################################################################
 
 printf '\n%s\n' "================ STREAM ==================="
+sec_begin
 
 # Emulator-free check of the streaming (-DLZPACK_STREAM) build's in-place -R.
 # That build decodes into a single overlapping buffer (the payload sits at the
@@ -208,20 +279,25 @@ fi
 
 rm -rf "${sdir}"
 rm -f "${st}"
+sec_end
 
 ################################################################################
 
 printf '\n%s\n' "================= NATIVE =================="
+sec_begin
 
 TNYLPO="${TNYLPO}" python3 tests/harness.py native || rc=1
+sec_end
 
 ################################################################################
 
 if [ -f "./cpm-8080/lzpack.com" ] \
   && command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '\n%s\n' "=============== 8080 TNYLPO ==============="
+  sec_begin
   TNYLPO="${TNYLPO}" CPMCOM="./cpm-8080/lzpack.com" \
     python3 tests/harness.py cpm || rc=1
+  sec_end
 fi
 
 ################################################################################
@@ -229,8 +305,10 @@ fi
 if [ -f "./cpm-8080/lzpack.com" ] \
   && command -v "${CPMEMU}" > /dev/null 2>&1; then
   printf '\n%s\n' "=============== 8080 CPMEMU ==============="
+  sec_begin
   CPMEMU="${CPMEMU}" CPMCOM="./cpm-8080/lzpack.com" \
     python3 tests/harness.py cpm2 || rc=1
+  sec_end
 fi
 
 ################################################################################
@@ -238,8 +316,10 @@ fi
 if [ -f "./cpm-z80/lzpack.com" ] \
   && command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '\n%s\n' "================ Z80 TNYLPO ==============="
+  sec_begin
   TNYLPO="${TNYLPO}" CPMCOM="./cpm-z80/lzpack.com" \
     python3 tests/harness.py cpm || rc=1
+  sec_end
 fi
 
 ################################################################################
@@ -247,8 +327,10 @@ fi
 if [ -f "./cpm-z80/lzpack.com" ] \
   && command -v "${CPMEMU}" > /dev/null 2>&1; then
   printf '\n%s\n' "================ Z80 CPMEMU ==============="
+  sec_begin
   CPMEMU="${CPMEMU}" CPMCOM="./cpm-z80/lzpack.com" \
     python3 tests/harness.py cpm2 || rc=1
+  sec_end
 fi
 
 ################################################################################
@@ -258,11 +340,16 @@ if [ -f "./cpm-86/lzpack.cmd" ] \
   && "${EMU2}" -h 2>&1 | grep -q "DOS and CP/M-86 Emulator" \
   && command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '\n%s\n' "============== EMU2-CP/M-86 ==============="
+  sec_begin
   EMU2="${EMU2}" TNYLPO="${TNYLPO}" CPMCMD="./cpm-86/lzpack.cmd" \
     python3 tests/harness.py cpm86 || rc=1
+  sec_end
 fi
 
 ################################################################################
+
+# shellcheck disable=SC2312
+printf '\n%s\n' ">> Total suite time: $(($(now_s) - SUITE_T0))s"
 
 if [ "${rc}" != 0 ]; then
   printf '\n%s\n\n' ">> Testing suite completed BUT SOME TESTS FAILED!!!"

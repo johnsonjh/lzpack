@@ -16,7 +16,8 @@ Usage:
 
 A "runner" is whatever turns argv into an lzpack invocation in a scratch dir.
 """
-import os, re, sys, shutil, subprocess, glob, tempfile
+import os, re, sys, shutil, subprocess, glob, tempfile, threading
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CORPUS = os.path.join(ROOT, "corpus")
@@ -32,6 +33,20 @@ CPMCMD = os.environ.get("CPMCMD", os.path.join(PROJECT, "cpm-86", "lzpack.cmd"))
 
 # Timeout for each test step (compression, extraction, round-trip)
 TEST_TIMEOUT = int(os.environ.get("TEST_TIMEOUT", 5))
+
+# Parallel workers.  Every task is subprocess-bound (the packer and the
+# emulators do the work), so plain threads scale to the CPUs without GIL
+# concerns.  LZ_TEST_JOBS=1 forces today's serial order; the default is the
+# machine's CPU count.  Rows print live as tasks complete, so the output
+# interleaves across tasks when parallel.
+try:
+    JOBS = int(os.environ.get("LZ_TEST_JOBS", ""))
+except ValueError:
+    JOBS = 0
+if JOBS < 1:
+    JOBS = os.cpu_count() or 1
+
+EMIT_LOCK = threading.Lock()
 
 # corpus file -> (expected_marker_substring, expectation, expected_stub)
 # expectation: 'ok' = must self-extract; 'skip' = compressor should refuse
@@ -62,9 +77,10 @@ CORPUS_FILES = [
 MODES = [[], ["-e"], ["-8"], ["-e", "-8"], ["-Z"]]
 
 
-def run_tnylpo(workdir, comname, args=None):
-    """Run a CP/M .COM under tnylpo in workdir; return decoded stdout."""
-    cmd = [TNYLPO, "-n", comname] + (args or [])
+def run_tnylpo(workdir, comname, args=None, pre=None):
+    """Run a CP/M .COM under tnylpo in workdir; return decoded stdout.
+    pre holds tnylpo's own options (e.g. ["-m", "16K"] to shrink the TPA)."""
+    cmd = [TNYLPO] + (pre or []) + ["-n", comname] + (args or [])
     p = subprocess.run(
         cmd,
         cwd=workdir,
@@ -149,9 +165,12 @@ def find_one(workdir, *patterns):
 def emit(results, tag, status, size, note):
     """Record a result row and print it immediately (flushed), so progress
     streams line-by-line instead of all at once -- tests can be slow, and a
-    piped stdout would otherwise stay fully buffered until the run ends."""
-    results.append((tag, status, size, note))
-    print("  [%s] %-22s size=%-11s %s" % (status, tag, size, note), flush=True)
+    piped stdout would otherwise stay fully buffered until the run ends.
+    Under parallel runs rows appear in completion order; the lock keeps the
+    row list and the printed lines consistent."""
+    with EMIT_LOCK:
+        results.append((tag, status, size, note))
+        print("  [%s] %-22s size=%-11s %s" % (status, tag, size, note), flush=True)
 
 
 def parse_arch(log):
@@ -162,7 +181,11 @@ def parse_arch(log):
     return m.group(1) if m else "?"
 
 
-def test_file(runner, fname, marker, expect, expect_arch, results):
+def test_mode(runner, fname, marker, expect, expect_arch, mode, results):
+    """One (corpus file, mode) combination -- the parallel unit of work.
+    Each task is fully independent: it re-derives the original program's
+    reference output itself (the originals just print a marker and exit, so
+    the duplication is cheap, and it keeps the task graph barrier-free)."""
     src = os.path.join(CORPUS, fname)
     base = fname[:-4]  # strip .com
     orig = open(src, "rb").read()
@@ -176,105 +199,388 @@ def test_file(runner, fname, marker, expect, expect_arch, results):
     finally:
         shutil.rmtree(wd, ignore_errors=True)
 
-    for mode in MODES:
-        tag = "%s %s" % (fname, " ".join(mode) if mode else "(plain)")
-        wd = tempfile.mkdtemp(prefix="lz_")
-        try:
-            # tnylpo maps CP/M's upper-cased names back to lowercase Unix
-            # files, so the on-disk names must be lowercase for both runners.
-            shutil.copy(src, os.path.join(wd, fname))
-            rc, log = runner(wd, mode + [fname])
-            pop = find_one(wd, base + ".pop", base + ".POP", base.upper() + ".pop")
+    tag = "%s %s" % (fname, " ".join(mode) if mode else "(plain)")
+    wd = tempfile.mkdtemp(prefix="lz_")
+    try:
+        # tnylpo maps CP/M's upper-cased names back to lowercase Unix
+        # files, so the on-disk names must be lowercase for both runners.
+        shutil.copy(src, os.path.join(wd, fname))
+        rc, log = runner(wd, mode + [fname])
+        pop = find_one(wd, base + ".pop", base + ".POP", base.upper() + ".pop")
 
-            if expect == "skip":
-                # success == no output file produced
-                ok = pop is None
-                emit(
-                    results,
-                    tag,
-                    "PASS" if ok else "FAIL",
-                    "-",
-                    (
-                        "correctly refused"
-                        if ok
-                        else "UNEXPECTED OUTPUT " + os.path.basename(pop)
-                    ),
-                )
-                continue
-
-            if pop is None:
-                emit(
-                    results,
-                    tag,
-                    "FAIL",
-                    "-",
-                    "no .pop produced; log=" + log.strip()[:80],
-                )
-                continue
-            psize = os.path.getsize(pop)
-            # lzpack writes the self-extracting file at its exact length.  The
-            # native build (and any LRBC-aware CP/M target) therefore produces a
-            # file that is *not* a multiple of 128 -- that size is already exact.
-            # A plain CP/M target still stores whole 128-byte records and pads
-            # the final one (NUL on some runtimes and 0x1A from most everything),
-            # so only there do we recover the logical size by stripping the last
-            # record's fill, clamped to one record so a payload that legitimately
-            # ends in fill bytes is never undercounted.
-            if psize % 128:
-                netsize = psize
-            else:
-                with open(pop, "rb") as f:
-                    netsize = max(len(f.read().rstrip(b"\x00\x1a")), psize - 127)
-            sizestr = "%d(%d)" % (psize, netsize)
-
-            # self-extract: run the .pop as a .COM
-            shutil.copy(pop, os.path.join(wd, "run.com"))
-            se_out = EMU(wd, "run.com")
-            se_ok = marker.decode("ascii") in se_out
-
-            # C round-trip via -R.  Uses the default .unp name.  Because -R
-            # streams via malloc, it may legitimately refuse a file too big
-            # for the heap - a refusal is acceptable, but any output it DOES
-            # produce must match the original exactly for the test to pass.
-            shutil.copy(pop, os.path.join(wd, "in.pop"))
-            rrc, rlog = runner(wd, ["-R", "in.pop"])
-            outb = find_one(wd, "in.unp", "IN.unp", "IN.UNP")
-            if outb and open(outb, "rb").read() == orig:
-                rt = "OK"
-            elif outb:
-                rt = "MISMATCH"
-            elif ("too large" in rlog) or ("out of memory" in rlog):
-                rt = "refused(too-big)"
-            else:
-                rt = "none"
-
-            # Architecture selection: lzpack's '[..]' tag names the stub it
-            # used.  -8/-Z force the choice (always checked); otherwise the
-            # autodetector must pick expect_arch.  A wrong stub is a hard fail:
-            # picking Z80 for an 8080 program would strip its 8080 portability.
-            arch = parse_arch(log)
-            if "-8" in mode:
-                want_arch = "8080"
-            elif "-Z" in mode:
-                want_arch = "Z80"
-            else:
-                want_arch = expect_arch
-            arch_ok = want_arch is None or arch == want_arch
-
-            # PASS requires correct self-extraction and stub choice; a -R
-            # MISMATCH (silent corruption) or a missing/garbled restore is a
-            # hard failure.
-            ok = se_ok and ref_ok and arch_ok and rt in ("OK", "refused(too-big)")
-            note = "stub=%s self-extract=%s roundtrip=%s" % (
-                arch,
-                "OK" if se_ok else "BAD",
-                rt,
+        if expect == "skip":
+            # success == no output file produced
+            ok = pop is None
+            emit(
+                results,
+                tag,
+                "PASS" if ok else "FAIL",
+                "-",
+                (
+                    "correctly refused"
+                    if ok
+                    else "UNEXPECTED OUTPUT " + os.path.basename(pop)
+                ),
             )
-            if not arch_ok:
-                note = "WRONG STUB %s (want %s)  " % (arch, want_arch) + note
-            emit(results, tag, "PASS" if ok else "FAIL", sizestr, note)
-        finally:
-            shutil.rmtree(wd, ignore_errors=True)
+            return
+
+        if pop is None:
+            emit(
+                results,
+                tag,
+                "FAIL",
+                "-",
+                "no .pop produced; log=" + log.strip()[:80],
+            )
+            return
+        psize = os.path.getsize(pop)
+        # lzpack writes the self-extracting file at its exact length.  The
+        # native build (and any LRBC-aware CP/M target) therefore produces a
+        # file that is *not* a multiple of 128 -- that size is already exact.
+        # A plain CP/M target still stores whole 128-byte records and pads
+        # the final one (NUL on some runtimes and 0x1A from most everything),
+        # so only there do we recover the logical size by stripping the last
+        # record's fill, clamped to one record so a payload that legitimately
+        # ends in fill bytes is never undercounted.
+        if psize % 128:
+            netsize = psize
+        else:
+            with open(pop, "rb") as f:
+                netsize = max(len(f.read().rstrip(b"\x00\x1a")), psize - 127)
+        sizestr = "%d(%d)" % (psize, netsize)
+
+        # self-extract: run the .pop as a .COM
+        shutil.copy(pop, os.path.join(wd, "run.com"))
+        se_out = EMU(wd, "run.com")
+        se_ok = marker.decode("ascii") in se_out
+
+        # C round-trip via -R.  Uses the default .unp name.  Because -R
+        # streams via malloc, it may legitimately refuse a file too big
+        # for the heap - a refusal is acceptable, but any output it DOES
+        # produce must match the original exactly for the test to pass.
+        shutil.copy(pop, os.path.join(wd, "in.pop"))
+        rrc, rlog = runner(wd, ["-R", "in.pop"])
+        outb = find_one(wd, "in.unp", "IN.unp", "IN.UNP")
+        if outb and open(outb, "rb").read() == orig:
+            rt = "OK"
+        elif outb:
+            rt = "MISMATCH"
+        elif ("too large" in rlog) or ("out of memory" in rlog):
+            rt = "refused(too-big)"
+        else:
+            rt = "none"
+
+        # Architecture selection: lzpack's '[..]' tag names the stub it
+        # used.  -8/-Z force the choice (always checked); otherwise the
+        # autodetector must pick expect_arch.  A wrong stub is a hard fail:
+        # picking Z80 for an 8080 program would strip its 8080 portability.
+        arch = parse_arch(log)
+        if "-8" in mode:
+            want_arch = "8080"
+        elif "-Z" in mode:
+            want_arch = "Z80"
+        else:
+            want_arch = expect_arch
+        arch_ok = want_arch is None or arch == want_arch
+
+        # PASS requires correct self-extraction and stub choice; a -R
+        # MISMATCH (silent corruption) or a missing/garbled restore is a
+        # hard failure.
+        ok = se_ok and ref_ok and arch_ok and rt in ("OK", "refused(too-big)")
+        note = "stub=%s self-extract=%s roundtrip=%s" % (
+            arch,
+            "OK" if se_ok else "BAD",
+            rt,
+        )
+        if not arch_ok:
+            note = "WRONG STUB %s (want %s)  " % (arch, want_arch) + note
+        emit(results, tag, "PASS" if ok else "FAIL", sizestr, note)
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+# -m / MEMTOP override: the flag is only an accept/reject ceiling for the
+# relocated stub, so the checks are (1) bad values fail at parse time with no
+# output, (2) accepted-but-too-small values refuse per file AFTER the parse,
+# (3) every spelling of one value packs byte-identically (and identically to
+# the default, which -m never alters for a file that fits), (4) a raised
+# ceiling really unlocks a file the 48K default refuses -- and the result
+# must self-extract and round-trip -- and (5) -R skips the -m value rather
+# than taking it for an input file.
+MEMTOP_FORMS = [
+    "32",
+    "32K",
+    "32k",
+    "0x7DFF",
+    "0X7DFF",
+    "32255",
+    "64K",
+    "0xFDFF",
+    "65023",
+]
+MEMTOP_BAD = ["0", "4", "1K", "65K", "0x800", "65536", "0x10000", "12Q", "X"]
+
+
+def _pack(runner, wd, fname, extra, out):
+    """Pack fname in wd as out (clearing any stale copy first); return the
+    output bytes (or None when lzpack refused) and the run's log text."""
+    p = os.path.join(wd, out)
+    if os.path.exists(p):
+        os.remove(p)
+    _rc, log = runner(wd, extra + ["-O", out, fname])
+    return (open(p, "rb").read() if os.path.exists(p) else None), log
+
+
+def _scratch(*corpus):
+    """Make a task-private scratch dir preloaded with corpus files."""
+    wd = tempfile.mkdtemp(prefix="lz_")
+    for f in corpus:
+        shutil.copy(os.path.join(CORPUS, f), os.path.join(wd, f))
+    return wd
+
+
+def test_memtop_bad(runner, results):
+    # (1) parse-time rejects: no output and the bad-value diagnostic
+    wd = _scratch("small.com")
+    try:
+        for bad in MEMTOP_BAD:
+            data, log = _pack(runner, wd, "small.com", ["-m", bad], "t.pop")
+            ok = data is None and "bad -m" in log
+            emit(
+                results,
+                "-m %s" % bad,
+                "PASS" if ok else "FAIL",
+                "-",
+                "rejected" if ok else "NOT REJECTED log=" + log.strip()[:60],
+            )
+        data, log = _pack(runner, wd, "small.com", ["-m"], "t.pop")  # no value
+        ok = data is None and "bad -m" in log
+        emit(
+            results,
+            "-m (no value)",
+            "PASS" if ok else "FAIL",
+            "-",
+            "rejected" if ok else "NOT REJECTED log=" + log.strip()[:60],
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+def test_memtop_fit(runner, results, fname, top):
+    # (2) parses fine but too small for the file: per-file refusal
+    wd = _scratch(fname)
+    try:
+        data, log = _pack(runner, wd, fname, ["-m", top], "t.pop")
+        ok = data is None and "would not fit" in log
+        emit(
+            results,
+            "%s -m %s" % (fname, top),
+            "PASS" if ok else "FAIL",
+            "-",
+            "correctly refused" if ok else "log=" + log.strip()[:60],
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+def test_memtop_forms(runner, results):
+    # (3) equivalence: every spelling == the default pack's exact bytes, and
+    # (5) -R must skip the -m value, not open it as an input file
+    wd = _scratch("med.com")
+    try:
+        ref, log = _pack(runner, wd, "med.com", [], "ref.pop")
+        emit(
+            results,
+            "med.com (-m ref)",
+            "PASS" if ref is not None else "FAIL",
+            str(len(ref)) if ref is not None else "-",
+            "reference pack",
+        )
+        for form in MEMTOP_FORMS:
+            data, log = _pack(runner, wd, "med.com", ["-m", form], "t.pop")
+            ok = ref is not None and data == ref
+            emit(
+                results,
+                "med.com -m %s" % form,
+                "PASS" if ok else "FAIL",
+                str(len(data)) if data is not None else "-",
+                "== default" if ok else "DIFFERS FROM DEFAULT PACK",
+            )
+
+        _rc, log = runner(wd, ["-R", "-m", "48", "-O", "med.unp", "ref.pop"])
+        outb = os.path.join(wd, "med.unp")
+        morig = open(os.path.join(CORPUS, "med.com"), "rb").read()
+        ok = (
+            os.path.exists(outb)
+            and open(outb, "rb").read() == morig
+            and "cannot read" not in log
+        )
+        emit(
+            results,
+            "-R -m 48 ref.pop",
+            "PASS" if ok else "FAIL",
+            "-",
+            "restored" if ok else "RESTORE BROKE log=" + log.strip()[:60],
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+def test_memtop_over(runner, results):
+    # (4) -m 64 must unlock over.com (refused at the 48K default), and
+    # the result must really self-extract and round-trip
+    wd = _scratch("over.com")
+    try:
+        orig = open(os.path.join(CORPUS, "over.com"), "rb").read()
+        data, log = _pack(runner, wd, "over.com", ["-m", "64"], "ov.pop")
+        if data is None:
+            emit(
+                results,
+                "over.com -m 64",
+                "FAIL",
+                "-",
+                "no .pop; log=" + log.strip()[:60],
+            )
+            return
+        shutil.copy(os.path.join(wd, "ov.pop"), os.path.join(wd, "run.com"))
+        se_ok = "OVER-MARK-H8" in EMU(wd, "run.com")
+        _rc, rlog = runner(wd, ["-R", "-O", "ov.unp", "ov.pop"])
+        outb = os.path.join(wd, "ov.unp")
+        if os.path.exists(outb) and open(outb, "rb").read() == orig:
+            rt = "OK"
+        elif ("too large" in rlog) or ("out of memory" in rlog):
+            rt = "refused(too-big)"
+        else:
+            rt = "BAD"
+        ok = se_ok and rt in ("OK", "refused(too-big)")
+        emit(
+            results,
+            "over.com -m 64",
+            "PASS" if ok else "FAIL",
+            str(len(data)),
+            "self-extract=%s roundtrip=%s" % ("OK" if se_ok else "BAD", rt),
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+# -C (runtime memory check): the packed file grows by exactly the check
+# block (CHK_LEN, parsed from the generated cschk.h), still self-extracts
+# under both stubs, still round-trips through -R, and -- run under a TPA too
+# small for the decompressed image (tnylpo -m; tnylpo runs only) -- refuses
+# with "No room" before touching memory instead of crashing the machine.
+def _chk_len():
+    """CHK_LEN from the generated cschk.h, or None when unavailable."""
+    try:
+        m = re.search(r"CHK_LEN (\d+)", open(os.path.join(PROJECT, "cschk.h")).read())
+        return int(m.group(1)) if m else None
+    except OSError:
+        return None
+
+
+def _net(data):
+    """Logical size of a packed blob: a CP/M target stores whole 128-byte
+    records, so strip the final record's fill, clamped to one record,
+    exactly as test_mode does (the blobs genuinely end in decompressor
+    code, never in fill bytes)."""
+    if len(data) % 128:
+        return len(data)
+    return max(len(data.rstrip(b"\x00\x1a")), len(data) - 127)
+
+
+def test_checked_variant(runner, results, mode):
+    # checked packs must self-extract and round-trip with both stubs
+    wd = _scratch("med.com")
+    try:
+        morig = open(os.path.join(CORPUS, "med.com"), "rb").read()
+        data, log = _pack(runner, wd, "med.com", mode, "c.pop")
+        tag = "med.com %s" % " ".join(mode)
+        if data is None:
+            emit(results, tag, "FAIL", "-", "no .pop; log=" + log.strip()[:60])
+            return
+        shutil.copy(os.path.join(wd, "c.pop"), os.path.join(wd, "runc.com"))
+        se_ok = "MED-MARK-C3" in EMU(wd, "runc.com")
+        _rc, _rlog = runner(wd, ["-R", "-O", "c.unp", "c.pop"])
+        outb = os.path.join(wd, "c.unp")
+        rt_ok = os.path.exists(outb) and open(outb, "rb").read() == morig
+        ok = se_ok and rt_ok
+        emit(
+            results,
+            tag,
+            "PASS" if ok else "FAIL",
+            str(len(data)),
+            "self-extract=%s roundtrip=%s"
+            % ("OK" if se_ok else "BAD", "OK" if rt_ok else "BAD"),
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+def test_checked_size(runner, results):
+    # the -C pack is the plain pack plus exactly the check block
+    wd = _scratch("med.com")
+    try:
+        chk_len = _chk_len()
+        plain, _log = _pack(runner, wd, "med.com", [], "p.pop")
+        cdata, _log = _pack(runner, wd, "med.com", ["-C"], "c.pop")
+        if plain is None or cdata is None or chk_len is None:
+            emit(
+                results,
+                "med.com -C size",
+                "FAIL",
+                "-",
+                "missing pack output or cschk.h",
+            )
+            return
+        grew = _net(cdata) - _net(plain)
+        ok = grew == chk_len
+        emit(
+            results,
+            "med.com -C size",
+            "PASS" if ok else "FAIL",
+            "%d(+%d)" % (len(cdata), grew),
+            (
+                "== plain + CHK_LEN"
+                if ok
+                else "expected +%d over plain %d" % (chk_len, _net(plain))
+            ),
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+def test_checked_small(runner, results):
+    # the refusal path needs a small TPA, which only tnylpo can emulate
+    if EMU is not run_tnylpo:
+        return
+    wd = _scratch("big24.com")
+    try:
+        data, log = _pack(runner, wd, "big24.com", ["-C"], "b24.pop")
+        if data is None:
+            emit(
+                results,
+                "big24.com -C @16K",
+                "FAIL",
+                "-",
+                "no .pop; log=" + log.strip()[:60],
+            )
+            return
+        shutil.copy(os.path.join(wd, "b24.pop"), os.path.join(wd, "runb.com"))
+        full = run_tnylpo(wd, "runb.com")
+        small = run_tnylpo(wd, "runb.com", pre=["-m", "16K"])
+        pos_ok = "BIG24-MARK-E5" in full
+        neg_ok = "No room" in small and "BIG24-MARK-E5" not in small
+        ok = pos_ok and neg_ok
+        emit(
+            results,
+            "big24.com -C @16K",
+            "PASS" if ok else "FAIL",
+            str(len(data)),
+            "full-TPA=%s 16K-TPA=%s"
+            % ("OK" if pos_ok else "BAD", "refused" if neg_ok else "NOT REFUSED"),
+        )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
 
 
 def main():
@@ -334,10 +640,60 @@ def main():
         print("===== Using EMU2-86+TNYLPO Combo Mode =====", flush=True)
     else:
         print("===== Using %s for CP/M emulation =====" % env, flush=True)
+    print("=====   %3d parallel job(s)           =====" % JOBS, flush=True)
     print("===========================================\n", flush=True)
     results = []
+
+    # Every task is independent (private scratch dirs; read-only shared
+    # inputs), so they fan out across LZ_TEST_JOBS threads and their rows
+    # print live, interleaved in completion order.  A task that dies (e.g.
+    # a hung emulator hitting TEST_TIMEOUT) becomes a FAIL row under its
+    # task tag instead of killing the whole run.
+    tasks = []
     for fname, marker, expect, expect_arch in CORPUS_FILES:
-        test_file(runner, fname, marker, expect, expect_arch, results)
+        for mode in MODES:
+            tag = "%s %s" % (fname, " ".join(mode) if mode else "(plain)")
+            tasks.append(
+                (
+                    tag,
+                    test_mode,
+                    (runner, fname, marker, expect, expect_arch, mode, results),
+                )
+            )
+    tasks.append(("-m bad values", test_memtop_bad, (runner, results)))
+    tasks.append(
+        ("med.com -m 0x1FFF", test_memtop_fit, (runner, results, "med.com", "0x1FFF"))
+    )
+    tasks.append(
+        ("big46.com -m 32", test_memtop_fit, (runner, results, "big46.com", "32"))
+    )
+    tasks.append(("-m spellings", test_memtop_forms, (runner, results)))
+    tasks.append(("over.com -m 64", test_memtop_over, (runner, results)))
+    for mode in (["-C"], ["-C", "-8"], ["-C", "-Z"]):
+        tasks.append(
+            (
+                "med.com %s" % " ".join(mode),
+                test_checked_variant,
+                (runner, results, mode),
+            )
+        )
+    tasks.append(("med.com -C size", test_checked_size, (runner, results)))
+    tasks.append(("big24.com -C @16K", test_checked_small, (runner, results)))
+
+    def guarded(tag, fn, args):
+        try:
+            fn(*args)
+        except Exception as e:  # noqa: BLE001 -- surface, do not propagate
+            emit(results, tag, "FAIL", "-", "exception: %s" % str(e)[:60])
+
+    if JOBS > 1:
+        with ThreadPoolExecutor(max_workers=JOBS) as ex:
+            for fut in [ex.submit(guarded, t, fn, a) for t, fn, a in tasks]:
+                fut.result()
+    else:
+        for t, fn, a in tasks:
+            guarded(t, fn, a)
+
     npass = sum(1 for r in results if r[1] == "PASS")
     print("\n  **** %d/%d passed ****" % (npass, len(results)), flush=True)
     return 0 if npass == len(results) else 1
