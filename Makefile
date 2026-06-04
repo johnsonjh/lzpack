@@ -83,7 +83,7 @@ csrz80.h: sz80r.asm stubasm
 cschk.h: chk.asm stubasm
 	./stubasm -chk chk.asm > $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
-	'/CHK_LEN/ { printf "[CHK] "$$4" total bytes (check).\n" }' \
+	'/CHK_LEN/ { printf "[8080] "$$4" total bytes (check).\n" }' \
 	$@ 2> /dev/null || :; } || :
 
 ################################################################################
