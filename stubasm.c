@@ -1622,7 +1622,7 @@ emit_fixes (const char *name, const char *uname, const int *off,
 
 static void
 emit_slots (const char *const *patch, const char *pfx,
-            const char nm[][NAMELEN], const int *off, int n)
+            char nm[][NAMELEN], const int *off, int n)
 {
   int p, i;
 
