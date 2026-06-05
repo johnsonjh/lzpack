@@ -850,7 +850,9 @@ main (int argc, char **argv)
   prune_book ();
   write_header (stdout);
 
-  if (0 != fflush (stdout) || 0 != ferror (stdout))
+  (void)fflush (stdout);
+
+  if (0 != ferror (stdout))
     {
       (void)fprintf (stderr, "strpack: write error\n");
 

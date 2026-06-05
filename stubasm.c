@@ -193,7 +193,9 @@ die (const char *m)
 static void
 flushout (void)
 {
-  if (fflush (stdout) != 0 || ferror (stdout) != 0)
+  (void)fflush (stdout);
+
+  if (ferror (stdout) != 0)
     die ("write error");
 }
 
@@ -1876,6 +1878,18 @@ emit_check (const char *path)
 
 /******************************************************************************/
 
+static int
+optmatch (const char *arg, const char *opt)
+{
+  for (; *opt; arg++, opt++)
+    if (toupper ((unsigned char)*arg) != toupper ((unsigned char)*opt))
+      return 0;
+
+  return *arg == '\0';
+}
+
+/******************************************************************************/
+
 int
 main (int argc, char **argv)
 {
@@ -1888,7 +1902,7 @@ main (int argc, char **argv)
   (void)memset (s_sl_name, 0, sizeof (s_sl_name));
   (void)memset (s_sl_off, 0, sizeof (s_sl_off));
 
-  if (argc == 4 && !strcmp (argv[1], "-z80"))
+  if (argc == 4 && optmatch (argv[1], "-z80"))
     {
       emit_z80 (argv[2], argv[3]);
       flushout ();
@@ -1896,7 +1910,7 @@ main (int argc, char **argv)
       return 0;
     }
 
-  if (argc == 3 && !strcmp (argv[1], "-r"))
+  if (argc == 3 && optmatch (argv[1], "-r"))
     {
       emit_restore8080 (argv[2]);
       flushout ();
@@ -1904,7 +1918,7 @@ main (int argc, char **argv)
       return 0;
     }
 
-  if (argc == 3 && !strcmp (argv[1], "-rz80"))
+  if (argc == 3 && optmatch (argv[1], "-rz80"))
     {
       emit_restorez80 (argv[2]);
       flushout ();
@@ -1912,7 +1926,7 @@ main (int argc, char **argv)
       return 0;
     }
 
-  if (argc == 3 && !strcmp (argv[1], "-chk"))
+  if (argc == 3 && optmatch (argv[1], "-chk"))
     {
       emit_check (argv[2]);
       flushout ();
