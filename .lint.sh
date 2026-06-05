@@ -1097,7 +1097,18 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
     set -x
     "${OLINT:?}" \
       -O -fd -std=c89 -err=warn -XCC=no \
-      -errchk=structarg,parentheses,locfmtchk stubasm.c strpack.c
+      -errchk=structarg,parentheses,locfmtchk stubasm.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    set -x
+    "${OLINT:?}" \
+      -O -fd -std=c89 -err=warn -XCC=no \
+      -errchk=structarg,parentheses,locfmtchk strpack.c
   ); then
     :
   else
