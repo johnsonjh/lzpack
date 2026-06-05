@@ -688,7 +688,7 @@ def main():
         print("===== Using EMU2-86+TNYLPO Combo Mode =====", flush=True)
     else:
         print("===== Using %s for CP/M emulation =====" % env, flush=True)
-    print("=====   %3d parallel job(s)           =====" % JOBS, flush=True)
+    print("=====      %3d parallel job(s)        =====" % JOBS, flush=True)
     print("===========================================\n", flush=True)
 
     # Auto-mode stub expectations depend on whether this packer build kept
