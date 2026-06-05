@@ -6,24 +6,78 @@
 
 ################################################################################
 
+# For use by the maintainer only - not the general public.
+# This script requires GNU coreutils `du` to work correctly.
+
+################################################################################
+
+if [ -n "${ZSH_VERSION-}" ]; then
+  emulate sh
+  setopt sh_word_split
+fi
+
+################################################################################
+
+test -d "/opt/freeware/bin" && {
+  export PATH="/opt/freeware/bin:${PATH:-}"
+}
+
+################################################################################
+
+test -d "/usr/pkg/gnu/bin" && {
+  export PATH="${PATH:-}:/usr/pkg/gnu/bin"
+}
+
+################################################################################
+
 set -eu
 
 cd "$(dirname "$0")"
 
 ################################################################################
 
-[ -x ./lzpack ] || {
-  printf '%s\n' "ERROR: host ./lzpack missing; run 'make' first."
+# shellcheck disable=SC2065
+test -f "./${0##*/}" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate script in current directory."
   exit 1
 }
 
-for com in cpm-z80/lzpack.com cpm-z80/lzunpack.com cpm-z80/stubasm.com \
-  cpm-8080/lzpack.com cpm-8080/lzunpack.com cpm-8080/stubasm.com; do
+################################################################################
+
+# shellcheck disable=SC2065
+test -f "./.common.sh" > /dev/null 2>&1 || {
+  printf '%s\n' "ERROR: Could not locate .common.sh in current directory."
+  exit 1
+}
+
+################################################################################
+
+export CPE1704TKS=1
+
+# shellcheck disable=SC1091
+. ./.common.sh
+
+################################################################################
+
+[ -x ./lzpack ] || {
+  printf '%s\n' "ERROR: './lzpack' missing; run 'make' first."
+  exit 1
+}
+
+################################################################################
+
+for com in ./cpm-z80/lzpack.com ./cpm-z80/lzunpack.com ./cpm-z80/stubasm.com \
+  ./cpm-8080/lzpack.com ./cpm-8080/lzunpack.com ./cpm-8080/stubasm.com; do
   [ -f "${com}" ] || {
-    printf '%s\n' "ERROR: ${com} missing; run 'make cpm' first."
+    printf '%s\n' "ERROR: '${com}' missing; run 'make cpm' first."
     exit 1
   }
 done
+
+################################################################################
+
+export FIND_COMMAND_FATAL=1
+find_command ./.build-cpm.sh ./lzpack mktemp sed tr
 
 ################################################################################
 
@@ -47,10 +101,11 @@ bisect()
   shift
   lo=256 hi=65535
 
-  ./lzpack -e "$@" -m "${hi}" -o "${TMPD}/t.p" "${bs_f}" > /dev/null 2>&1 || {
-    printf '%s\n' "-1"
-    return 0
-  }
+  ./lzpack -e "$@" -m "${hi}" -o "${TMPD}/t.p" "${bs_f}" > /dev/null 2>&1 \
+    || {
+      printf '%s\n' "-1"
+      return 0
+    }
 
   while [ "${lo}" -lt "${hi}" ]; do
     mid=$(((lo + hi) / 2))
@@ -100,7 +155,9 @@ for arch in z80 8080; do
       bind=${minc}
     fi
 
-    if [ "${min}" -lt 0 ] || [ "${bind}" -lt 0 ] || [ "${rec}" -lt "${bind}" ]; then
+    if [ "${min}" -lt 0 ] \
+      || [ "${bind}" -lt 0 ] \
+      || [ "${rec}" -lt "${bind}" ]; then
       verdict="FAIL (build would refuse)"
       RC=1
     elif [ "${rec}" -eq "${exp}" ]; then
