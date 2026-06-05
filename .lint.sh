@@ -986,7 +986,6 @@ command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
   if (
     set -x
     "${CH_CMD:-ch}" -n ./stubasm.c
-    "${CH_CMD:-ch}" -n ./strpack.c
   ); then
     :
   else
@@ -996,6 +995,15 @@ command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
   if (
     set -x
     "${CH_CMD:-ch}" -n ./lzpack.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    set -x
+    "${CH_CMD:-ch}" -n ./strpack.c
   ); then
     :
   else
