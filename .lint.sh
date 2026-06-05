@@ -1195,6 +1195,7 @@ command -v "${SHELLCHECK_CMD:-shellcheck}" > /dev/null 2>&1 && {
       ./.build-cpm.sh \
       ./.lint.sh \
       ./.lz86gen.sh \
+      ./.mcap-verify.sh \
       ./.updatedocs.sh \
       ./tests/run.sh
   ); then
@@ -1216,6 +1217,7 @@ command -v "${SHFMT_CMD:-shfmt}" > /dev/null 2>&1 && {
       ./.build-cpm.sh \
       ./.lint.sh \
       ./.lz86gen.sh \
+      ./.mcap-verify.sh \
       ./.updatedocs.sh \
       ./tests/run.sh
   ); then
