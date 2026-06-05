@@ -1,6 +1,6 @@
 ; Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 ; SPDX-License-Identifier: MIT-0
-; scspell-id: dcd2d5bb-808e-4fde-80b6-4e9bbe0c381b
+; scspell-id: 16b2de42-60c2-11f1-a574-80ee73e9b8e7
 
 ; CALL-able Z80 decompressor for lzpack's in-RAM -R restore on CP/M-80.
 ; This is the sz80d.asm self-extractor core with the setup block's payload
