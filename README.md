@@ -313,7 +313,7 @@ The packing‑time checks cannot know the details of the machine the packed
 program will eventually run on, for example, a much smaller TPA than the one
 running the packer, or a system that has a resident driver that might lower
 the BDOS pointer at `0x0006`, which could be silently overwritten during
-decompression.  The `-C` option enhances the stub with a small (**48**‑byte)
+decompression.  The `-C` option enhances the stub with a small (48‑byte)
 runtime check.  It verifies that the highest address the unpacker will write
 to lies below the BDOS base and that at least 16 bytes are clear of the live
 inherited stack.  If the program does not fit, it prints `No room` and aborts.
