@@ -367,7 +367,7 @@ with a TPA large enough for them to *unpack* but too small for them to fully
 *initialize*, they simpy print `No room` and exit cleanly, which would be
 impossible to achieve using C code alone.
 
-<details>
+</details>
 
 ## Downloads
 
