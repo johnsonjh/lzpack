@@ -134,8 +134,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 * **LZPACK** beats *PopCom!* on **every** file in **every** configuration.
 
 * The "**/N+**" column is the **extra compression** mode.  On a memory‑rich
-  host it parses the whole file at once and beats the standard mode by at
-  least few bytes (**/N+`-E`** vs **/N**).
+  host it parses the whole file at once and beats the standard mode by
+  at least a few bytes (**/N+`-E`** vs **/N**).
 
 * The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
   CP/M‑80 (or other memory‑constrained systems), the match window and
@@ -146,12 +146,12 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   host system used for testing (determined by discarding up to, but *not*
   including, the final `0x00` or `0x1A` bytes in the last 128‑byte "record").
 
-* On CP/M 2.2 systems, files do not have exact lengths but instead occupy
+* On CP/M&nbsp;2.2 systems, files do not have exact lengths but instead occupy
   fixed‑size records of 1024 bits (128 bytes).  When **LZPACK** is operating
-  on CP/M‑Plus (CP/M‑80 or CP/M‑86 3+) or DOS‑PLUS (CP/M‑86 4+), the
+  on CP/M‑Plus (CP/M‑80 or CP/M‑86&nbsp;3+) or DOS‑PLUS (CP/M‑86&nbsp;4+), the
   [LRBC](https://www.seasip.info/Cpm/bytelen.html) (Last Record Byte Count)
   metadata is used to determine how many bytes of the final record should be
-  packed.  On CP/M 2.2 systems, all bytes in the final record are packed.
+  packed.  On CP/M&nbsp;2.2 systems, all bytes in the final record are packed.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
 * Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) (and
@@ -186,7 +186,7 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 
 1. Restores the 16 original header bytes the packer has saved,
 2. Relocates the compressed payload and the decompression stub into the high
-   end of the TPA, so stub can run without overwriting itself,
+   end of the TPA, so the stub can run without overwriting itself,
 3. Decompresses in‑place into the TPA, writing output from `0x110` upward, and,
 4. Jumps back to `0x100` to run the unpacked executable image.
 
@@ -314,7 +314,7 @@ runtime check.  It verifies that the highest address the unpacker will write
 to lies below the BDOS base and that at least 16 bytes are clear of the live
 inherited stack.  If the program does not fit, it prints `No room` and aborts.
 
-Because this check adds an extra 48 bytes to every packed executable it is
+Because this check adds an extra 48 bytes to every packed executable, it is
 disabled by default.  Enabling it does **not** consume any high memory, and it
 is never relocated, so it won't change what fits with any given `-M` setting.
 
@@ -336,7 +336,7 @@ is never relocated, so it won't change what fits with any given `-M` setting.
 **LZPACK** needs **only an ANSI C89 compiler** to build on any
 UNIX‑like system.
 
-To build a native binary just run `make` (or `gmake`), which builds
+To build a native binary, just run `make` (or `gmake`), which builds
 **StubASM**, assembles the stubs, and then compiles `lzpack`:
 
 ```sh
