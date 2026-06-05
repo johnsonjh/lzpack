@@ -587,6 +587,7 @@ read_input (FILE *f)
   while (fgets (line, (int)sizeof (line), f))
     {
       char *tab, *nl;
+      size_t nlen;
       long n;
 
       nl = strchr (line, '\n');
@@ -603,8 +604,9 @@ read_input (FILE *f)
         return -1;
 
       *tab = 0;
+      nlen = strlen (line);
 
-      if (SP_MAXNAME < strlen (line) || SP_MAXSTR <= sp_nstr)
+      if (SP_MAXNAME < nlen || 0 > sp_nstr || SP_MAXSTR <= sp_nstr)
         return -1;
 
       {
@@ -616,7 +618,7 @@ read_input (FILE *f)
             return -1;
       }
 
-      (void)memcpy (sp_name[sp_nstr], line, strlen (line) + 1);
+      (void)memcpy (sp_name[sp_nstr], line, nlen + 1);
 
       {
         char *g = tab + 1;
