@@ -654,9 +654,7 @@ def test_checked_floor(runner, results):
             emit(results, tag, "SKIP", "-", "packer has no -F (COMPRESS_ONLY)")
             return
         if cdata is None or fdata is None:
-            emit(
-                results, tag, "FAIL", "-", "missing pack; log=" + flog.strip()[:60]
-            )
+            emit(results, tag, "FAIL", "-", "missing pack; log=" + flog.strip()[:60])
             return
         if len(cdata) != len(fdata):
             emit(
@@ -686,9 +684,7 @@ def test_checked_floor(runner, results):
         shutil.copy(os.path.join(wd, "f.pop"), os.path.join(wd, "runf.com"))
         shutil.copy(os.path.join(wd, "c.pop"), os.path.join(wd, "runc.com"))
         if not _tpa_patch_ok(wd, "runf.com"):
-            emit(
-                results, tag, "SKIP", "-", "tnylpo -m (TPA) patch missing or inactive"
-            )
+            emit(results, tag, "SKIP", "-", "tnylpo -m (TPA) patch missing or inactive")
             return
         full = run_tnylpo(wd, "runf.com")
         small = run_tnylpo(wd, "runf.com", pre=["-m", "32K"])
@@ -725,9 +721,7 @@ def _map_floor_tpa(compath):
     of t bytes is 0x100 + t, so the edge TPA is DST_LIM - 0x100."""
     mp = os.path.splitext(compath)[0] + ".map"
     try:
-        m = re.search(
-            r"^__BSS_END_head\s*=\s*\$([0-9A-Fa-f]+)", open(mp).read(), re.M
-        )
+        m = re.search(r"^__BSS_END_head\s*=\s*\$([0-9A-Fa-f]+)", open(mp).read(), re.M)
     except OSError:
         return None
     if not m:
