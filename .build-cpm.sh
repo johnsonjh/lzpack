@@ -115,11 +115,11 @@ PACK="${PACK:-1}"
 # -- and fails the build -- when an image outgrows its ceiling, so size
 # regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
 # bytes TPA floor depends on it).
-MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-23612}"
-MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-13064}"
+MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-23370}"
+MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12823}"
 MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27678}"
-MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-25010}"
-MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14287}"
+MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-24770}"
+MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14047}"
 MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28488}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e

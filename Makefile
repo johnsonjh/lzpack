@@ -249,7 +249,8 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 	(cd msdos && wasm -q -0 -mt -fo=lz86.obj lz86.asm)
 	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DLZPACK_STREAM=1 -DHSZ=1024 \
-		-DMZXFILE=65535L -s -I.. -fm=lzpack.map -o ./lzpack.com \
+		-DMZXFILE=65535L -DLZPACK_PACKED_MSGS -s -I.. \
+		-fm=lzpack.map -o ./lzpack.com \
 		-DNDEBUG ../lzpack.c ./lz86.obj)
 	(upx -q -9 --8086 ./msdos/lzpack.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
@@ -304,7 +305,8 @@ elks: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c lz86body.asm \
 	sh ./.lz86gen.sh ia16 ./lz86body.asm > ./elks/lz86.s
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
 		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DLZPACK_OPT=1 \
-		-DHSZ=1024 -DMZXFILE=65535L -maout-heap=32767 \
+		-DHSZ=1024 -DMZXFILE=65535L -DLZPACK_PACKED_MSGS \
+		-maout-heap=32767 \
 		-o ./elks/lzpack ./lzpack.c ./elks/lz86.s
 
 ################################################################################

@@ -231,7 +231,27 @@ typedef FILE LZF;
 #  define LZ_CPUT(c)      ((void)putc ((c), stderr))
 # endif
 
-# define LZ_MPUTS(f, s) ((void)fputs ((s), (f)))
+# ifdef LZPACK_PACKED_MSGS
+
+#  define LZ_MSG_PACKED 1
+
+static void lz_mfputs (const char *m, FILE *f);
+static const char *lz_mload (const char *m, char *out);
+static int lz_fprintf (FILE *f, const char *fmt, ...);
+static int lz_printf (const char *fmt, ...);
+
+#  define LZ_MPUTS(f, s) lz_mfputs ((s), (f))
+
+/* Flawfinder: ignore */ /* False positive CWE-134 */
+#  define fprintf lz_fprintf /* //-V1059 */
+/* Flawfinder: ignore */ /* False positive CWE-134 */
+#  define printf  lz_printf  /* //-V1059 */
+
+# else /* !LZPACK_PACKED_MSGS */
+
+#  define LZ_MPUTS(f, s) ((void)fputs ((s), (f)))
+
+# endif /* LZPACK_PACKED_MSGS */
 
 /******************************************************************************/
 
@@ -1775,6 +1795,54 @@ cpm_set_byte_count (const char *fn, long nbytes)
 
 /******************************************************************************/
 
+#if defined(LZ_MSG_PACKED) && !(defined(LZ_BDOS_IO) && defined(__SCCZ80))
+
+static const unsigned char *
+lz_ment (int idx, int *len)
+{
+  const unsigned char *p = lz_msgbook;
+
+  while (0 < idx--)
+    p += 1 + *p;
+
+  *len = *p;
+
+  return p + 1;
+}
+
+/******************************************************************************/
+
+static const char *
+lz_mload (const char *m, char *out)
+{
+  const unsigned char *s = (const unsigned char *)m;
+  char *o = out;
+
+  while (*s)
+    {
+      int c = *s++;
+
+      if (0x80 > c)
+        *o++ = (char)c;
+      else
+        {
+          int el;
+          const unsigned char *e = lz_ment (c - 0x80, &el);
+
+          while (0 < el--)
+            *o++ = (char)*e++;
+        }
+    }
+
+  *o = 0;
+
+  return out;
+}
+
+#endif
+
+/******************************************************************************/
+
 #ifdef LZ_BDOS_IO
 
 # include <stdarg.h>
@@ -1946,6 +2014,143 @@ lzunlink (const char *fn)
 
 /******************************************************************************/
 
+# ifdef __SCCZ80
+
+static void
+lz_cput (int c)
+{
+#  asm
+        ld      hl,2
+        add     hl,sp
+        ld      a,(hl)
+.lzmd_pra                       ; print A, mapping LF to CR LF
+        push    hl              ; preserved for the decode loops
+        push    bc
+        cp      10
+        jp      nz,lzmd_pr1
+        ld      a,13            ; recurse: 13 is not 10, prints the CR
+        call    lzmd_pra
+        ld      a,10
+.lzmd_pr1
+        ld      e,a
+        ld      c,2             ; BDOS console output
+        call    5
+        pop     bc
+        pop     hl              ; falls onto the RET sccz80 emits below
+#  endasm
+}
+
+/******************************************************************************/
+
+static void
+lz_cputs (const char *s)
+{
+#  asm
+        pop     bc              ; return address
+        pop     hl              ; s
+        push    hl
+        push    bc
+.lzmd_cs1
+        ld      a,(hl)
+        or      a
+        ret     z
+        inc     hl
+        call    lzmd_pra
+        jp      lzmd_cs1
+#  endasm
+}
+
+/******************************************************************************/
+
+static void
+lz_mputs (const char *m)
+{
+#  asm
+        pop     bc              ; return address
+        pop     hl              ; m
+        push    hl
+        push    bc
+.lzmd_mp1
+        ld      a,(hl)          ; next coded byte
+        inc     hl
+        add     a,a             ; CY = book bit; Z only for 0 or 128
+        jp      c,lzmd_mp2      ; high bytes index the book
+        ret     z               ; CY clear too: NUL ends the message
+        rra                     ; CY still clear: restore the literal
+        call    lzmd_pra
+        jp      lzmd_mp1
+.lzmd_mp2
+        push    hl
+        call    lzmd_walk       ; HL = entry text, B = length
+.lzmd_mp3
+        ld      a,(hl)
+        inc     hl
+        call    lzmd_pra
+        dec     b
+        jp      nz,lzmd_mp3
+        pop     hl              ; resume the coded string
+        jp      lzmd_mp1
+.lzmd_walk                      ; Z + A = doubled index -> HL, B
+        ld      hl,_lz_msgbook  ; entries are length-prefixed
+.lzmd_w1
+        jp      z,lzmd_w2       ; Z: add a,a on entry, dec a after
+        ld      c,(hl)          ; skip one entry: HL += length + 1
+        ld      b,0
+        inc     hl
+        add     hl,bc
+        dec     a               ; the index rides doubled, so count
+        dec     a               ;   it down by two per entry
+        jp      lzmd_w1
+.lzmd_w2
+        ld      b,(hl)
+        inc     hl              ; falls onto the RET sccz80 emits below
+#  endasm
+}
+
+/******************************************************************************/
+
+static const char *
+lz_mload (const char *m, char *out)
+{
+#  asm
+        pop     bc              ; return address
+        pop     de              ; out
+        pop     hl              ; m
+        push    hl
+        push    de
+        push    bc
+        push    de              ; out again: the return value
+.lzmd_ml1
+        ld      a,(hl)          ; next coded byte
+        inc     hl
+        add     a,a             ; CY = book bit; Z only for 0 or 128
+        jp      c,lzmd_ml2      ; high bytes index the book
+        rra                     ; CY clear: restore literal or NUL
+        ld      (de),a          ; store the literal or the final NUL
+        inc     de
+        or      a
+        jp      nz,lzmd_ml1     ; NUL ends the message
+        pop     hl              ; return out
+        ret
+.lzmd_ml2
+        push    hl
+        call    lzmd_walk       ; HL = entry text, B = length
+.lzmd_ml3
+        ld      a,(hl)
+        inc     hl
+        ld      (de),a
+        inc     de
+        dec     b
+        jp      nz,lzmd_ml3
+        pop     hl              ; resume the coded string
+        jp      lzmd_ml1
+#  endasm
+}
+
+/******************************************************************************/
+
+# else /* !__SCCZ80 */
+
 static void
 lz_cput (int c)
 {
@@ -1962,21 +2167,6 @@ lz_cputs (const char *s)
 {
   while (*s)
     lz_cput (*s++);
-}
-
-/******************************************************************************/
-
-static const unsigned char *
-lz_ment (int idx, int *len)
-{
-  const unsigned char *p = lz_msgbook;
-
-  while (0 < idx--)
-    p += 1 + *p;
-
-  *len = *p;
-
-  return p + 1;
 }
 
 /******************************************************************************/
@@ -2003,34 +2193,7 @@ lz_mputs (const char *m)
     }
 }
 
-/******************************************************************************/
-
-static const char *
-lz_mload (const char *m, char *out)
-{
-  const unsigned char *s = (const unsigned char *)m;
-  char *o = out;
-
-  while (*s)
-    {
-      int c = *s++;
-
-      if (0x80 > c)
-        *o++ = (char)c;
-      else
-        {
-          int el;
-          const unsigned char *e = lz_ment (c - 0x80, &el);
-
-          while (0 < el--)
-            *o++ = (char)*e++;
-        }
-    }
-
-  *o = 0;
-
-  return out;
-}
+# endif /* __SCCZ80 */
 
 /******************************************************************************/
 
@@ -2084,7 +2247,71 @@ lz_printf (const char *fmt, ...)
   return 0;
 }
 
-#endif /* LZ_BDOS_IO */
+#endif
+
+/******************************************************************************/
+
+#if defined(LZ_MSG_PACKED) && !defined(LZ_BDOS_IO)
+
+# include <stdarg.h>
+
+static char lz_fbuf[80];
+
+static void
+lz_mfputs (const char *m, FILE *f)
+{
+  const unsigned char *s = (const unsigned char *)m;
+
+  while (*s)
+    {
+      int c = *s++;
+
+      if (0x80 > c)
+        (void)putc (c, f);
+      else
+        {
+          int el;
+          const unsigned char *e = lz_ment (c - 0x80, &el);
+
+          while (0 < el--)
+            (void)putc (*e++, f);
+        }
+    }
+}
+
+/******************************************************************************/
+
+static int
+lz_fprintf (FILE *f, const char *fmt, ...)
+{
+  int r;
+  va_list ap;
+
+  va_start (ap, fmt);
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  r = vfprintf (f, lz_mload (fmt, lz_fbuf), ap);
+  va_end (ap);
+
+  return r;
+}
+
+/******************************************************************************/
+
+static int
+lz_printf (const char *fmt, ...)
+{
+  int r;
+  va_list ap;
+
+  va_start (ap, fmt);
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  r = vfprintf (stdout, lz_mload (fmt, lz_fbuf), ap);
+  va_end (ap);
+
+  return r;
+}
+
+#endif
 
 /******************************************************************************/
 
@@ -2465,7 +2692,7 @@ count_file (const char *fn)
   return n;
 }
 
-#endif /* LZPACK_STREAM */
+#endif
 
 /******************************************************************************/
 
