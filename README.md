@@ -331,6 +331,7 @@ not end‑users.
 <details>
  <summary>Expand this section for further details.</summary>
 
+<br>
 The `-C` option adds a check that refuses a TPA that the *unpacker* would
 overrun, but a packed program *almost always* needs more memory to actually
 *run* than it does to simply unpack.  With a TPA that sits between those
