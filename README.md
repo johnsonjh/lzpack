@@ -379,7 +379,7 @@ impossible to achieve using C code alone.
 |-----------------------------------------------------------------------------------------------:|:------------|:-------------------------------------|
 | [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(8080)               |
 | [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                |
-| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)          |
+| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 20&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)          |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)           |
 | [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)          |
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB |**Windows**&nbsp;(32-bit&nbsp;MSVCRT) |
@@ -407,7 +407,7 @@ Most users will only be interested in the native binary build.
 | Make Target | Description            | Toolchain                                                                                                                   |
 |------------:|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------|
 | `all`       | Native&nbsp;binary     | ANSI&nbsp;C89&nbsp;compiler&nbsp;(*e.g.*,&nbsp;`c89`,&nbsp;`gcc`,&nbsp;`clang`)                                             |
-| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(*2025‑05‑01+*)                                                                            |
+| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(*2026‑05‑02+*)                                                                            |
 | `cpm86`     | CP/M‑86&nbsp;8086/8088 | [cross‑Aztec&nbsp;C86&nbsp;v4.2](https://github.com/tsupplis/cpm86-crossdev)&nbsp;([tsupplis](https://github.com/tsupplis)) |
 | `msdos`     | MS‑DOS&nbsp;8086/8088  | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2)                                                 |
 | `djgpp`     | MS‑DOS&nbsp;80386      | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/)                        |
