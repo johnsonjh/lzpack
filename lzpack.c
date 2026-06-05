@@ -19,7 +19,20 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.99998"
+#define LZPACK_VER "v0.999991"
+
+/******************************************************************************/
+
+#ifdef LZPACK_DECODE_ONLY
+# ifdef LZPACK_COMPRESS_ONLY
+#  error "LZPACK_DECODE_ONLY and LZPACK_COMPRESS_ONLY are mutually exclusive"
+# endif
+# define LZ_PROG "LZUNPACK"
+# define LZ_KIND "decompressor"
+#else
+# define LZ_PROG "LZPACK"
+# define LZ_KIND "compressor"
+#endif
 
 /******************************************************************************/
 
@@ -30,9 +43,6 @@
 /******************************************************************************/
 
 #ifdef LZPACK_STREAM
-# ifdef LZPACK_DECODE_ONLY
-#  error "LZPACK_STREAM and LZPACK_DECODE_ONLY are mutually exclusive"
-# endif
 # ifndef LZPACK_OPT
 #  ifndef LZPACK_NO_OPT
 #   define LZPACK_NO_OPT
@@ -135,6 +145,97 @@ static const int never =0;
 
 #ifdef LZ_CPM
 static int opt_lrbc_isx = 0;
+#endif
+
+/******************************************************************************/
+
+#if defined(LZPACK_STREAM) && defined(LZ_CPM) && defined(__Z88DK) && \
+  !defined(LZPACK_NO_BDOS_IO)
+# define LZ_BDOS_IO
+#endif
+
+/******************************************************************************/
+
+#ifdef LZ_BDOS_IO
+
+# define LZ_NFILES 2
+
+typedef struct lzf
+{
+  unsigned char fcb[36]; /* CP/M file control block */
+  unsigned char buf[128]; /* one-record DMA buffer */
+  unsigned char idx; /* next byte position in buf (0..128) */
+  unsigned char mode; /* 0 = free, 1 = reading, 2 = writing */
+  unsigned char ateof; /* reading: BDOS already reported end of file */
+} LZF;
+
+/******************************************************************************/
+
+/* Implementations follows the CP/M FCB helpers they are built on */
+static LZF *lzopen (const char *fn, int wr);
+static int lzgetc (LZF *f);
+static int lzputc (int c, LZF *f);
+static size_t lzread (void *p, size_t n, LZF *f);
+static size_t lzwrite (const void *p, size_t n, LZF *f);
+static int lzclose (LZF *f);
+static int lzerror (LZF *f);
+static void lzunlink (const char *fn);
+
+/******************************************************************************/
+
+/* Console output using BDOS function 2 behind the usual printf names */
+static int lz_fprintf (FILE *f, const char *fmt, ...);
+static int lz_printf (const char *fmt, ...);
+static void lz_cput (int c);
+
+/******************************************************************************/
+
+/* stdio streams are never opened (the CRT built with CRT_ENABLE_STDIO=0) */
+# undef stdout
+# undef stderr
+# define stdout ((FILE *)0)
+# define stderr ((FILE *)0)
+
+/* Flawfinder: ignore */ /* False positive CWE-134 */
+# define fprintf lz_fprintf /* //-V1059 */
+/* Flawfinder: ignore */ /* False positive CWE-134 */
+# define printf  lz_printf  /* //-V1059 */
+# ifndef LZPACK_NO_PROGRESS
+#  define LZ_CPUT(c) lz_cput (c)
+# endif
+
+#else /* !LZ_BDOS_IO */
+
+/******************************************************************************/
+
+typedef FILE LZF;
+
+# define lzread(p, n, f)  fread ((p), 1, (n), (f))
+# define lzwrite(p, n, f) fwrite ((p), 1, (n), (f))
+# define lzclose(f)       fclose (f)
+
+# ifdef LZPACK_STREAM
+#  define lzgetc(f)       getc (f)
+#  define lzputc(c, f)    putc ((c), (f))
+#  define lzerror(f)      ferror (f)
+# endif
+# ifndef LZPACK_NO_PROGRESS
+#  define LZ_CPUT(c)      ((void)putc ((c), stderr))
+# endif
+
+/******************************************************************************/
+
+static LZF *
+lzopen (const char *fn, int wr)
+{
+  FILE *f = fopen (fn, wr ? "wb" : "rb");
+
+  if (!f)
+    f = fopen (fn, wr ? "w" : "r");
+
+  return f;
+}
+
 #endif
 
 /******************************************************************************/
@@ -358,12 +459,12 @@ prog_done (void)
 
   pg_on = 0;
 
-  (void)putc ('\r', stderr);
+  LZ_CPUT ('\r');
 
   for (i = 0; i < pg_w; i++)
-    (void)putc (' ', stderr);
+    LZ_CPUT (' ');
 
-  (void)putc ('\r', stderr);
+  LZ_CPUT ('\r');
 }
 
 # else
@@ -467,6 +568,10 @@ xremove (const char *filename)
 #   define remove xremove /* //-V1059 */
 #  endif
 
+#  ifndef LZ_BDOS_IO
+#   define lzunlink(fn) ((void)remove (fn))
+#  endif
+
 /******************************************************************************/
 
 /*
@@ -478,10 +583,10 @@ xremove (const char *filename)
  */
 
 #  ifndef OBSZ
-#   define OBSZ 256
+#   define OBSZ 128
 #  endif
 
-static FILE *s_of;
+static LZF *s_of;
 static unsigned char s_obuf[OBSZ];
 static long s_obase;
 
@@ -497,7 +602,7 @@ obuf_flush (long upto)
       unsigned int len;
       int off;
 
-      (void)fwrite (s_obuf, 1, (size_t)cnt, s_of);
+      (void)lzwrite (s_obuf, (size_t)cnt, s_of);
 
       off = (int)cnt;
       len = (unsigned int)(ol - upto);
@@ -511,7 +616,7 @@ obuf_flush (long upto)
 /******************************************************************************/
 
 static void
-e_init_stream (FILE *f)
+e_init_stream (LZF *f)
 {
   s_of = f;
   s_obase = 0;
@@ -1655,34 +1760,273 @@ cpm_set_byte_count (const char *fn, long nbytes)
 
 /******************************************************************************/
 
+#ifdef LZ_BDOS_IO
+
+# include <stdarg.h>
+
+static LZF lz_files[LZ_NFILES];
+
+static LZF *
+lzopen (const char *fn, int wr)
+{
+  LZF *f;
+  int i;
+
+  for (i = 0; i < LZ_NFILES; i++)
+    if (!lz_files[i].mode)
+      break;
+
+  if (i == LZ_NFILES)
+    return NULL;
+
+  f = &lz_files[i];
+  cpm_setfcb (f->fcb, fn);
+
+  if (wr)
+    {
+      (void)bdos (19, BDOS_FCB (f->fcb)); /* delete any old file */
+      cpm_setfcb (f->fcb, fn); /* fn 19 searches: rebuild */
+
+      if ((bdos (22, BDOS_FCB (f->fcb)) & 0xff) == 0xff) /* make */
+        return NULL;
+    }
+  else if ((bdos (15, BDOS_FCB (f->fcb)) & 0xff) == 0xff) /* open */
+    return NULL;
+
+  f->fcb[32] = 0; /* current record: start of file */
+  f->mode = (unsigned char)(wr ? 2 : 1);
+  f->idx = (unsigned char)(wr ? 0 : 128); /* reading: force first fill */
+  f->ateof = 0;
+
+  return f;
+}
+
+/******************************************************************************/
+
+static int
+lzgetc (LZF *f)
+{
+  if (f->idx >= 128)
+    {
+      if (f->ateof)
+        return EOF;
+
+      (void)bdos (26, BDOS_FCB (f->buf)); /* DMA to this slot */
+
+      if ((bdos (20, BDOS_FCB (f->fcb)) & 0xff) != 0) /* read seq */
+        {
+          f->ateof = 1;
+
+          return EOF;
+        }
+
+      f->idx = 0;
+    }
+
+  return f->buf[f->idx++];
+}
+
+/******************************************************************************/
+
+static int
+lz_flushrec (LZF *f)
+{
+  (void)bdos (26, BDOS_FCB (f->buf)); /* DMA to this slot */
+
+  if ((bdos (21, BDOS_FCB (f->fcb)) & 0xff) != 0) /* write seq */
+    return -1; /* disk full */
+
+  f->idx = 0;
+
+  return 0;
+}
+
+/******************************************************************************/
+
+static int
+lzputc (int c, LZF *f)
+{
+  f->buf[f->idx++] = (unsigned char)c;
+
+  if (f->idx >= 128 && lz_flushrec (f))
+    return EOF;
+
+  return (unsigned char)c;
+}
+
+/******************************************************************************/
+
+static size_t
+lzread (void *p, size_t n, LZF *f)
+{
+  unsigned char *d = (unsigned char *)p;
+  size_t got = 0;
+  int c;
+
+  while (got < n && (c = lzgetc (f)) != EOF)
+    d[got++] = (unsigned char)c;
+
+  return got;
+}
+
+/******************************************************************************/
+
+static size_t
+lzwrite (const void *p, size_t n, LZF *f)
+{
+  const unsigned char *s = (const unsigned char *)p;
+  size_t i;
+
+  for (i = 0; i < n; i++)
+    if (lzputc (s[i], f) == EOF)
+      break;
+
+  return i;
+}
+
+/******************************************************************************/
+
+static int
+lzclose (LZF *f)
+{
+  int rc = 0;
+
+  if (f->mode == 2 && f->idx)
+    {
+      while (f->idx < 128)
+        f->buf[f->idx++] = 0x1a; /* ^Z pad */
+
+      if (lz_flushrec (f))
+        rc = -1;
+    }
+
+  if ((bdos (16, BDOS_FCB (f->fcb)) & 0xff) == 0xff) /* close */
+    rc = -1;
+
+  f->mode = 0;
+
+  return rc;
+}
+
+/******************************************************************************/
+
+static int
+lzerror (LZF *f)
+{
+  (void)f;
+
+  return 0;
+}
+
+/******************************************************************************/
+
+static void
+lzunlink (const char *fn)
+{
+  unsigned char fcb[36];
+
+  cpm_setfcb (fcb, fn);
+  (void)bdos (19, BDOS_FCB (fcb));
+}
+
+/******************************************************************************/
+
+static void
+lz_cput (int c)
+{
+  if (c == '\n')
+    (void)bdos (2, '\r');
+
+  (void)bdos (2, c);
+}
+
+/******************************************************************************/
+
+static void
+lz_cputs (const char *s)
+{
+  while (*s)
+    lz_cput (*s++);
+}
+
+/******************************************************************************/
+
+static char lz_lbuf[224];
+
+static int
+lz_fprintf (FILE *f, const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start (ap, fmt);
+  (void)f;
+# ifdef __SCCZ80
+  (void)fmt;
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf),
+                   *(const char **)(void *)ap, (void *)(ap - 2));
+# else
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf), fmt, ap);
+# endif
+  va_end (ap);
+  lz_cputs (lz_lbuf);
+
+  return 0;
+}
+
+/******************************************************************************/
+
+static int
+lz_printf (const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start (ap, fmt);
+# ifdef __SCCZ80
+  (void)fmt;
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf),
+                   *(const char **)(void *)(ap + 2), (void *)ap);
+# else
+  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf), fmt, ap);
+# endif
+  va_end (ap);
+  lz_cputs (lz_lbuf);
+
+  return 0;
+}
+
+#endif /* LZ_BDOS_IO */
+
+/******************************************************************************/
+
 #ifndef LZPACK_STREAM
 static long
 readfile (const char *fn, unsigned char *buf, size_t max)
 {
-  FILE *f = fopen (fn, "rb");
+  LZF *f = lzopen (fn, 0);
   size_t n;
-
-  if (!f)
-    f = fopen (fn, "r");
 
   if (!f)
     return -1;
 
-  n = fread (buf, 1, max, f);
+  n = lzread (buf, max, f);
 
   if (n == max)
     {
       unsigned char c;
 
-      if (fread (&c, 1, 1, f) > 0)
+      if (lzread (&c, 1, f) > 0)
         {
-          (void)fclose (f);
+          (void)lzclose (f);
 
           return (long)max + 1;
         }
     }
 
-  (void)fclose (f);
+  (void)lzclose (f);
 
 # ifdef LZ_CPM
   {
@@ -1702,16 +2046,13 @@ readfile (const char *fn, unsigned char *buf, size_t max)
 static int
 writefile (const char *fn, const unsigned char *buf, long n)
 {
-  FILE *f = fopen (fn, "wb");
-
-  if (!f)
-    f = fopen (fn, "w");
+  LZF *f = lzopen (fn, 1);
 
   if (!f)
     return -1;
 
-  (void)fwrite (buf, 1, (size_t)n, f);
-  (void)fclose (f);
+  (void)lzwrite (buf, (size_t)n, f);
+  (void)lzclose (f);
 
 #ifdef LZ_CPM
   (void)cpm_set_byte_count (fn, n);
@@ -1760,6 +2101,285 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
   out[base] = '\0';
   (void)strncat (out, ext, outsz - base - 1);
 }
+
+/******************************************************************************/
+
+#ifdef LZPACK_STREAM
+
+/*
+ * Streaming-build helpers shared by the streaming compressor and the
+ * streaming (-R) restore path, kept outside the compress-only region so
+ * a decode-only (LZUNPACK) build gets them too.  mg_byte/min_gap_stream
+ * walk the emitted format to find the tightest source-over-destination
+ * gap the in-place decompressor will see; count_file sizes an input
+ * without buffering it.
+ */
+
+static LZF *s_mg_f;
+static long s_mg_rd;
+
+static int
+mg_byte (void)
+{
+  s_mg_rd++;
+
+  return lzgetc (s_mg_f);
+}
+
+/******************************************************************************/
+
+static long
+min_gap_stream (LZF *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
+{
+  long src_base = pl_dst_top + 1 - pl_len;
+  long dst_base = (long)TPA + litcnt;
+  int bc = 0;
+  unsigned bv = 0;
+  long produced = 0;
+  long consumed;
+  long gap, ming = 0x7fffffffL;
+  int first = 1;
+  int ctrl, a, b, c, bit;
+  unsigned ml;
+  long k;
+
+  s_mg_f = f;
+  s_mg_rd = 0;
+
+  while (produced < outlen)
+    {
+      consumed = s_mg_rd;
+      gap = (src_base + consumed) - (dst_base + produced);
+
+      if (first || gap < ming)
+        {
+          ming = gap;
+          first = 0;
+        }
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      ctrl = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+      a = mg_byte ();
+
+      if (!ctrl)
+        {
+          produced++;
+
+          continue;
+        }
+
+      if (!(a & 0x80))
+        {
+          a = 0;
+
+          goto lf;
+        }
+      else if (!(a & 0x40))
+        {
+          b = 4;
+
+          do
+            {
+              if (bc == 0)
+                {
+                  bv = (unsigned)mg_byte ();
+                  bc = 8;
+                }
+
+              bv = (bv << 1) & 0xff;
+              bc--;
+            }
+          while (--b);
+
+          a = 1;
+
+          goto lf;
+        }
+      else
+        {
+          int b0;
+
+          b0 = mg_byte () & 1;
+          a = 2;
+
+          if (!b0)
+            {
+              ml = (unsigned)a + 1U;
+
+              goto cpx;
+            }
+
+          c = 1;
+
+          goto lc;
+        }
+
+    lf:
+      c = a;
+      a++;
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      bit = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+
+      if (!bit)
+        {
+          ml = (unsigned)a + 1U;
+
+          goto cpx;
+        }
+
+    lc:
+      a++;
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      bit = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+
+      if (!bit)
+        {
+          ml = (unsigned)a + 1U;
+
+          goto cpx;
+        }
+
+      a++;
+
+      if (bc == 0)
+        {
+          bv = (unsigned)mg_byte ();
+          bc = 8;
+        }
+
+      bit = (bv >> 7) & 1;
+      bv = (bv << 1) & 0xff;
+      bc--;
+
+      if (!bit)
+        {
+          ml = (unsigned)a + 1U;
+
+          goto cpx;
+        }
+
+      a = 2;
+
+      for (;;)
+        {
+          if (bc == 0)
+            {
+              bv = (unsigned)mg_byte ();
+              bc = 8;
+            }
+
+          bit = (bv >> 7) & 1;
+          bv = (bv << 1) & 0xff;
+          bc--;
+
+          if (!bit)
+            break;
+
+          a++;
+
+          if (a == 7)
+            break;
+        }
+
+      b = a;
+      a = 1;
+
+      do
+        {
+          if (bc == 0)
+            {
+              bv = (unsigned)mg_byte ();
+              bc = 8;
+            }
+
+          bit = (bv >> 7) & 1;
+          bv = (bv << 1) & 0xff;
+          bc--;
+          a = ((a << 1) | bit) & 0xff;
+        }
+      while (--b);
+
+      a = (a + c) & 0xff;
+      ml = (unsigned)a + 1U;
+
+    cpx:
+      for (k = 0; k < (long)ml; k++)
+        produced++;
+    }
+
+  (void)bit;
+
+  return ming;
+}
+
+/******************************************************************************/
+
+static long
+count_file (const char *fn)
+{
+  LZF *f = lzopen (fn, 0);
+  long n = 0;
+  unsigned char buf[128];
+
+  if (!f)
+    return -1;
+
+
+  for (;;)
+    {
+      size_t r = lzread (buf, sizeof (buf), f);
+
+      n += (long)r;
+
+      if (r < sizeof (buf))
+        break;
+    }
+
+  if (lzerror (f))
+    {
+      (void)lzclose (f);
+
+      return -1;
+    }
+
+  (void)lzclose (f);
+
+# ifdef LZ_CPM
+  {
+    long exact = cpm_file_size (fn);
+
+    if (exact > 0 && exact <= n && n - exact < 128)
+      n = exact;
+  }
+# endif
+
+  return n;
+}
+
+#endif /* LZPACK_STREAM */
 
 /******************************************************************************/
 
@@ -2169,7 +2789,7 @@ static int parse_header (const unsigned char *data, long n, unsigned *stubv,
 static unsigned char *s_win;
 static int *s_lnk;
 static long s_winsz, s_wmask, s_maxback;
-static FILE *s_in;
+static LZF *s_in;
 static long s_N, s_loaded;
 static long s_win_start = WIN_MAX;
 static long s_win_reserve;
@@ -2241,7 +2861,7 @@ win_load (long upto)
 
   while (s_loaded < upto)
     {
-      int c = getc (s_in);
+      int c = lzgetc (s_in);
 
       if (c == EOF)
         {
@@ -2349,9 +2969,15 @@ static long o_blk;
 
 static int o_l2d[MAXLEN + 1];
 
-static int o_mb0[MAXLEN + 1];
-static int o_mb1[MAXLEN + 1];
-static int o_mb3[MAXLEN + 1];
+/*
+ * Bit costs from match_bits() top out around 35 (1+16 header bits plus the
+ * extension-length coding), so a byte per entry suffices and halves these
+ * three tables; o_l2d above stays int because it stores distances.
+ */
+
+static unsigned char o_mb0[MAXLEN + 1];
+static unsigned char o_mb1[MAXLEN + 1];
+static unsigned char o_mb3[MAXLEN + 1];
 
 #  define OMBITS(d, L) \
   ((d) <= 128 ? o_mb0[L] : (d) <= 1152 ? o_mb1[L] : o_mb3[L])
@@ -2365,12 +2991,12 @@ opt_cost_tables (void)
 
   for (L = 2; L <= MAXLEN; L++)
     {
-      o_mb0[L] = match_bits (1, L);
-      o_mb1[L] = match_bits (200, L);
+      o_mb0[L] = (unsigned char)match_bits (1, L);
+      o_mb1[L] = (unsigned char)match_bits (200, L);
     }
 
   for (L = 3; L <= MAXLEN; L++)
-    o_mb3[L] = match_bits (2000, L);
+    o_mb3[L] = (unsigned char)match_bits (2000, L);
 }
 
 /******************************************************************************/
@@ -2419,7 +3045,7 @@ opt_free (void)
 /******************************************************************************/
 
 static long
-compress_stream (FILE *in, long n, int start, FILE *out, int depth,
+compress_stream (LZF *in, long n, int start, LZF *out, int depth,
                  unsigned char *first16, const char *ptag)
 {
   long seg_start, apos, ins;
@@ -2635,231 +3261,9 @@ compress_stream (FILE *in, long n, int start, FILE *out, int depth,
 
 /******************************************************************************/
 
-static FILE *s_mg_f;
-static long s_mg_rd;
-
-static int
-mg_byte (void)
-{
-  s_mg_rd++;
-
-  return getc (s_mg_f);
-}
-
-/******************************************************************************/
-
 static long
-min_gap_stream (FILE *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
-{
-  long src_base = pl_dst_top + 1 - pl_len;
-  long dst_base = (long)TPA + litcnt;
-  int bc = 0;
-  unsigned bv = 0;
-  long produced = 0;
-  long consumed;
-  long gap, ming = 0x7fffffffL;
-  int first = 1;
-  int ctrl, a, b, c, bit;
-  unsigned ml;
-  long k;
-
-  s_mg_f = f;
-  s_mg_rd = 0;
-
-  while (produced < outlen)
-    {
-      consumed = s_mg_rd;
-      gap = (src_base + consumed) - (dst_base + produced);
-
-      if (first || gap < ming)
-        {
-          ming = gap;
-          first = 0;
-        }
-
-      if (bc == 0)
-        {
-          bv = (unsigned)mg_byte ();
-          bc = 8;
-        }
-
-      ctrl = (bv >> 7) & 1;
-      bv = (bv << 1) & 0xff;
-      bc--;
-      a = mg_byte ();
-
-      if (!ctrl)
-        {
-          produced++;
-
-          continue;
-        }
-
-      if (!(a & 0x80))
-        {
-          a = 0;
-
-          goto lf;
-        }
-      else if (!(a & 0x40))
-        {
-          b = 4;
-
-          do
-            {
-              if (bc == 0)
-                {
-                  bv = (unsigned)mg_byte ();
-                  bc = 8;
-                }
-
-              bv = (bv << 1) & 0xff;
-              bc--;
-            }
-          while (--b);
-
-          a = 1;
-
-          goto lf;
-        }
-      else
-        {
-          int b0;
-
-          b0 = mg_byte () & 1;
-          a = 2;
-
-          if (!b0)
-            {
-              ml = (unsigned)a + 1U;
-
-              goto cpx;
-            }
-
-          c = 1;
-
-          goto lc;
-        }
-
-    lf:
-      c = a;
-      a++;
-
-      if (bc == 0)
-        {
-          bv = (unsigned)mg_byte ();
-          bc = 8;
-        }
-
-      bit = (bv >> 7) & 1;
-      bv = (bv << 1) & 0xff;
-      bc--;
-
-      if (!bit)
-        {
-          ml = (unsigned)a + 1U;
-
-          goto cpx;
-        }
-
-    lc:
-      a++;
-
-      if (bc == 0)
-        {
-          bv = (unsigned)mg_byte ();
-          bc = 8;
-        }
-
-      bit = (bv >> 7) & 1;
-      bv = (bv << 1) & 0xff;
-      bc--;
-
-      if (!bit)
-        {
-          ml = (unsigned)a + 1U;
-
-          goto cpx;
-        }
-
-      a++;
-
-      if (bc == 0)
-        {
-          bv = (unsigned)mg_byte ();
-          bc = 8;
-        }
-
-      bit = (bv >> 7) & 1;
-      bv = (bv << 1) & 0xff;
-      bc--;
-
-      if (!bit)
-        {
-          ml = (unsigned)a + 1U;
-
-          goto cpx;
-        }
-
-      a = 2;
-
-      for (;;)
-        {
-          if (bc == 0)
-            {
-              bv = (unsigned)mg_byte ();
-              bc = 8;
-            }
-
-          bit = (bv >> 7) & 1;
-          bv = (bv << 1) & 0xff;
-          bc--;
-
-          if (!bit)
-            break;
-
-          a++;
-
-          if (a == 7)
-            break;
-        }
-
-      b = a;
-      a = 1;
-
-      do
-        {
-          if (bc == 0)
-            {
-              bv = (unsigned)mg_byte ();
-              bc = 8;
-            }
-
-          bit = (bv >> 7) & 1;
-          bv = (bv << 1) & 0xff;
-          bc--;
-          a = ((a << 1) | bit) & 0xff;
-        }
-      while (--b);
-
-      a = (a + c) & 0xff;
-      ml = (unsigned)a + 1U;
-
-    cpx:
-      for (k = 0; k < (long)ml; k++)
-        produced++;
-    }
-
-  (void)bit;
-
-  return ming;
-}
-
-/******************************************************************************/
-
-static long
-assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
-                     FILE *pl, long outlen, long pl_dst_top)
+assemble_z80_stream (LZF *outf, const unsigned char *first16, long pllen,
+                     LZF *pl, long outlen, long pl_dst_top)
 {
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
@@ -2873,24 +3277,24 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)memcpy (hdr + 5, "-pc1-", 5);
   put16 (hdr + 10, (unsigned)outlen);
   hdr[12] = hdr[13] = hdr[14] = hdr[15] = 0;
-  (void)fwrite (hdr, 1, LITCNT, outf);
+  (void)lzwrite (hdr, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
     {
-      int c = getc (pl);
+      int c = lzgetc (pl);
 
       if (c == EOF)
         break;
 
-      (void)putc (c, outf);
+      (void)lzputc (c, outf);
     }
 
-  (void)fwrite (first16, 1, LITCNT, outf);
+  (void)lzwrite (first16, LITCNT, outf);
 
   chk = put_check (chkb, stub_v, stub_dst_top);
 
   if (chk)
-    (void)fwrite (chkb, 1, (size_t)chk, outf);
+    (void)lzwrite (chkb, (size_t)chk, outf);
 
   (void)memcpy (stub, z80_stub, STUBLEN);
 
@@ -2917,7 +3321,7 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
       put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
   }
 
-  (void)fwrite (stub, 1, STUBLEN, outf);
+  (void)lzwrite (stub, STUBLEN, outf);
 
   return LITCNT + pllen + LITCNT + chk + STUBLEN;
 }
@@ -2925,8 +3329,8 @@ assemble_z80_stream (FILE *outf, const unsigned char *first16, long pllen,
 /******************************************************************************/
 
 static long
-assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
-                      FILE *pl, long outlen, long pl_dst_top)
+assemble_8080_stream (LZF *outf, const unsigned char *first16, long pllen,
+                      LZF *pl, long outlen, long pl_dst_top)
 {
   unsigned out_end = (unsigned)(TPA + outlen);
   long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
@@ -2943,24 +3347,24 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   (void)memcpy (hdr + 5, "-pc1-", 5);
   put16 (hdr + 10, (unsigned)outlen);
   hdr[12] = hdr[13] = hdr[14] = hdr[15] = 0;
-  (void)fwrite (hdr, 1, LITCNT, outf);
+  (void)lzwrite (hdr, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
     {
-      int c = getc (pl);
+      int c = lzgetc (pl);
 
       if (c == EOF)
         break;
 
-      (void)putc (c, outf);
+      (void)lzputc (c, outf);
     }
 
-  (void)fwrite (first16, 1, LITCNT, outf);
+  (void)lzwrite (first16, LITCNT, outf);
 
   chk = put_check (chkb, stub_v, dcmp_dsttop);
 
   if (chk)
-    (void)fwrite (chkb, 1, (size_t)chk, outf);
+    (void)lzwrite (chkb, (size_t)chk, outf);
 
   decomp_file_v = stub_v + chk + S8_SLEN;
 
@@ -2987,57 +3391,10 @@ assemble_8080_stream (FILE *outf, const unsigned char *first16, long pllen,
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (de + S8D_PL_LEN, (unsigned)pllen);
 
-  (void)fwrite (su, 1, S8_SLEN, outf);
-  (void)fwrite (de, 1, S8_DLEN, outf);
+  (void)lzwrite (su, S8_SLEN, outf);
+  (void)lzwrite (de, S8_DLEN, outf);
 
   return LITCNT + pllen + LITCNT + chk + S8_SLEN + S8_DLEN;
-}
-
-/******************************************************************************/
-
-static long
-count_file (const char *fn)
-{
-  FILE *f = fopen (fn, "rb");
-  long n = 0;
-  unsigned char buf[128];
-
-  if (!f)
-    f = fopen (fn, "r");
-
-  if (!f)
-    return -1;
-
-
-  for (;;)
-    {
-      size_t r = fread (buf, 1, sizeof (buf), f);
-
-      n += (long)r;
-
-      if (r < sizeof (buf))
-        break;
-    }
-
-  if (ferror (f))
-    {
-      (void)fclose (f);
-
-      return -1;
-    }
-
-  (void)fclose (f);
-
-#  ifdef LZ_CPM
-  {
-    long exact = cpm_file_size (fn);
-
-    if (exact > 0 && exact <= n && n - exact < 128)
-      n = exact;
-  }
-#  endif
-
-  return n;
 }
 
 /******************************************************************************/
@@ -3045,13 +3402,13 @@ count_file (const char *fn)
 #  ifndef LZPACK_NO_AUTOARCH
 
 static int
-is_z80_file (FILE *f, long n)
+is_z80_file (LZF *f, long n)
 {
   long pos = 0;
 
   while (pos < n)
     {
-      int op = getc (f);
+      int op = lzgetc (f);
       int skip;
 
       if (op == EOF)
@@ -3063,7 +3420,7 @@ is_z80_file (FILE *f, long n)
         return 1;
 
       for (skip = op8080_len[op] - 1; skip > 0; skip--, pos++)
-        if (getc (f) == EOF)
+        if (lzgetc (f) == EOF)
           return 0;
     }
 
@@ -3077,7 +3434,7 @@ static int
 do_compress_stream (const char *fn, const char *oname, int verbose,
                     int use8080, int auto_stub, int optimal)
 {
-  FILE *in, *tmp, *outf;
+  LZF *in, *tmp, *outf;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
   long stub_dst_top, dcmp_dsttop;
   long dp_blk = LZ_STDBLK; /* parse-DP block target (LZ_OPTBLK for -E) */
@@ -3102,18 +3459,15 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       unsigned rsv, rls;
       long rol;
 
-      in = fopen (fn, "rb");
-
-      if (!in)
-        in = fopen (fn, "r");
+      in = lzopen (fn, 0);
 
       if (in)
         {
           unsigned char hdr[LITCNT];
           long k;
 
-          k = (long)fread (hdr, 1, LITCNT, in);
-          (void)fclose (in);
+          k = (long)lzread (hdr, LITCNT, in);
+          (void)lzclose (in);
 
           if (k == LITCNT && parse_header (hdr, n, &rsv, &rls, &rol) == 0)
             {
@@ -3166,25 +3520,19 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 #  ifndef LZPACK_NO_AUTOARCH
   if (auto_stub)
     {
-      FILE *df = fopen (fn, "rb");
-
-      if (!df)
-        df = fopen (fn, "r");
+      LZF *df = lzopen (fn, 0);
 
       if (df)
         {
           use8080 = (is_z80_file (df, n) ? 0 : 1);
-          (void)fclose (df);
+          (void)lzclose (df);
         }
     }
 #  else
   (void)auto_stub;
 #  endif
 
-  in = fopen (fn, "rb");
-
-  if (!in)
-    in = fopen (fn, "r");
+  in = lzopen (fn, 0);
 
   if (!in)
     {
@@ -3193,16 +3541,11 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-  tmp = fopen (LZTMP, "wb");
-
-  if (!tmp) {
-    /* cppcheck-suppress incompatibleFileOpen */
-    tmp = fopen (LZTMP, "w");
-  }
+  tmp = lzopen (LZTMP, 1);
 
   if (!tmp)
     {
-      (void)fclose (in);
+      (void)lzclose (in);
       (void)fprintf (stderr, "ERROR: cannot create temp file %s\n", LZTMP);
 
       return 1;
@@ -3215,14 +3558,15 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
    * whatever heap is left over for the block -- up to LZ_OPTBLK for -E, which
    * is the only thing that distinguishes the two engines' memory use.
    */
+
   s_win_start = WIN_MAX;
   s_win_reserve = LZ_STD_RESERVE;
 
   if (win_alloc ())
     {
-      (void)fclose (in);
-      (void)fclose (tmp);
-      (void)remove (LZTMP);
+      (void)lzclose (in);
+      (void)lzclose (tmp);
+      lzunlink (LZTMP);
       (void)fprintf (stderr, "%s", oom);
 
       return 1;
@@ -3231,9 +3575,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (opt_alloc (dp_blk, LZ_STDBLK_MIN))
     {
       win_free ();
-      (void)fclose (in);
-      (void)fclose (tmp);
-      (void)remove (LZTMP);
+      (void)lzclose (in);
+      (void)lzclose (tmp);
+      lzunlink (LZTMP);
       (void)fprintf (stderr, "%s", oom);
 
       return 1;
@@ -3252,29 +3596,26 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   prog_done ();
 
   win_free (); /* release the window before reopening files */
-  (void)fclose (in);
-  (void)fclose (tmp);
+  (void)lzclose (in);
+  (void)lzclose (tmp);
 
   outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
 
   /* CP/M stdio cannot reliably read a file back through "w+b"; reopen "rb". */
 
-  tmp = fopen (LZTMP, "rb");
-
-  if (!tmp)
-    tmp = fopen (LZTMP, "r");
+  tmp = lzopen (LZTMP, 0);
 
   if (!tmp)
     {
-      (void)remove (LZTMP);
+      lzunlink (LZTMP);
       (void)fprintf (stderr, "ERROR: cannot reopen temp file %s\n", LZTMP);
 
       return 1;
     }
 
   ming = min_gap_stream (tmp, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
-  (void)fclose (tmp);
+  (void)lzclose (tmp);
 
   if (ming < 1)
     pl_dst_top += (1 - ming);
@@ -3284,7 +3625,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
     {
-      (void)remove (LZTMP);
+      lzunlink (LZTMP);
       (void)fprintf (stderr, "ERROR: %s would not fit in memory\n", fn);
 
       return 1;
@@ -3303,7 +3644,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
                        "  %-12s -- inefficient (%ld => %ld), skipped\n",
                        fn, n, total);
 
-      (void)remove (LZTMP);
+      lzunlink (LZTMP);
 
       return 2;
     }
@@ -3314,28 +3655,22 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       oname = nb;
     }
 
-  outf = fopen (oname, "wb");
-
-  if (!outf)
-    outf = fopen (oname, "w");
+  outf = lzopen (oname, 1);
 
   if (!outf)
     {
-      (void)remove (LZTMP);
+      lzunlink (LZTMP);
       (void)fprintf (stderr, "ERROR: cannot write %s\n", oname);
 
       return 1;
     }
 
-  tmp = fopen (LZTMP, "rb");
-
-  if (!tmp)
-    tmp = fopen (LZTMP, "r");
+  tmp = lzopen (LZTMP, 0);
 
   if (!tmp)
     {
-      (void)fclose (outf);
-      (void)remove (LZTMP);
+      (void)lzclose (outf);
+      lzunlink (LZTMP);
       (void)fprintf (stderr, "ERROR: cannot reopen temp file %s\n", LZTMP);
 
       return 1;
@@ -3346,9 +3681,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   else
     (void)assemble_z80_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
 
-  (void)fclose (outf);
-  (void)fclose (tmp);
-  (void)remove (LZTMP);
+  (void)lzclose (outf);
+  (void)lzclose (tmp);
+  lzunlink (LZTMP);
 
 #  ifdef LZ_CPM
   (void)cpm_set_byte_count (oname, total);
@@ -3489,13 +3824,13 @@ do_restore (const char *fn, const char *oname, int verbose)
 /******************************************************************************/
 
 static size_t
-fread_full (void *p, size_t n, FILE *f)
+fread_full (void *p, size_t n, LZF *f)
 {
   unsigned char *d = (unsigned char *)p;
   size_t got = 0;
   int c;
 
-  while (got < n && (c = getc (f)) != EOF)
+  while (got < n && (c = lzgetc (f)) != EOF)
     d[got++] = (unsigned char)c;
 
   return got;
@@ -3511,7 +3846,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   long n, outlen, pllen, ming, bufsz, srcoff;
   unsigned stubv, lit_src;
   char nb[64];
-  FILE *f;
+  LZF *f;
 
   n = count_file (fn);
 
@@ -3528,10 +3863,7 @@ do_restore (const char *fn, const char *oname, int verbose)
    * needs no reopen (and no seek -- CP/M stdio cannot rewind reliably).
    */
 
-  f = fopen (fn, "rb");
-
-  if (!f)
-    f = fopen (fn, "r");
+  f = lzopen (fn, 0);
 
   if (!f)
     {
@@ -3540,10 +3872,10 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
-  if (fread (hdr, 1, (size_t)LITCNT, f) != (size_t)LITCNT
+  if (lzread (hdr, (size_t)LITCNT, f) != (size_t)LITCNT
       || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
-      (void)fclose (f);
+      (void)lzclose (f);
       (void)fprintf (stderr,
                      "ERROR: %s is not a PopCom! or LZPACK file\n", fn);
 
@@ -3552,7 +3884,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (outlen > MZXFILE)
     {
-      (void)fclose (f);
+      (void)lzclose (f);
       (void)fprintf (stderr, "ERROR: %s expands beyond MZXFILE=%ld\n", fn,
                (long)MZXFILE);
 
@@ -3562,7 +3894,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if ((long)lit_src - TPA < LITCNT
       || (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
-      (void)fclose (f);
+      (void)lzclose (f);
       (void)fprintf (stderr, "ERROR: %s has invalid header data\n", fn);
 
       return 1;
@@ -3571,7 +3903,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   pllen = ((long)lit_src - TPA) - LITCNT;
   ming = min_gap_stream (f, pllen, outlen - LITCNT, LITCNT,
                          (long)(TPA + outlen) - 1);
-  (void)fclose (f);
+  (void)lzclose (f);
 
   bufsz = outlen + (ming < 1 ? (1 - ming) : 0);
 
@@ -3593,17 +3925,14 @@ do_restore (const char *fn, const char *oname, int verbose)
     }
 
   srcoff = bufsz - pllen;
-  f = fopen (fn, "rb");
-
-  if (!f)
-    f = fopen (fn, "r");
+  f = lzopen (fn, 0);
 
   if (!f || fread_full (hdr, (size_t)LITCNT, f) != (size_t)LITCNT
          || fread_full (buf + srcoff, (size_t)pllen, f) != (size_t)pllen
          || fread_full (lit, (size_t)LITCNT, f) != (size_t)LITCNT)
     {
       if (f)
-        (void)fclose (f);
+        (void)lzclose (f);
 
       FREE (buf);
       (void)fprintf (stderr, "ERROR: cannot read %s\n", fn);
@@ -3611,7 +3940,7 @@ do_restore (const char *fn, const char *oname, int verbose)
       return 1;
     }
 
-  (void)fclose (f);
+  (void)lzclose (f);
 
 #  ifdef LZ_ASM_RESTORE
   {
@@ -3685,10 +4014,7 @@ do_list (const char *fn)
   long n, outlen;
   unsigned stubv, lit_src;
   size_t got;
-  FILE *f = fopen (fn, "rb");
-
-  if (!f)
-    f = fopen (fn, "r");
+  LZF *f = lzopen (fn, 0);
 
   if (!f)
     {
@@ -3704,7 +4030,7 @@ do_list (const char *fn)
    * never issued on a stream already at EOF or in error.
    */
 
-  got = fread (hdr, 1, (size_t)LITCNT, f);
+  got = lzread (hdr, (size_t)LITCNT, f);
   n = (long)got;
 
   if (got == (size_t)LITCNT)
@@ -3713,7 +4039,7 @@ do_list (const char *fn)
 
       for (;;)
         {
-          size_t r = fread (buf, 1, sizeof (buf), f);
+          size_t r = lzread (buf, sizeof (buf), f);
 
           n += (long)r;
 
@@ -3722,7 +4048,7 @@ do_list (const char *fn)
         }
     }
 
-  (void)fclose (f);
+  (void)lzclose (f);
 
 #ifdef LZ_CPM
   {
@@ -3756,9 +4082,9 @@ static void
 herald (FILE *f)
 {
   (void)fprintf (f,
-    "LZPACK %s - CP/M-80 (8080 and Z80) executable compressor\n"
+    "%s %s - CP/M-80 (8080 and Z80) executable %s\n"
     "Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>\n",
-    LZPACK_VER);
+    LZ_PROG, LZPACK_VER, LZ_KIND);
 }
 
 /******************************************************************************/
@@ -3855,7 +4181,15 @@ parse_memtop (const char *s)
 static void
 usage (void)
 {
+  /*
+   * The conditional lines are hoisted into plain variables BEFORE the
+   * fprintf calls: with LZ_BDOS_IO, fprintf is a macro, and a preprocessing
+   * directive inside a macro argument list is undefined behavior (V1119).
+   */
+
+  const char *lrbc = "";
 #ifndef LZPACK_DECODE_ONLY
+  const char *rline;
 # ifdef LZPACK_NO_OPT
   static const char *exopt = "";
   static const char *expad = "     ";
@@ -3869,34 +4203,57 @@ usage (void)
 
   herald (stderr);
 
+#ifdef LZPACK_DECODE_ONLY
+
+# ifdef LZ_CPM
+  if (cpm_has_lrbc ())
+    lrbc = "  lzunpack -I                 use ISX LRBC convention\n";
+# endif
+
+  /* LZUNPACK: a bare <file> restores; -R is still accepted for symmetry. */
+  (void)fprintf (stderr,
+    "\n"
+    "Usage:\n"
+    "  lzunpack <file>             restore (decompress)\n"
+    "  lzunpack -L <file>          list stored sizes\n");
+
+  /* Two calls: the BDOS console path formats into a fixed line buffer. */
+  (void)fprintf (stderr,
+    "  lzunpack -O <name>          set output name\n"
+    "%s"
+    "  lzunpack -V                 show LZUNPACK information\n", lrbc);
+
+#else
+
+# ifdef LZ_CPM
+  if (cpm_has_lrbc ())
+    lrbc = "  lzpack -I                   use ISX LRBC convention\n";
+# endif
+
+# ifdef LZPACK_COMPRESS_ONLY
+  rline = "";
+# else
+  rline = "  lzpack -R <file>            restore (decompress)\n";
+# endif
+
   /* Flawfinder: ignore */ /* False positive CWE-134 */
   (void)fprintf (stderr,
     "\n"
     "Usage:\n"
-#ifndef LZPACK_DECODE_ONLY
     "  lzpack %s[-8|-Z] <file>%s  compress (%s-8/-Z: force 8080/Z80 stub)\n"
-#endif
-#ifndef LZPACK_COMPRESS_ONLY
-    "  lzpack -R <file>            restore (decompress)\n"
-#endif
+    "%s"
     "  lzpack -L <file>            list stored sizes\n"
     "  lzpack -O <name>            set output name\n"
-#ifndef LZPACK_DECODE_ONLY
+    , exopt, expad, extra, rline);
+
+  /* Two calls: the BDOS console path formats into a fixed line buffer. */
+  (void)fprintf (stderr,
     "  lzpack -M <top>             set memory top (default 48K)\n"
     "  lzpack -C                   stub verifies memory at run time\n"
-#endif
-#ifdef LZ_CPM
     "%s"
+    "  lzpack -V                   show LZPACK information\n", lrbc);
+
 #endif
-    "  lzpack -V                   show LZPACK information\n"
-#ifndef LZPACK_DECODE_ONLY
-    , exopt, expad, extra
-#endif
-#ifdef LZ_CPM
-    , (cpm_has_lrbc () ?
-    "  lzpack -I                   use ISX LRBC convention\n" : "")
-#endif
-    );
 }
 
 /******************************************************************************/
@@ -3923,10 +4280,12 @@ version (void)
     unsigned tk;
     const char *cpu;
     const char *memword;
-# ifdef LZPACK_NO_OPT
+# ifndef LZPACK_DECODE_ONLY
+#  ifdef LZPACK_NO_OPT
     const char *eopt = "unavailable";
-# else
+#  else
     const char *eopt = "available";
+#  endif
 # endif
 
 # ifdef __AZTEC_C_42T__
@@ -3964,8 +4323,27 @@ version (void)
 #  endif
 # endif
 
+# ifdef LZPACK_DECODE_ONLY
+    (void)printf ("%s build; %uK %s free.\n", cpu, tk, memword);
+# else
     (void)printf ("%s build; extra compression (-E) %s; %uK %s free.\n",
                   cpu, eopt, tk, memword);
+
+#  ifdef LZPACK_NO_AUTOARCH
+    {
+#   ifdef LZPACK_8080
+      static const char *defstub = "8080";
+#   else
+      static const char *defstub = "Z80";
+#   endif
+
+      (void)printf ("Stub autodetect off: defaults to %s, -8/-Z override.\n",
+                    defstub);
+    }
+#  else
+    (void)printf ("Stub autodetect on; -8/-Z override.\n");
+#  endif
+# endif
   }
 #endif
 
@@ -4035,6 +4413,16 @@ main (int argc, char **argv)
 
               memtop = v;
             }
+#else
+          else if (c == 'c' || c == 'C')
+            {
+              /* ignored: the stub check is baked in at pack time */
+            }
+          else if (c == 'm' || c == 'M')
+            {
+              if (i + 1 < argc)
+                i++;
+            }
 #endif
           else if (c == 'o' || c == 'O')
             {
@@ -4101,6 +4489,11 @@ main (int argc, char **argv)
       return 2;
     }
 
+#ifdef LZPACK_DECODE_ONLY
+  if (mode == 0)
+    mode = 1;
+#endif
+
   /* Second pass: process each input file (skipping options). */
 
   for (i = 1; i < argc; i++)
@@ -4115,21 +4508,19 @@ main (int argc, char **argv)
           continue;
         }
 
+#ifndef LZPACK_DECODE_ONLY
       if (mode == 0)
         {
-#ifdef LZPACK_DECODE_ONLY
-          (void)fprintf (stderr, "ERROR: this build cannot compress\n");
-          rc |= 1;
-#else
 # ifdef LZPACK_STREAM
           rc |= do_compress_stream (argv[i], oname, 1, use8080, auto_stub,
                                     optimal);
 # else
           rc |= do_compress (argv[i], oname, 1, use8080, auto_stub, optimal);
 # endif
-#endif
         }
-      else if (mode == 1)
+      else
+#endif
+      if (mode == 1)
         {
 #ifdef LZPACK_COMPRESS_ONLY
           (void)fprintf (stderr, "ERROR: this build cannot restore\n");

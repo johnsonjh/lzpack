@@ -337,15 +337,19 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
 	mkdir -p ./bindist/
-	# CP/M-80 8080
+	# CP/M-80 8080 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-8080/lzpack.com
+	test -f ./cpm-8080/lzunpack.com
 	(cd cpm-8080 && mv -f lzpack.com LZPACK.COM && \
-		arc as LZPCKI80.ARC LZPACK.COM)
+		mv -f lzunpack.com LZUNPACK.COM && \
+		arc as LZPCKI80.ARC LZPACK.COM LZUNPACK.COM)
 	mv -f ./cpm-8080/LZPCKI80.ARC ./bindist/LZPCKI80.ARC
-	# CP/M-80 Z80
+	# CP/M-80 Z80 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-z80/lzpack.com
+	test -f ./cpm-z80/lzunpack.com
 	(cd cpm-z80 && mv -f lzpack.com LZPACK.COM && \
-		arc as LZPCKZ80.ARC LZPACK.COM)
+		mv -f lzunpack.com LZUNPACK.COM && \
+		arc as LZPCKZ80.ARC LZPACK.COM LZUNPACK.COM)
 	mv -f ./cpm-z80/LZPCKZ80.ARC ./bindist/LZPCKZ80.ARC
 	# CP/M-86
 	test -f ./cpm-86/lzpack.cmd

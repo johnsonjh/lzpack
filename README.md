@@ -256,7 +256,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v0.99998 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.999991 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
@@ -268,6 +268,13 @@ Usage:
   lzpack -C                   stub verifies memory at run time
   lzpack -V                   show LZPACK information
 ```
+
+On **CP/M‑80** the distribution is two utilities, keeping each tool as small
+as possible: `LZPACK.COM` for compression only, and a separate `LZUNPACK.COM`
+for restoring (`lzunpack <file>`; `-R` is also accepted) and listing (`-L`).
+A smaller packing tool leaves more TPA for the compression window, and a
+smaller unpacking tool means you can restore larger programs.  For all other
+platforms, the build is a single combined `lzpack` binary as shown above.
 
 ### Memory ceiling (`-m`)
 
@@ -293,7 +300,7 @@ can be used to override this check, for example:
 | hex address         | `-m 0x7DFF`                | literal *MEMTOP* address       |
 | decimal address     | `-m 65023`                 | literal *MEMTOP* address (>64) |
 
-Values below `0x1190` (4K) or above `0xFFFF` are rejected.
+Values below `0x1190` (4K) or above `0xFFFF` (64K) are rejected.
 
 ### Runtime memory check (`-C`)
 
@@ -312,16 +319,16 @@ relocated, so it does not change what fits under any given `-m` setting.
 
 ## Downloads
 
-|                                                                                          File  | Size        | Platform                                  |
-|-----------------------------------------------------------------------------------------------:|:------------|:------------------------------------------|
-| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(8080)                    |
-| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 16&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                     |
-| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)               |
-| [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)                |
-| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)               |
-| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB |**Windows**&nbsp;(32-bit&nbsp;MSVCRT)      |
-| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit&nbsp;UCRT)        |
-| [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 20&nbsp;KiB |**ELKS**&nbsp;(8086/8088)                  |
+|                                                                                          File  | Size        | Platform                             |
+|-----------------------------------------------------------------------------------------------:|:------------|:-------------------------------------|
+| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(8080)               |
+| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                |
+| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)          |
+| [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)           |
+| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)          |
+| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB |**Windows**&nbsp;(32-bit&nbsp;MSVCRT) |
+| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit&nbsp;UCRT)   |
+| [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 20&nbsp;KiB |**ELKS**&nbsp;(8086/8088)             |
 
 ## Building from source
 
@@ -341,15 +348,15 @@ The following targets build various `lzpack` binaries.
 
 Most users will only be interested in the native binary build.
 
-| Make Target | Description            | Toolchain |
-|------------:|:-----------------------|:----------|
-| `all`       | Native&nbsp;binary     | ANSI&nbsp;C89&nbsp;compiler&nbsp;(*e.g.*,&nbsp;`c89`,&nbsp;`gcc`,&nbsp;`clang`) |
-| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(*2025‑05‑01+*) |
+| Make Target | Description            | Toolchain                                                                                                                 |
+|------------:|:-----------------------|:--------------------------------------------------------------------------------------------------------------------------|
+| `all`       | Native&nbsp;binary     | ANSI&nbsp;C89&nbsp;compiler&nbsp;(*e.g.*,&nbsp;`c89`,&nbsp;`gcc`,&nbsp;`clang`)                                           |
+| `cpm`       | CP/M‑80&nbsp;8080+Z80  | [z88dk](https://z88dk.org/)&nbsp;(*2025‑05‑01+*)                                                                          |
 | `cpm86`     | CP/M‑86&nbsp;8086/8088 | [cross‑Aztec&nbsp;C&nbsp;v4.2](https://github.com/tsupplis/cpm86-crossdev)&nbsp;([tsupplis](https://github.com/tsupplis)) |
-| `msdos`     | MS‑DOS&nbsp;8086/8088  | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2) |
-| `djgpp`     | MS‑DOS&nbsp;80386      | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/) |
-| `elks`      | ELKS&nbsp;8086/8088    | [IA16‑GCC](https://gitlab.com/tkchia/build-ia16) |
-| `windows`   | Windows&nbsp;32/64‑bit | [MinGW‑w64](https://www.mingw-w64.org/)&nbsp;[GCC](https://gcc.gnu.org/) |
+| `msdos`     | MS‑DOS&nbsp;8086/8088  | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2)                                               |
+| `djgpp`     | MS‑DOS&nbsp;80386      | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/)                      |
+| `elks`      | ELKS&nbsp;8086/8088    | [IA16‑GCC](https://gitlab.com/tkchia/build-ia16)                                                                          |
+| `windows`   | Windows&nbsp;32/64‑bit | [MinGW‑w64](https://www.mingw-w64.org/)&nbsp;[GCC](https://gcc.gnu.org/)                                                  |
 
 The following targets will likely only be of interest to developers:
 

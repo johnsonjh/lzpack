@@ -7,7 +7,9 @@
 
 ################################################################################
 
-# Build the CP/M-80 (z88dk) version of LZPACK (and StubASM).
+# Build the CP/M-80 (z88dk) versions of LZPACK, LZUNPACK, and StubASM.
+# LZPACK and LZUNPACK ship as a split pair on CP/M-80: the packer compresses
+# only and the unpacker restores/lists only, keeping each binary small.
 
 # Builds are supported using either a locally installed z88dk or with Docker.
 
@@ -33,6 +35,11 @@
 #   DOCKER   docker command (e.g. "sudo docker" if you are not in the group).
 #   IMAGE    z88dk image to use (Docker mode only).
 #   TNYLPO   path to the tnylpo binary for the optional smoke test.
+#   BDOSIO_PRAGMAS
+#            CRT/CLIB pragmas matching lzpack.c's LZ_BDOS_IO layer (see
+#            below).  Clear this (and add -DLZPACK_NO_BDOS_IO to the
+#            LZPACK_EXTRA_DEFS/LZUNPACK_EXTRA_DEFS) to build against the
+#            stock z88dk stdio for debugging or comparison.
 
 ################################################################################
 
@@ -69,12 +76,34 @@ IMAGE="${IMAGE:-z88dk/z88dk:latest}"
 DOCKER="${DOCKER:-docker}"
 TNYLPO="${TNYLPO:-tnylpo}"
 ARCHS="${ARCHS:-ixiy 8080}"
-HSZ="${HSZ:-1024}"
 MZXFILE="${MZXFILE:-65535L}"
+
+# The HSZ/STACKSZ/autodetect defaults below are sized so the Z80 packer
+# reaches the 8192-byte match window on real MSX-DOS machines, whose TPAs
+# run roughly 52,992 (Sanyo MPC-100) to 53,248 bytes (Sony HB-75) -- each
+# byte of static footprint competes with the window for the heap, and the
+# window needs 3*WINSZ plus a small parse reserve.  A smaller HSZ only
+# lengthens hash chains (identical output, slower packing); the engine is
+# iterative, so a 1K stack reserve holds; stub autodetect costs ~0.5K, so
+# each binary instead defaults to its own architecture's stub (-8/-Z still
+# override, and -V reports the situation).
+HSZ="${HSZ:-256}"
 
 # stack reserve; the rest of RAM becomes heap, so
 # the dynamic window grows as large as the TPA allows
-STACKSZ="${STACKSZ:-2048}"
+STACKSZ="${STACKSZ:-1024}"
+
+# CRT/CLIB pragmas paired with lzpack.c's LZ_BDOS_IO layer: the CRT must not
+# open the std streams (all console output goes through BDOS function 2), no
+# C-library FCBs are wanted (the LZF layer has its own), and the printf
+# converter mask is pinned because zcc's format-string auto-detection cannot
+# see through the lz_printf/lz_fprintf macros.  0x4000120B is the mask the
+# detector chose when the calls were direct: %d %u %s %X plus field widths
+# and the long ('l') modifier -- exactly what the messages use.
+bdosio_p1="-pragma-define:CRT_ENABLE_STDIO=0"
+bdosio_p2="-pragma-define:CLIB_OPEN_MAX=0"
+bdosio_p3="-pragma-define:CLIB_OPT_PRINTF=0x4000120B"
+BDOSIO_PRAGMAS="${BDOSIO_PRAGMAS:-${bdosio_p1} ${bdosio_p2} ${bdosio_p3}}"
 
 # 1 = pack the .COMs with the host optimal (-e)
 # self-extractor; 0 = leave them raw
@@ -362,15 +391,29 @@ build_arch()
   [ "${out}" = "." ] || mkdir -p "${out}"
   lc="${out}/lzpack.com"
   lm="${out}/lzpack.map"
+  uc="${out}/lzunpack.com"
+  um="${out}/lzunpack.map"
   sc="${out}/stubasm.com"
   sm="${out}/stubasm.map"
   BLDN=" building "
   printf '%s\n' \
     ">> [${clib}]${BLDN}${lc}  (HSZ=${HSZ} MZXFILE=${MZXFILE} STACK=${STACKSZ})"
+  # The CP/M-80 distribution is a split pair: lzpack.com compresses only and
+  # lzunpack.com restores/lists only, so each binary stays as small as it can
+  # (a smaller packer leaves more TPA for the match window, a smaller
+  # unpacker restores larger programs).
   # shellcheck disable=SC2086
   run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${lc}" \
-    -DLZPACK_STREAM=1 "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
-    ${LZPACK_EXTRA_DEFS:-} \
+    -DLZPACK_STREAM=1 -DLZPACK_COMPRESS_ONLY -DLZPACK_NO_AUTOARCH \
+    "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
+    ${LZPACK_EXTRA_DEFS:-} ${BDOSIO_PRAGMAS} \
+    "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
+  printf '%s\n' ">> [${clib}]${BLDN}${uc}"
+  # lzunpack needs no HSZ: the hash table belongs to the compressor only.
+  # shellcheck disable=SC2086
+  run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${uc}" \
+    -DLZPACK_STREAM=1 -DLZPACK_DECODE_ONLY "-DMZXFILE=${MZXFILE}" \
+    ${LZUNPACK_EXTRA_DEFS:-} ${BDOSIO_PRAGMAS} \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
   printf '%s\n' ">> [${clib}] building ${sc}"
   run_zcc zcc +cpm -O3 --opt-code-size -m stubasm.c -clib="${clib}" -o "${sc}" \
@@ -378,21 +421,24 @@ build_arch()
 
   # shellcheck disable=SC2249
   case "${DOCKER}" in
-  sudo*) sudo chown "$(id -u):$(id -g)" "${lc}" "${lm}" "${sc}" "${sm}" \
-    2> /dev/null || : ;;
+  sudo*) sudo chown "$(id -u):$(id -g)" "${lc}" "${lm}" "${uc}" "${um}" \
+    "${sc}" "${sm}" 2> /dev/null || : ;;
   esac
 
   printf '%s\n' ""
   check_48k "${clib} lzpack" "${lm}" "${CHECK_RESERVE}" 1
+  check_48k "${clib} lzunpack" "${um}" 0 1
   check_48k "${clib} stubasm" "${sm}" 0 0
   printf '%s\n' ""
   trim_bss "${lc}" "${lm}"
+  trim_bss "${uc}" "${um}"
   trim_bss "${sc}" "${sm}"
   printf '%s\n' ""
   pack "${lc}"
+  pack "${uc}"
   pack "${sc}"
   printf '%s\n' ""
-  ls -l "${lc}" "${sc}"
+  ls -l "${lc}" "${uc}" "${sc}"
   printf '%s\n' ""
 }
 
@@ -436,8 +482,12 @@ printf '%s\n\n' ">>>>>>>>>>> Finished CP/M-80 build <<<<<<<<<<<"
 if command -v "${TNYLPO}" > /dev/null 2>&1; then
   printf '%s\n\n' ">> tnylpo z80 smoke test"
   "${TNYLPO}" -n "./cpm-z80${OUT_SUFFIX}/lzpack.com" -v || :
+  printf '\n%s\n' ""
+  "${TNYLPO}" -n "./cpm-z80${OUT_SUFFIX}/lzunpack.com" -v || :
   printf '\n%s\n\n' ">> tnylpo 8080 smoke test"
   "${TNYLPO}" -n "./cpm-8080${OUT_SUFFIX}/lzpack.com" -v || :
+  printf '\n%s\n' ""
+  "${TNYLPO}" -n "./cpm-8080${OUT_SUFFIX}/lzunpack.com" -v || :
   printf \
     '\n%s\n' ">> for full round-trip self-extract tests: '${MAKE:-make} test'"
 else

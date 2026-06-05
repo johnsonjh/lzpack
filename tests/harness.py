@@ -29,6 +29,7 @@ CPMEMU = os.environ.get("CPMEMU", "cpm")
 EMU2 = os.environ.get("EMU2", "emu2")
 NATIVE = os.path.join(PROJECT, "lzpack")
 CPMCOM = os.environ.get("CPMCOM", os.path.join(PROJECT, "cpm-z80", "lzpack.com"))
+CPMUNP = os.environ.get("CPMUNP", os.path.join(PROJECT, "cpm-z80", "lzunpack.com"))
 CPMCMD = os.environ.get("CPMCMD", os.path.join(PROJECT, "cpm-86", "lzpack.cmd"))
 
 # Timeout for each test step (compression, extraction, round-trip)
@@ -125,6 +126,24 @@ def run_emu2_cpm86(workdir, cmdname, args=None):
 # The native tests still use tnylpo to self-extract .pop outputs!
 EMU = run_tnylpo
 
+# Whether the packer under test really autodetects the stub in auto mode.
+# The CP/M-80 split binaries are built with LZPACK_NO_AUTOARCH (the table
+# costs TPA better spent on the match window) and always emit their build's
+# default stub; probe_auto_stub() reads `lzpack -V` to find out.
+AUTO_STUB = {"auto": True, "default": None}
+
+
+def probe_auto_stub(runner):
+    wd = tempfile.mkdtemp(prefix="lz_")
+    try:
+        _rc, out = runner(wd, ["-V"])
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+    m = re.search(r"Stub autodetect off: defaults to (8080|Z80)", out)
+    if m:
+        AUTO_STUB["auto"] = False
+        AUTO_STUB["default"] = m.group(1)
+
 
 def lzpack_native(workdir, args):
     p = subprocess.run(
@@ -139,9 +158,15 @@ def lzpack_native(workdir, args):
 
 def lzpack_cpm(workdir, args):
     # Both emulators map CP/M's upper-cased names to lowercase Unix files, so
-    # the command .com and the data files on disk are lowercase.
-    shutil.copy(CPMCOM, os.path.join(workdir, "lzpack.com"))
-    out = EMU(workdir, "lzpack.com", args)
+    # the command .com and the data files on disk are lowercase.  The CP/M-80
+    # distribution is a split pair: lzpack.com is compress-only, so -R (and
+    # -L) invocations route to the lzunpack.com binary instead.
+    if "-R" in args or "-L" in args:
+        shutil.copy(CPMUNP, os.path.join(workdir, "lzunpack.com"))
+        out = EMU(workdir, "lzunpack.com", args)
+    else:
+        shutil.copy(CPMCOM, os.path.join(workdir, "lzpack.com"))
+        out = EMU(workdir, "lzpack.com", args)
     return 0, out
 
 
@@ -279,8 +304,11 @@ def test_mode(runner, fname, marker, expect, expect_arch, mode, results):
             want_arch = "8080"
         elif "-Z" in mode:
             want_arch = "Z80"
-        else:
+        elif AUTO_STUB["auto"]:
             want_arch = expect_arch
+        else:
+            # no autodetector in this build: auto mode = the build default
+            want_arch = AUTO_STUB["default"]
         arch_ok = want_arch is None or arch == want_arch
 
         # PASS requires correct self-extraction and stub choice; a -R
@@ -662,6 +690,16 @@ def main():
         print("===== Using %s for CP/M emulation =====" % env, flush=True)
     print("=====   %3d parallel job(s)           =====" % JOBS, flush=True)
     print("===========================================\n", flush=True)
+
+    # Auto-mode stub expectations depend on whether this packer build kept
+    # the autodetector (see AUTO_STUB above).
+    probe_auto_stub(runner)
+    if not AUTO_STUB["auto"]:
+        print(
+            "(no stub autodetect in this build: auto mode expects %s)\n"
+            % AUTO_STUB["default"],
+            flush=True,
+        )
     results = []
 
     # Every task is independent (private scratch dirs; read-only shared
