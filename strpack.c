@@ -620,15 +620,20 @@ read_input (FILE *f)
 
       {
         char *g = tab + 1;
+        size_t glen;
 
         tab = strchr (g, '\t');
 
-        if (NULL == tab || g == tab
-            || (sizeof (sp_guard[0]) - 1) < (size_t)(tab - g))
+        if (NULL == tab)
           return -1;
 
         *tab = 0;
-        (void)memcpy (sp_guard[sp_nstr], g, strlen (g) + 1);
+        glen = strlen (g);
+
+        if (0 == glen || (sizeof (sp_guard[0]) - 1) < glen)
+          return -1;
+
+        (void)memcpy (sp_guard[sp_nstr], g, glen + 1);
 
         {
           const char *d = strstr (g, "defined(LZPACK_DECODE_ONLY)");
