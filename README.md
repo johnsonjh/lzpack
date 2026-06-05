@@ -9,7 +9,7 @@
 It shrinks 8080 and Z80 `.COM` programs, often to half their original size,
 while leaving them directly executable: every packed file is a
 *self‑extracting* `.COM` that decompresses itself and runs without any
-separate unpacker, and requires no changes to how the program is invoked.
+separate unpacker and requires no changes to how the program is invoked.
 
 It works very much like Yoshihiko Mino's classic *PopCom!* utility, but packs
 tighter by using a better compression engine and decompresses faster by using
@@ -17,7 +17,7 @@ smaller hand‑optimized decompression stubs.
 
 The **LZPACK** program, as well as the packed executables it generates, runs
 in far more places, such as CP/M‑80 systems with 8080, 8085, or V20 processors
-that *PopCom!* doesn't support, while maintaining the same or
+that *PopCom!* does not support, while maintaining the same or
 smaller footprint.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
@@ -137,7 +137,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 * **LZPACK** beats *PopCom!* on **every** file in **every** configuration.
 
 * The "**/N+**" column is the **extra compression** mode.  On a memory‑rich
-  host it parses the whole file at once and usually beats the standard
+  host, it parses the whole file at once and usually beats the standard
   mode by at least a few bytes (**/N+`-E`** vs. **/N**).
 
 * The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
@@ -166,7 +166,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 ### Decompression stubs
 
 Because every packed program must include a copy of the decompression stub,
-it's vital that the code is as small (and fast) as possible.  The table below
+it is vital that the code be as small (and fast) as possible.  The table below
 compares the **LZPACK** decompression stubs against those from the
 *PopCom!* packer.
 
@@ -320,7 +320,8 @@ inherited stack.  If the program does not fit, it prints `No room` and aborts.
 
 Because this check adds an extra 48 bytes to every packed executable, it is
 disabled by default.  Enabling it does **not** consume any high memory, and it
-is never relocated, so it won't change what fits with any given `-M` setting.
+is never relocated, so it will not change what fits with any given
+`-M` setting.
 
 ### Runtime memory floor (`-F`)
 
@@ -340,15 +341,15 @@ the absence of any executable compression).
 When the packer is informed of the actual program runtime memory requirements
 via the  `-F` option, the check/verification stub (normally emitted with `-C`)
 can cleanly refuse to run on a machine whose memory top lies below the
-specified floor.  The argument accepts the same formats as `-M` and `-F`
-(and implies `-C`).
+specified floor.  The argument accepts the same formats as `-M` (and
+implies `-C`).
 
 Most CP/M users wishing to save space on their disks will be packing existing
 programs and will never need to use `-F`.  Developers who are creating CP/M
 software (who ship packed executables), especially when working with compiled
 languages, can greatly benefit.  A compiled `.COM` usually understates its
 runtime footprint: uninitialized data (BSS) is not necessarily stored in the
-file at all, and the languages runtime and startup code carves its stack and
+file at all, and the language's runtime and startup code carves its stack and
 heap out of high memory *before* the first line of user code (*e.g.*,
 `main()`) runs.
 
@@ -357,7 +358,7 @@ of shortfall.  By the time the `main()` function could test anything, the
 runtime has already cleared BSS across the BDOS or planted a heap with a
 wrapped size, or simply crashed without any useful messages displayed at all.
 
-Finding the floor value to use is a extra step at release: read the end of
+Finding the floor value to use is an extra step at release: read the end of
 static storage from the linker's map and add the runtime's stack reserve, or
 if you are cross-developing, simply measure the value empirically by using an
 emulator that can dynamically shrink the TPA.
@@ -441,7 +442,7 @@ invocation will be automatically determined by the build system.
   these with full optimizations enabled, as the test suite is extensive with
   a lengthy runtime.
 
-* If you would like to contribute to **LZPACK** development, it's *extremely*
+* If you would like to contribute to **LZPACK** development, it is *extremely*
   *important* that you have ***all*** of the optional linters, static analysis
   tools, emulators, and cross‑toolchains installed, and that **both**
   `make lint` and `make test` pass completely clean, as this is a
