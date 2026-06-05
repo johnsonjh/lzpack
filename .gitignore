@@ -61,6 +61,8 @@ log.pvs
 *.POP
 /popcom
 pvsreport
+*.PVS-Studio.cfg
+*.PVS-Studio.i
 __pycache__/
 /README.wip
 strpack
