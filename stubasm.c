@@ -67,6 +67,7 @@ static Ref refs[MAXREF];
 static int nref;
 static unsigned char code[MAXCODE];
 static int clen;
+static int cur_pass;
 
 /******************************************************************************/
 
@@ -189,6 +190,15 @@ die (const char *m)
 
 /******************************************************************************/
 
+static void
+flushout (void)
+{
+  if (fflush (stdout) != 0 || ferror (stdout) != 0)
+    die ("write error");
+}
+
+/******************************************************************************/
+
 static int
 sym_find (const char *n)
 {
@@ -221,6 +231,8 @@ sym_set (const char *n, long v, int islabel)
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
       (void)strcpy (sym_name[i], n);
     }
+  else if (cur_pass == 2 && islabel && sym_islabel[i] && sym_val[i] != v)
+    die ("phase error");
 
   sym_val[i] = v;
   sym_islabel[i] = islabel;
@@ -447,6 +459,42 @@ emit (int b)
 /******************************************************************************/
 
 static void
+emit8 (long v)
+{
+  if (cur_pass == 2 && (v < -128 || v > 255))
+    die ("byte operand out of range");
+
+  emit ((int)(v & 0xff));
+}
+
+/******************************************************************************/
+
+static void
+emit16 (long v)
+{
+  if (cur_pass == 2 && (v < -32768L || v > 65535L))
+    die ("word operand out of range");
+
+  emit ((int)(v & 0xff));
+  emit ((int)((v >> 8) & 0xff));
+}
+
+/******************************************************************************/
+
+static void
+emitrel (long w, long loc)
+{
+  long d = w - (loc + 2);
+
+  if (cur_pass == 2 && (d < -128 || d > 127))
+    die ("relative jump out of range");
+
+  emit ((int)(d & 0xff));
+}
+
+/******************************************************************************/
+
+static void
 rec (const char *tok, int width)
 {
   if (is_symbol (tok))
@@ -660,7 +708,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
       w = evals (a0, pass, loc);
 
       emit (0x10);
-      emit ((int)((w - (loc + 2)) & 0xff));
+      emitrel (w, loc);
 
       return;
     }
@@ -685,7 +733,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           emit (0x18);
         }
 
-      emit ((int)((w - (loc + 2)) & 0xff));
+      emitrel (w, loc);
 
       return;
     }
@@ -716,8 +764,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           emit (0xC3);
         }
 
-      emit ((int)(w & 0xff));
-      emit ((int)((w >> 8) & 0xff));
+      emit16 (w);
 
       return;
     }
@@ -742,8 +789,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           emit (0xCD);
         }
 
-      emit ((int)(w & 0xff));
-      emit ((int)((w >> 8) & 0xff));
+      emit16 (w);
 
       return;
     }
@@ -787,7 +833,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
           rec (a1, 1);
           emit (0xC6);
-          emit ((int)(evals (a1, pass, loc) & 0xff));
+          emit8 (evals (a1, pass, loc));
 
           return;
         }
@@ -819,7 +865,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
           rec (a1, 1);
           emit (0xCE);
-          emit ((int)(evals (a1, pass, loc) & 0xff));
+          emit8 (evals (a1, pass, loc));
 
           return;
         }
@@ -851,7 +897,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
           rec (a1, 1);
           emit (0xDE);
-          emit ((int)(evals (a1, pass, loc) & 0xff));
+          emit8 (evals (a1, pass, loc));
 
           return;
         }
@@ -867,7 +913,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
       rec (rt, 1);
       emit (0xD6);
-      emit ((int)(evals (rt, pass, loc) & 0xff));
+      emit8 (evals (rt, pass, loc));
 
       return;
     }
@@ -887,7 +933,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
       rec (rt, 1);
       emit ((cbase & 0x38) | 0xC6);
-      emit ((int)(evals (rt, pass, loc) & 0xff));
+      emit8 (evals (rt, pass, loc));
 
       return;
     }
@@ -910,7 +956,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
         {
           rec (a1, 1);
           emit (0x06 | (rd << 3));
-          emit ((int)(evals (a1, pass, loc) & 0xff));
+          emit8 (evals (a1, pass, loc));
 
           return;
         }
@@ -920,8 +966,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
           rec (a1, 2);
           emit (0x01 | (p << 4));
           w = evals (a1, pass, loc);
-          emit ((int)(w & 0xff));
-          emit ((int)((w >> 8) & 0xff));
+          emit16 (w);
 
           return;
         }
@@ -1045,6 +1090,7 @@ assemble (const char *path, int z80)
       long org = 0, have_org = 0;
       clen = 0;
       nref = 0;
+      cur_pass = pass;
 
       f = fopen (path, "r");
 
@@ -1062,6 +1108,10 @@ assemble (const char *path, int z80)
           char opU[256];
           long loc;
           int v;
+
+          if (strchr (line, '\n') == NULL
+              && strlen (line) == sizeof (line) - 1)
+            die ("line too long");
 
           semi = 0;
 
@@ -1226,8 +1276,13 @@ assemble (const char *path, int z80)
                   have_org = 1;
                 }
               else
-                while (org + clen < nv)
-                  emit (0);
+                {
+                  if (cur_pass == 2 && nv < org + clen)
+                    die ("ORG backwards");
+
+                  while (org + clen < nv)
+                    emit (0);
+                }
 
               continue;
             }
@@ -1272,7 +1327,7 @@ assemble (const char *path, int z80)
                        emit (*p++);
                    }
                   else
-                    emit ((int)evals (tok, pass, loc));
+                    emit8 (evals (tok, pass, loc));
 
                   tok = (cm ? cm + 1 : (char *)0);
                 }
@@ -1284,8 +1339,7 @@ assemble (const char *path, int z80)
             {
               long v2 = evals (a0, pass, loc);
 
-              emit ((int)(v2 & 0xff));
-              emit ((int)((v2 >> 8) & 0xff));
+              emit16 (v2);
 
               continue;
             }
@@ -1342,8 +1396,7 @@ assemble (const char *path, int z80)
               w = evals (a0, pass, loc);
 
               emit (v);
-              emit ((int)(w & 0xff));
-              emit ((int)((w >> 8) & 0xff));
+              emit16 (w);
 
               continue;
             }
@@ -1359,8 +1412,7 @@ assemble (const char *path, int z80)
               w = evals (a1, pass, loc);
 
               emit (0x01 | (r << 4));
-              emit ((int)(w & 0xff));
-              emit ((int)((w >> 8) & 0xff));
+              emit16 (w);
 
               continue;
             }
@@ -1376,7 +1428,7 @@ assemble (const char *path, int z80)
               w = evals (a1, pass, loc);
 
               emit (0x06 | (r << 3));
-              emit ((int)(w & 0xff));
+              emit8 (w);
 
               continue;
             }
@@ -1454,7 +1506,7 @@ assemble (const char *path, int z80)
               w = evals (a0, pass, loc);
 
               emit (v);
-              emit ((int)(w & 0xff));
+              emit8 (w);
 
               continue;
             }
@@ -1469,8 +1521,7 @@ assemble (const char *path, int z80)
               w = evals (a0, pass, loc);
 
               emit (v);
-              emit ((int)(w & 0xff));
-              emit ((int)((w >> 8) & 0xff));
+              emit16 (w);
 
               continue;
             }
@@ -1485,8 +1536,7 @@ assemble (const char *path, int z80)
               w = evals (a0, pass, loc);
 
               emit (v);
-              emit ((int)(w & 0xff));
-              emit ((int)((w >> 8) & 0xff));
+              emit16 (w);
 
               continue;
             }
@@ -1495,6 +1545,9 @@ assemble (const char *path, int z80)
 
           exit (1);
         }
+
+      if (ferror (f) != 0)
+        die ("read error");
 
       (void)fclose (f);
     }
@@ -1567,6 +1620,9 @@ collect (const char *const *patch)
 
       if (k >= 0 && sym_islabel[k])
         {
+          if (refs[j].width != 2)
+            die ("byte-wide label reference");
+
           fx_off[nfx] = refs[j].off;
           fx_tgt[nfx] = (int)sym_val[k];
 
@@ -1831,6 +1887,7 @@ main (int argc, char **argv)
   if (argc == 4 && !strcmp (argv[1], "-z80"))
     {
       emit_z80 (argv[2], argv[3]);
+      flushout ();
 
       return 0;
     }
@@ -1838,6 +1895,7 @@ main (int argc, char **argv)
   if (argc == 3 && !strcmp (argv[1], "-r"))
     {
       emit_restore8080 (argv[2]);
+      flushout ();
 
       return 0;
     }
@@ -1845,6 +1903,7 @@ main (int argc, char **argv)
   if (argc == 3 && !strcmp (argv[1], "-rz80"))
     {
       emit_restorez80 (argv[2]);
+      flushout ();
 
       return 0;
     }
@@ -1852,6 +1911,7 @@ main (int argc, char **argv)
   if (argc == 3 && !strcmp (argv[1], "-chk"))
     {
       emit_check (argv[2]);
+      flushout ();
 
       return 0;
     }
@@ -1909,6 +1969,8 @@ main (int argc, char **argv)
   emit_slots (DECOMP_PATCH, "S8D_", sl_name, sl_off, nsl);
 
   (void)printf ("\n#endif\n");
+
+  flushout ();
 
   return 0;
 }

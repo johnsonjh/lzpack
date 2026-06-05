@@ -39,7 +39,8 @@ lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h \
 # Builds the 8080 decompression stub from source code using the stub assembler.
 
 cs8080.h: s8080s.asm s8080d.asm stubasm
-	./stubasm s8080s.asm s8080d.asm > $@
+	./stubasm s8080s.asm s8080d.asm > $@.tmp
+	mv -f $@.tmp $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/S8_.*LEN/ { a[++i]=$$4; t+=$$4 } END { printf \
 	"[8080] %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
@@ -50,7 +51,8 @@ cs8080.h: s8080s.asm s8080d.asm stubasm
 # Builds the CALL-able 8080 decompressor reused by lzpack's in-RAM -R restore.
 
 csr8080.h: s8080r.asm stubasm
-	./stubasm -r s8080r.asm > $@
+	./stubasm -r s8080r.asm > $@.tmp
+	mv -f $@.tmp $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/S8R_DLEN/ { printf "[8080] "$$4" total bytes (reloc).\n" }' \
 	$@ 2> /dev/null || :; } || :
@@ -60,7 +62,8 @@ csr8080.h: s8080r.asm stubasm
 # Builds the Z80 decompression stub from source code using the stub assembler.
 
 csz80.h: sz80s.asm sz80d.asm stubasm
-	./stubasm -z80 sz80s.asm sz80d.asm > $@
+	./stubasm -z80 sz80s.asm sz80d.asm > $@.tmp
+	mv -f $@.tmp $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/Z80.*_LEN/ { a[++i]=$$4; t+=$$4 } END { printf \
 	"[Z80] %d bytes (setup) + %d bytes (stub) == %d total bytes.\n", \
@@ -71,7 +74,8 @@ csz80.h: sz80s.asm sz80d.asm stubasm
 # Builds the CALL-able Z80 decompressor reused by lzpack's in-RAM -R restore.
 
 csrz80.h: sz80r.asm stubasm
-	./stubasm -rz80 sz80r.asm > $@
+	./stubasm -rz80 sz80r.asm > $@.tmp
+	mv -f $@.tmp $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/SRZ_DLEN/ { printf "[Z80] "$$4" total bytes (reloc).\n" }' \
 	$@ 2> /dev/null || :; } || :
@@ -82,7 +86,8 @@ csrz80.h: sz80r.asm stubasm
 # the stub assembler.
 
 cschk.h: chk.asm stubasm
-	./stubasm -chk chk.asm > $@
+	./stubasm -chk chk.asm > $@.tmp
+	mv -f $@.tmp $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/CHK_LEN/ { printf "[8080] "$$4" total bytes (check).\n" }' \
 	$@ 2> /dev/null || :; } || :
@@ -112,10 +117,11 @@ strpack: strpack.c
 # Builds the dictionary-coded message catalog from the message definitions.
 
 csmsg.h: messages.def strpack
-	./strpack messages.def > $@
+	./strpack messages.def > $@.tmp
+	mv -f $@.tmp $@
 	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
 	'/STRPACK_(PLAIN|CODED|BOOK|NET)/ { a[++i]=$$4 } END { printf \
-	"[msgs] %d bytes plain == %d coded + %d book (net %d).\n", \
+	"[MSGS] %d bytes plain -> %d coded + %d book (net %d).\n", \
 	a[1], a[2], a[3], a[4] }' $@ 2> /dev/null || :; } || :
 
 ################################################################################
@@ -142,6 +148,7 @@ clean:
 
 distclean reallyclean: clean
 	rm -f cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h
+	rm -f ./*.h.tmp
 	rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
 	rm -f compile_commands.json compile_commands.events.json log.pvs
 	rm -f ./*.pop ./*.unp ./*.t a.out a.exe core core-*
