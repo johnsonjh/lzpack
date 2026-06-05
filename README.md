@@ -24,6 +24,8 @@ Running the compressor on a system without CP/M‑80's memory constraints (such
 as on MS‑DOS, Windows, Linux, or in a UNIX‑like environment) gives even
 better compression results.
 
+[Precompiled binaries are available for download.](#downloads)
+
 ---
 
 <!-- toc -->
