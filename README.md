@@ -256,7 +256,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v0.999991 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v0.999999 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
