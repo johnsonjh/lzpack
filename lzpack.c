@@ -171,7 +171,7 @@ typedef struct lzf
 
 /******************************************************************************/
 
-/* Implementations follows the CP/M FCB helpers they are built on */
+/* Implementations follow the CP/M FCB helpers they are built on */
 static LZF *lzopen (const char *fn, int wr);
 static int lzgetc (LZF *f);
 static int lzputc (int c, LZF *f);
