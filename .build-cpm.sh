@@ -343,6 +343,7 @@ pack()
   # block rides inside the recorded -m ceiling's headroom.
   chk="${3:+-C}"
   before=$(wc -c < "$1")
+  # shellcheck disable=SC2086
   if ./lzpack -e ${chk} ${mcap:+-m "${mcap}"} -o "$1.p" "$1" > /dev/null 2>&1 \
     && [ -f "$1.p" ]; then
     after=$(wc -c < "$1.p")

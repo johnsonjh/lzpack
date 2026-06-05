@@ -18,3 +18,9 @@ path = "bindist/*"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
 SPDX-License-Identifier = "MIT-0"
+
+[[annotations]]
+path = "messages.def"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
+SPDX-License-Identifier = "MIT-0"
