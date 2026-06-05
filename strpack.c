@@ -250,7 +250,7 @@ top_insert (long est, long pos, int len)
     sp_ntop++;
 
   for (j = sp_ntop - 1; j > i; j--)
-    sp_top[j] = sp_top[j - 1]; /* //-V557 */
+    sp_top[j] = sp_top[(long)j - 1]; /* //-V557 */
 
   sp_top[i].est = est;
   sp_top[i].pos = pos;
@@ -379,9 +379,9 @@ prune_book (void)
 
           for (j = i; j < sp_nbook - 1; j++)
             {
-              (void)memcpy (sp_book[j], sp_book[j + 1],
+              (void)memcpy (sp_book[j], sp_book[(long)j + 1],
                             sizeof (sp_book[j]));
-              sp_blen[j] = sp_blen[j + 1];
+              sp_blen[j] = sp_blen[(long)j + 1];
             }
 
           sp_nbook--;
@@ -395,9 +395,9 @@ prune_book (void)
             {
               for (j = sp_nbook; j > i; j--)
                 {
-                  (void)memcpy (sp_book[j], sp_book[j - 1],
+                  (void)memcpy (sp_book[j], sp_book[(long)j - 1],
                                 sizeof (sp_book[j]));
-                  sp_blen[j] = sp_blen[j - 1];
+                  sp_blen[j] = sp_blen[(long)j - 1];
                 }
 
               (void)memcpy (sp_book[i], keep, sizeof (keep));
@@ -645,7 +645,8 @@ read_input (FILE *f)
       }
       sp_off[sp_nstr] = ((0 == sp_nstr)
                            ? 0
-                           : (sp_off[sp_nstr - 1] + sp_len[sp_nstr - 1] + 1));
+                           : (sp_off[(long)sp_nstr - 1]
+                              + sp_len[(long)sp_nstr - 1] + 1));
       n = parse_text (tab + 1);
 
       if (0 > n)
