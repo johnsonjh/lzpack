@@ -1432,7 +1432,16 @@ NetBSD)
     fi
     if (
       set -x
-      lint -a -aa -b -c -e -g -h -P -r -u -w -z stubasm.c strpack.c
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z stubasm.c
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z strpack.c
     ); then
       :
     else
