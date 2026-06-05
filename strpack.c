@@ -814,7 +814,7 @@ main (int argc, char **argv)
 
   if (2 != argc)
     {
-      (void)fprintf (stderr, "usage: strpack <messages.def> > header.h\n");
+      (void)fprintf (stderr, "usage: strpack <messages.def> >header.h\n");
 
       return 2;
     }
