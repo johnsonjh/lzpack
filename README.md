@@ -335,7 +335,7 @@ overrun, but a packed program *almost always* needs more memory to actually
 *run* than it does to simply unpack.  With a TPA that sits between those
 two bounds the program unpacks successfully but then crashes (or silently
 corrupts memory) during its own startup (which would still happen even in
-the absense of any executable compression).
+the absence of any executable compression).
 
 When the packer is informed of the actual program runtime memory requirements
 via the  `-F` option, the check/verification stub (normally emitted with `-C`)
@@ -366,7 +366,7 @@ The **LZPACK** build can serve as an example of this process, as the shipped
 CP/M‑80 binaries (`LZPACK.COM` and `LZUNPACK.COM`) are packed with a floor
 derived from each tool's own map plus the stack reserve, so on any system
 with a TPA large enough for them to *unpack* but too small for them to fully
-*initialize*, they simpy print `No room` and exit cleanly, which would be
+*initialize*, they simply print `No room` and exit cleanly, which would be
 impossible to achieve using C code alone.
 
 </details>
