@@ -324,8 +324,8 @@ is never relocated, so it won't change what fits with any given `-M` setting.
 
 ### Runtime memory floor (`-F`)
 
-The `-F` option is mostly useful to developers of CP/M‑80 software and not
-end‑users.
+The `-F` option is mostly useful to developers of CP/M‑80 software and
+not end‑users.
 
 <details>
  <summary>Expand this section for further details.</summary>
@@ -349,8 +349,8 @@ software (who ship packed executables), especially when working with compiled
 languages, can greatly benefit.  A compiled `.COM` usually understates its
 runtime footprint: uninitialized data (BSS) is not necessarily stored in the
 file at all, and the languages runtime and startup code carves its stack and
-heap out of high memory *before* the first line of user code (*e.g.*, `main()`)
-runs.
+heap out of high memory *before* the first line of user code (*e.g.*,
+`main()`) runs.
 
 Because the trouble happens early, no in‑program check can catch this sort
 of shortfall.  By the time the `main()` function could test anything, the
