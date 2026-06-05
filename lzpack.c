@@ -424,6 +424,12 @@ static unsigned memtop;
 
 static int opt_checked = 0;
 
+# ifndef LZPACK_COMPRESS_ONLY
+
+static unsigned opt_chk_floor = 0;
+
+# endif
+
 /******************************************************************************/
 
 static long ol, tagpos;
@@ -2727,9 +2733,11 @@ static const unsigned char op8080_len[256] = {
  * Emit the optional (-C) runtime memory-check block, which loads at stub_v
  * ahead of the setup block and falls through into it.  Patches the internal
  * +stub_v references and the two limits: wtop is the highest address the
- * unpack will write (Z80 stub_dst_top / 8080 dcmp_dsttop).  Returns the
- * number of bytes emitted (0 when -C is off); the caller shifts the setup
- * block and everything measured from it by that amount.
+ * unpack will write (Z80 stub_dst_top / 8080 dcmp_dsttop).  -F raises the
+ * BDOS bound beyond wtop to the runtime floor; the stack bound stays tied
+ * to the unpack writes, which are all that can reach the live stack.
+ * Returns the number of bytes emitted (0 when -C is off); the caller
+ * shifts the setup block and everything measured from it by that amount.
  */
 
 static long
@@ -2746,6 +2754,15 @@ put_check (unsigned char *dst, long stub_v, long wtop)
     put16 (dst + chkstub_fix[i][0], (unsigned)(stub_v + chkstub_fix[i][1]));
 
   put16 (dst + CHK_DST_LIM, (unsigned)(wtop + 1));
+
+# ifndef LZPACK_COMPRESS_ONLY
+  if (opt_chk_floor && (long)opt_chk_floor > wtop)
+    put16 (dst + CHK_DST_LIM,
+           (unsigned)((long)opt_chk_floor < 0xFFFFL
+                        ? (long)opt_chk_floor + 1
+                        : 0xFFFFL));
+# endif
+
   put16 (dst + CHK_SP_LIM, (unsigned)(wtop + 1 + CHK_SP_SLACK));
 
   return CHK_LEN;
@@ -4579,6 +4596,9 @@ usage (void)
   LZ_MPUTS (stderr, rline);
   LZ_MPUTS (stderr, MSG_U_LO);
   LZ_MPUTS (stderr, MSG_U_MC);
+# ifndef LZPACK_COMPRESS_ONLY
+  LZ_MPUTS (stderr, MSG_U_FLINE);
+# endif
   LZ_MPUTS (stderr, lrbc);
   LZ_MPUTS (stderr, MSG_U_VLINE);
 
@@ -4741,6 +4761,23 @@ main (int argc, char **argv)
 
               memtop = v;
             }
+# ifndef LZPACK_COMPRESS_ONLY
+          else if (c == 'f' || c == 'F')
+            {
+              unsigned v = (i + 1 < argc) ? parse_memtop (argv[++i]) : 0;
+
+              if (!v)
+                {
+                  /* Flawfinder: ignore */ /* False positive CWE-134 */
+                  (void)fprintf (stderr, MSG_E_BADF);
+
+                  return 2;
+                }
+
+              opt_chk_floor = v;
+              opt_checked = 1; /* -F implies -C */
+            }
+# endif
 #else
           else if (c == 'c' || c == 'C')
             {
@@ -4833,7 +4870,11 @@ main (int argc, char **argv)
         {
           char c = argv[i][1];
 
-          if (c == 'o' || c == 'O' || c == 'm' || c == 'M')
+          if (c == 'o' || c == 'O' || c == 'm' || c == 'M'
+#if !defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY)
+              || c == 'f' || c == 'F'
+#endif
+          )
             i++;
 
           continue;

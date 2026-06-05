@@ -110,17 +110,17 @@ PACK="${PACK:-1}"
 
 # Recorded -m ceilings for the shipped binaries: each is that binary's
 # measured minimum (unpacked image top plus the relocated stub tail) plus
-# 128 bytes of headroom -- plus 48 more for lzpack/lzunpack, whose shipped
-# self-extractors carry the -C runtime memory-check block.  pack() refuses
-# -- and fails the build -- when an image outgrows its ceiling, so size
+# 128 bytes of headroom -- plus 48 more for the -C runtime memory-check
+# block all three shipped self-extractors carry.  pack() refuses -- and
+# fails the build -- when an image outgrows its ceiling, so size
 # regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
 # bytes TPA floor depends on it).
 MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-23370}"
 MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12823}"
-MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27678}"
+MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27726}"
 MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-24770}"
 MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14047}"
-MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28488}"
+MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28536}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
 # (optimal-parser) build raises it (e.g. 0xDDFF = 56K) because -e needs a
@@ -322,6 +322,32 @@ trim_bss()
 
 ################################################################################
 
+# Compute the runtime floor (-F) for a checked tool from its link map: the
+# unpack bound alone admits TPAs where the unpacked tool's own CRT startup
+# then crashes the machine -- the CRT zeroes BSS up to __BSS_END (past the
+# BDOS on a small enough TPA) and carves its STACKSZ stack out of the space
+# below the BDOS base, leaving the heap a wrapped (negative) size that the
+# first malloc scribbles from (measured at 23K-26K TPA: wild HALTs, hangs,
+# and a "successful" 16K window written through the BDOS).  The measured
+# first-safe BDOS base is __BSS_END + STACKSZ + 64 for lzpack and lzunpack
+# (the 64 is z88dk CRT slack); stubasm's AMALLOC CRT measures lower still
+# (its shallow paths run at __BSS_END + 4), but a deep assemble needs real
+# stack above the statics, so I use one formula to cover all three tools.
+# The 128 covers the slack with margin against CRT drift, and the test
+# harness pins the exact edge.  The -F option takes an inclusive memory-top
+# address, hence the trailing -1.
+
+chk_floor()
+{
+  end=
+  [ -f "$1" ] || return 0
+  end=$(sed -n 's/^__BSS_END_head *= *\$\([0-9A-Fa-f]*\).*/\1/p' "$1" | head -1)
+  [ -n "${end}" ] || return 0
+  printf '%d\n' "$((0x${end} + STACKSZ + 128 - 1))"
+}
+
+################################################################################
+
 # Pack a CP/M-80 .COM into a smaller self-extracting one with the host optimal
 # size (-e) compressor.  Leaves the file on any failures (i.e., incompressible)
 # unless a recorded -m ceiling (second argument) was given: packing under the
@@ -330,7 +356,7 @@ trim_bss()
 
 pack()
 {
-  before= after= mcap= chk=
+  before= after= mcap= chk= floor=
   [ "${PACK}" = 0 ] && return 0
   [ -x ./lzpack ] || {
     printf '%s\n' ">> host ./lzpack missing; not packing $1"
@@ -342,13 +368,19 @@ pack()
   # live stack, refusing cleanly on a too-small TPA.  The 48-byte check
   # block rides inside the recorded -m ceiling's headroom.
   chk="${3:+-C}"
+  # A non-empty fourth argument raises the check's BDOS bound to that
+  # runtime floor (-F, from chk_floor): the stub then also refuses --
+  # "No room", nothing touched -- any TPA the unpacked tool could not
+  # safely start up in, instead of crashing mid-CRT.
+  floor="${4:-}"
   before=$(wc -c < "$1")
   # shellcheck disable=SC2086
-  if ./lzpack -e ${chk} ${mcap:+-m "${mcap}"} -o "$1.p" "$1" > /dev/null 2>&1 \
+  if ./lzpack -e ${chk} ${floor:+-F "${floor}"} ${mcap:+-m "${mcap}"} \
+    -o "$1.p" "$1" > /dev/null 2>&1 \
     && [ -f "$1.p" ]; then
     after=$(wc -c < "$1.p")
     mv -f "$1.p" "$1"
-    SXR=" self-extractor"
+    SXR=" self-extractor${floor:+, -F ${floor}}"
     printf \
       '%s\n' ">> packed $1 (host -e${SXR}): ${before} -> ${after} bytes"
   elif [ -n "${mcap}" ]; then
@@ -463,18 +495,22 @@ build_arch()
   trim_bss "${uc}" "${um}"
   trim_bss "${sc}" "${sm}"
   printf '%s\n' ""
-  # Per-binary recorded -m ceilings (see the MCAP_* tunables above); the
-  # shipped pair also gets the -C runtime memory check.
+  # Per-binary recorded -m ceilings (see the MCAP_* tunables above); all
+  # three shipped tools get the -C runtime memory check, with the BDOS
+  # bound raised (-F) to each tool's own map-derived runtime floor.
+  lzfloor="$(chk_floor "${lm}")"
+  uzfloor="$(chk_floor "${um}")"
+  safloor="$(chk_floor "${sm}")"
   case "${clib}" in
   8080)
-    pack "${lc}" "${MCAP_8080_LZPACK}" checked
-    pack "${uc}" "${MCAP_8080_LZUNPACK}" checked
-    pack "${sc}" "${MCAP_8080_STUBASM}"
+    pack "${lc}" "${MCAP_8080_LZPACK}" checked "${lzfloor}"
+    pack "${uc}" "${MCAP_8080_LZUNPACK}" checked "${uzfloor}"
+    pack "${sc}" "${MCAP_8080_STUBASM}" checked "${safloor}"
     ;;
   *)
-    pack "${lc}" "${MCAP_Z80_LZPACK}" checked
-    pack "${uc}" "${MCAP_Z80_LZUNPACK}" checked
-    pack "${sc}" "${MCAP_Z80_STUBASM}"
+    pack "${lc}" "${MCAP_Z80_LZPACK}" checked "${lzfloor}"
+    pack "${uc}" "${MCAP_Z80_LZUNPACK}" checked "${uzfloor}"
+    pack "${sc}" "${MCAP_Z80_STUBASM}" checked "${safloor}"
     ;;
   esac
   printf '%s\n' ""

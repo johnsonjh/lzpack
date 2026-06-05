@@ -623,6 +623,13 @@ read_input (FILE *f)
       {
         char *g = tab + 1;
         size_t glen;
+        int notrain = 0;
+
+        if ('~' == *g)
+          {
+            notrain = 1;
+            g++;
+          }
 
         tab = strchr (g, '\t');
 
@@ -640,7 +647,8 @@ read_input (FILE *f)
         {
           const char *d = strstr (g, "defined(LZPACK_DECODE_ONLY)");
 
-          sp_train[sp_nstr] = ((NULL == d || (d > g && '!' == d[-1]))
+          sp_train[sp_nstr] = ((0 == notrain
+                                && (NULL == d || (d > g && '!' == d[-1])))
                                  ? 1
                                  : 0);
         }

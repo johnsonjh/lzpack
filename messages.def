@@ -1,5 +1,8 @@
 # LZPACK message catalog - processed by strpack into csmsg.h
 # NAME<TAB>GUARD<TAB>TEXT  (guard '-' = unconditional; C escapes in TEXT)
+# A '~' prefix on the guard excludes the string from book training (use it
+# for strings absent from the CP/M-80 binaries, so their catalogs cannot
+# shift); the prefix is not part of the emitted guard.
 MSG_E_READ	-	ERROR: cannot read %s\n
 MSG_E_WRITE	-	ERROR: cannot write %s\n
 MSG_E_OARG	-	ERROR: -O requires an argument\n
@@ -51,3 +54,5 @@ MSG_V_AUTO0	!defined(LZPACK_DECODE_ONLY) && defined(LZ_CPM) && defined(LZPACK_NO
 MSG_E_BADM	!defined(LZPACK_DECODE_ONLY)	ERROR: bad -m value\n
 MSG_E_IREQ	defined(LZ_CPM)	ERROR: -I requires CP/M with LRBC support\n
 MSG_E_NOREST	defined(LZPACK_COMPRESS_ONLY)	ERROR: this build cannot restore\n
+MSG_U_FLINE	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY)	  lzpack -F <floor>           require memory top >= floor (implies -C)\n
+MSG_E_BADF	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY)	ERROR: bad -f value\n

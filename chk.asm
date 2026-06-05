@@ -18,6 +18,12 @@
 ; BDOS bound is satisfied.  On failure it prints "No room" and warm boots;
 ; nothing has been touched, so the system stays intact.
 ;
+; -F raises DST_LIM beyond the unpack bound to a runtime floor: a packed
+; program usually needs more memory to RUN (BSS, stack, heap) than to
+; unpack, and a TPA between those two bounds would unpack fine and then
+; crash in the program's own startup.  SP_LIM stays tied to the unpack
+; writes, which are all that can reach the live stack.
+;
 ; Internal absolute operands (FAIL, MSG, PASS) become +stub_v fixups emitted
 ; by stubasm; DST_LIM/SP_LIM are the two per-file patch slots.
 

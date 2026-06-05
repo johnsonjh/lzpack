@@ -631,6 +631,195 @@ def test_checked_small(runner, results):
         shutil.rmtree(wd, ignore_errors=True)
 
 
+def _tpa_patch_ok(wd, comname):
+    """True when the tnylpo -m (TPA size) patch is present and active: -m 64K
+    is just above the largest possible TPA, so a working patch must refuse it
+    at startup (see the longer rationale in test_checked_small)."""
+    return "out of range" in run_tnylpo(wd, comname, pre=["-m", "64K"])
+
+
+# -F (runtime floor): the floored pack must be the plain -C pack with only
+# the DST_LIM bound raised (same length, one or two differing bytes), must
+# still self-extract and -R round-trip on a full TPA, and must refuse
+# ("No room") on a TPA that the plain -C pack -- whose bound covers only
+# the unpack writes -- happily extracts into.
+def test_checked_floor(runner, results):
+    tag = "med.com -F floor"
+    wd = _scratch("med.com")
+    try:
+        morig = open(os.path.join(CORPUS, "med.com"), "rb").read()
+        cdata, _clog = _pack(runner, wd, "med.com", ["-C"], "c.pop")
+        fdata, flog = _pack(runner, wd, "med.com", ["-F", "0xBDFF"], "f.pop")
+        if fdata is None and "unknown option" in flog:
+            emit(results, tag, "SKIP", "-", "packer has no -F (COMPRESS_ONLY)")
+            return
+        if cdata is None or fdata is None:
+            emit(
+                results, tag, "FAIL", "-", "missing pack; log=" + flog.strip()[:60]
+            )
+            return
+        if len(cdata) != len(fdata):
+            emit(
+                results,
+                tag,
+                "FAIL",
+                str(len(fdata)),
+                "length differs from -C pack %d" % len(cdata),
+            )
+            return
+        diffs = sum(1 for a, b in zip(cdata, fdata) if a != b)
+        size_ok = 1 <= diffs <= 2  # DST_LIM low/high (low byte may coincide)
+        _rc, _rlog = runner(wd, ["-R", "-O", "f.unp", "f.pop"])
+        outb = os.path.join(wd, "f.unp")
+        rt_ok = os.path.exists(outb) and open(outb, "rb").read() == morig
+        if EMU is not run_tnylpo:
+            ok = size_ok and rt_ok
+            emit(
+                results,
+                tag,
+                "PASS" if ok else "FAIL",
+                str(len(fdata)),
+                "diffs=%d roundtrip=%s (no tnylpo: TPA legs skipped)"
+                % (diffs, "OK" if rt_ok else "BAD"),
+            )
+            return
+        shutil.copy(os.path.join(wd, "f.pop"), os.path.join(wd, "runf.com"))
+        shutil.copy(os.path.join(wd, "c.pop"), os.path.join(wd, "runc.com"))
+        if not _tpa_patch_ok(wd, "runf.com"):
+            emit(
+                results, tag, "SKIP", "-", "tnylpo -m (TPA) patch missing or inactive"
+            )
+            return
+        full = run_tnylpo(wd, "runf.com")
+        small = run_tnylpo(wd, "runf.com", pre=["-m", "32K"])
+        ctrl = run_tnylpo(wd, "runc.com", pre=["-m", "32K"])
+        pos_ok = "MED-MARK-C3" in full
+        neg_ok = "No room" in small and "MED-MARK-C3" not in small
+        # control: the same TPA satisfies the plain -C unpack bound, so the
+        # refusal above is the floor's doing, not the unpack check's
+        ctrl_ok = "MED-MARK-C3" in ctrl
+        ok = size_ok and rt_ok and pos_ok and neg_ok and ctrl_ok
+        note = "diffs=%d roundtrip=%s full=%s 32K=%s ctrl=%s" % (
+            diffs,
+            "OK" if rt_ok else "BAD",
+            "OK" if pos_ok else "BAD",
+            "refused" if neg_ok else "NOT REFUSED",
+            "OK" if ctrl_ok else "BAD",
+        )
+        if not ok:
+            note += " out=" + re.sub(r"\s+", " ", small).strip()[:40]
+        emit(results, tag, "PASS" if ok else "FAIL", str(len(fdata)), note)
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
+# The build's stack reserve (STACKSZ in .build-cpm.sh): the shipped floor is
+# derived from it, so the probe below must mirror an override.
+STACKSZ = int(os.environ.get("STACKSZ", 1024))
+
+
+def _map_floor_tpa(compath):
+    """First safe TPA size (bytes, for tnylpo -m) of a shipped checked tool,
+    from the .map beside its .com: the build patches DST_LIM = __BSS_END +
+    STACKSZ + 128 (chk_floor in .build-cpm.sh), and the BDOS base for a TPA
+    of t bytes is 0x100 + t, so the edge TPA is DST_LIM - 0x100."""
+    mp = os.path.splitext(compath)[0] + ".map"
+    try:
+        m = re.search(
+            r"^__BSS_END_head\s*=\s*\$([0-9A-Fa-f]+)", open(mp).read(), re.M
+        )
+    except OSError:
+        return None
+    if not m:
+        return None
+    return int(m.group(1), 16) + STACKSZ + 128 - 0x100
+
+
+# Shipped split-pair startup floor (cpm/tnylpo runs only): the build packs
+# lzpack.com and lzunpack.com with -F, so every TPA below the map-derived
+# floor must refuse cleanly ("No room", no HALT) -- including the zone where
+# the CRT used to wipe the BDOS during BSS clearing and the zone where the
+# heap carve-out wrapped negative and the first malloc scribbled (measured
+# un-floored: wild HALTs, hangs, and a "successful" 16K window through the
+# BDOS).  At the exact floor the tool must instead get far enough to fail
+# (or work) in its own C code.
+def test_checked_startup(runner, results):
+    if EMU is not run_tnylpo:
+        return
+    wd = _scratch("med.com")
+    try:
+        _pdata, _plog = _pack(runner, wd, "med.com", [], "m.pop")
+        legs = [
+            # (tag, shipped binary, argv, acceptable at-floor outputs)
+            (
+                "lzpack startup floor",
+                CPMCOM,
+                ["med.com"],
+                ("out of memory for compression window",),
+            ),
+            (
+                "lzunpack startup floor",
+                CPMUNP,
+                ["-O", "m.unp", "m.pop"],
+                ("too large to restore", "=>"),
+            ),
+            # stubasm works entirely in static storage, so its usage
+            # banner proves the CRT startup survived at the floor
+            (
+                "stubasm startup floor",
+                os.path.join(os.path.dirname(CPMCOM), "stubasm.com"),
+                [],
+                ("Usage: stubasm",),
+            ),
+        ]
+        probed = False
+        for tag, com, args, want in legs:
+            if not os.path.isfile(com):
+                emit(results, tag, "SKIP", "-", "missing %s" % com)
+                continue
+            floor = _map_floor_tpa(com)
+            if floor is None:
+                emit(results, tag, "SKIP", "-", "no .map beside %s" % com)
+                continue
+            name = os.path.basename(com)
+            shutil.copy(com, os.path.join(wd, name))
+            if not probed:
+                if not _tpa_patch_ok(wd, name):
+                    emit(
+                        results,
+                        tag,
+                        "SKIP",
+                        "-",
+                        "tnylpo -m (TPA size) patch missing or inactive",
+                    )
+                    return
+                probed = True
+            # mid BSS-wipe zone, top of the wrapped-heap zone, first safe TPA
+            wipe = run_tnylpo(wd, name, args, pre=["-m", str(floor - 1024 - 512)])
+            edge = run_tnylpo(wd, name, args, pre=["-m", str(floor - 1)])
+            atf = run_tnylpo(wd, name, args, pre=["-m", str(floor)])
+            wipe_ok = "No room" in wipe and "HALT" not in wipe
+            edge_ok = "No room" in edge and "HALT" not in edge
+            at_ok = (
+                "No room" not in atf
+                and "HALT" not in atf
+                and any(w in atf for w in want)
+            )
+            ok = wipe_ok and edge_ok and at_ok
+            note = "wipe=%s edge=%s floor@%d=%s" % (
+                "refused" if wipe_ok else "BAD",
+                "refused" if edge_ok else "BAD",
+                floor,
+                "clean" if at_ok else "BAD",
+            )
+            if not ok:
+                bad = wipe if not wipe_ok else (edge if not edge_ok else atf)
+                note += " out=" + re.sub(r"\s+", " ", bad).strip()[:40]
+            emit(results, tag, "PASS" if ok else "FAIL", "-", note)
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
 def main():
     global EMU
     which = sys.argv[1] if len(sys.argv) > 1 else "native"
@@ -737,6 +926,10 @@ def main():
         )
     tasks.append(("med.com -C size", test_checked_size, (runner, results)))
     tasks.append(("big24.com -C @16K", test_checked_small, (runner, results)))
+    tasks.append(("med.com -F floor", test_checked_floor, (runner, results)))
+    # the shipped split pair's own startup floor (the binaries under test)
+    if which == "cpm":
+        tasks.append(("startup floor", test_checked_startup, (runner, results)))
 
     def guarded(tag, fn, args):
         try:

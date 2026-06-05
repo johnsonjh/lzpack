@@ -145,15 +145,9 @@ for arch in z80 8080; do
 
     min=$(bisect "${raw}")
 
-    if [ "${prog}" = "stubasm" ]; then
-      minc="-"
-      exp=$((min + 128))
-      bind=${min}
-    else
-      minc=$(bisect "${raw}" -C)
-      exp=$((min + 176))
-      bind=${minc}
-    fi
+    minc=$(bisect "${raw}" -C)
+    exp=$((min + 176))
+    bind=${minc}
 
     if [ "${min}" -lt 0 ] \
       || [ "${bind}" -lt 0 ] \

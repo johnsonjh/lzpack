@@ -39,6 +39,7 @@ better compression results.
 - [Usage](#usage)
   * [Memory ceiling (`-M`)](#memory-ceiling--m)
   * [Runtime memory check (`-C`)](#runtime-memory-check--c)
+  * [Runtime memory floor (`-F`)](#runtime-memory-floor--f)
 - [Downloads](#downloads)
 - [Building from source](#building-from-source)
   * [Build targets](#build-targets)
@@ -134,8 +135,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 * **LZPACK** beats *PopCom!* on **every** file in **every** configuration.
 
 * The "**/N+**" column is the **extra compression** mode.  On a memory‑rich
-  host it parses the whole file at once and beats the standard mode by
-  at least a few bytes (**/N+`-E`** vs **/N**).
+  host it parses the whole file at once and usually beats the standard
+  mode by at least a few bytes (**/N+`-E`** vs. **/N**).
 
 * The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
   CP/M‑80 (or other memory‑constrained systems), the match window and
@@ -267,6 +268,7 @@ Usage:
   lzpack -O <name>            set output name
   lzpack -M <top>             set memory top (default 48K)
   lzpack -C                   stub verifies memory at run time
+  lzpack -F <floor>           require memory top >= floor (implies -C)
   lzpack -V                   show LZPACK information
 ```
 
@@ -317,6 +319,55 @@ inherited stack.  If the program does not fit, it prints `No room` and aborts.
 Because this check adds an extra 48 bytes to every packed executable, it is
 disabled by default.  Enabling it does **not** consume any high memory, and it
 is never relocated, so it won't change what fits with any given `-M` setting.
+
+### Runtime memory floor (`-F`)
+
+The `-F` option is mostly useful to developers of CP/M‑80 software and not
+end‑users.
+
+<details>
+ <summary>Expand this section for further details.</summary>
+
+The `-C` option adds a check that refuses a TPA that the *unpacker* would
+overrun, but a packed program *almost always* needs more memory to actually
+*run* than it does to simply unpack.  With a TPA that sits between those
+two bounds the program unpacks successfully but then crashes (or silently
+corrupts memory) during its own startup (which would still happen even in
+the absense of any executable compression).
+
+When the packer is informed of the actual program runtime memory requirements
+via the  `-F` option, the check/verification stub (normally emitted with `-C`)
+can cleanly refuse to run on a machine whose memory top lies below the
+specified floor.  The argument accepts the same formats as `-M` and `-F`
+(and implies `-C`).
+
+Most CP/M users wishing to save space on their disks will be packing existing
+programs and will never need to use `-F`.  Developers who are creating CP/M
+software (who ship packed executables), especially when working with compiled
+languages, can greatly benefit.  A compiled `.COM` usually understates its
+runtime footprint: uninitialized data (BSS) is not necessarily stored in the
+file at all, and the languages runtime and startup code carves its stack and
+heap out of high memory *before* the first line of user code (*e.g.*, `main()`)
+runs.
+
+Because the trouble happens early, no in‑program check can catch this sort
+of shortfall.  By the time the `main()` function could test anything, the
+runtime has already cleared BSS across the BDOS or planted a heap with a
+wrapped size, or simply crashed without any useful messages displayed at all.
+
+Finding the floor value to use is a extra step at release: read the end of
+static storage from the linker's map and add the runtime's stack reserve, or
+if you are cross-developing, simply measure the value empirically by using an
+emulator that can dynamically shrink the TPA.
+
+The **LZPACK** build can serve as an example of this process, as the shipped
+CP/M‑80 binaries (`LZPACK.COM` and `LZUNPACK.COM`) are packed with a floor
+derived from each tool's own map plus the stack reserve, so on any system
+with a TPA large enough for them to *unpack* but too small for them to fully
+*initialize*, they simpy print `No room` and exit cleanly, which would be
+impossible to achieve using C code alone.
+
+<details>
 
 ## Downloads
 
