@@ -270,30 +270,30 @@ Usage:
   lzpack -V                   show LZPACK information
 ```
 
-On **CP/M‑80** the distribution is two utilities, keeping each tool as small
-as possible: `LZPACK.COM` for compression only, and a separate `LZUNPACK.COM`
-for restoring (`lzunpack <file>`; `-R` is also accepted) and listing (`-L`).
-A smaller packing tool leaves more TPA for the compression window, and a
-smaller unpacking tool means you can restore larger programs.  For all other
-platforms, the build is a single combined `lzpack` binary as shown above.
+The **CP/M‑80** version of **LZPACK** is split into two utilities:
+  * `LZPACK.COM` for compression only, and,
+  * `LZUNPACK.COM` for decompression and listing.
+
+On all other platforms a single `lzpack` tool is provided, as shown above.
 
 ### Memory ceiling (`-m`)
 
 As a packed program decompresses in place on the target machine, the image
 expands to its full original size at `0x100` with the relocated decompressor
-sitting just above it (up to 271 bytes past the image top).  At pack time,
-**LZPACK** verifies that everything fits below a memory ceiling (*MEMTOP*),
-and refuses to produce the file otherwise, by default at `0xBDFF`, so packed
-programs are guaranteed to run on a **48K TPA** system.  The `-m <top>` option
-can be used to override this check, for example:
+sitting above it.  At packing time, **LZPACK** verifies that everything fits
+below a memory ceiling (*MEMTOP*), and will refuse to produce an output file
+otherwise.  The default is at `0xBDFF`, so all packed programs are guaranteed
+to run on any **48K&nbsp;TPA** system, but the `-m` option can be used to
+override this, for example:
 
-* Using `-m 64` to pack programs too large for **48K TPA**, but the result will
+* Use `-m 64` to pack programs too large for **48K&nbsp;TPA**, but the result
   *requires* a correspondingly larger TPA at run time.
-* Using `-m 32` to guarantee the output runs on smaller systems, to keep the
-  unpacker away from a resident driver that might have stolen the top of the
-  TPA, or to enforce a maximum size budget while developing.
+* Use `-m 32` (or less) to guarantee the output runs on smaller systems, or
+  to keep the unpacker away from any resident driver that might have stolen
+  the top of the TPA, or to enforce a maximum image size while developing new
+  software.
 
-`<top>` accepts three formats:
+The `-m` option accepts an argument in three formats:
 
 |              Format | Example                    | Description                    |
 |--------------------:|:---------------------------|:-------------------------------|
@@ -301,22 +301,22 @@ can be used to override this check, for example:
 | hex address         | `-m 0x7DFF`                | literal *MEMTOP* address       |
 | decimal address     | `-m 65023`                 | literal *MEMTOP* address (>64) |
 
-Values below `0x1190` (4K) or above `0xFFFF` (64K) are rejected.
+Values below `0x1190` (**4K**) or above `0xFFFF` (**64K**) are rejected.
 
 ### Runtime memory check (`-C`)
 
-The pack‑time checks cannot know the machine the packed program will
-eventually runs on, for example, a smaller TPA than the one packed for, or
-a system that has a resident driver that might lower the BDOS pointer at
-`0x0006`, which would be silently overwritten during decompression.  The `-C`
-option enhances the stub with a small (48‑byte) runtime check.  It verifies
-the highest address the unpacker will write to lies below the BDOS base *and*
-that at least 16 bytes are clear of the live inherited stack.  If the program
-does not fit, it prints `No room` and gives up.
+The packing‑time checks cannot know the details of the machine the packed
+program will eventually run on, for example, a much smaller TPA than the one
+running the packer, or a system that has a resident driver that might lower
+the BDOS pointer at `0x0006`, which could be silently overwritten during
+decompression.  The `-C` option enhances the stub with a small (**48**‑byte)
+runtime check.  It verifies the highest address the unpacker will write to
+lies below the BDOS base and that at least 16 bytes are clear of the live
+inherited stack.  If the program does not fit, it prints `No room` and aborts.
 
-Because this check adds an extra 48 bytes to every packed file it is off by
-default.  Enabling it does not consume any high memory and it is never
-relocated, so it does not change what fits under any given `-m` setting.
+Because this check adds an extra 48 bytes to every packed executable it is
+disabled by default.  Enabling it does **not** consume any high memory, and it
+is never relocated, so it won't change what fits under any given `-m` setting.
 
 ## Downloads
 
