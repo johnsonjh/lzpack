@@ -78,15 +78,14 @@ TNYLPO="${TNYLPO:-tnylpo}"
 ARCHS="${ARCHS:-ixiy 8080}"
 MZXFILE="${MZXFILE:-65535L}"
 
-# The HSZ/STACKSZ/autodetect defaults below are sized so the Z80 packer
-# reaches the 8192-byte match window on real MSX-DOS machines, whose TPAs
-# run roughly 52,992 (Sanyo MPC-100) to 53,248 bytes (Sony HB-75) -- each
-# byte of static footprint competes with the window for the heap, and the
-# window needs 3*WINSZ plus a small parse reserve.  A smaller HSZ only
-# lengthens hash chains (identical output, slower packing); the engine is
-# iterative, so a 1K stack reserve holds; stub autodetect costs ~0.5K, so
-# each binary instead defaults to its own architecture's stub (-8/-Z still
-# override, and -V reports the situation).
+# The HSZ/STACKSZ defaults below are sized so the Z80 packer reaches the
+# 8192-byte match window on real MSX-DOS machines, whose TPAs run roughly
+# 52,992 (Sanyo MPC-100) to 53,248 bytes (Sony HB-75) -- each byte of
+# static footprint competes with the window for the heap, and the window
+# needs 3*WINSZ plus a small parse reserve.  A smaller HSZ only lengthens
+# hash chains (identical output, slower packing); the engine is iterative,
+# so a 1K stack reserve holds.  The dictionary-coded message catalog
+# (strpack/csmsg.h) pays for the stub autodetector, which is enabled.
 HSZ="${HSZ:-256}"
 
 # stack reserve; the rest of RAM becomes heap, so
@@ -108,6 +107,20 @@ BDOSIO_PRAGMAS="${BDOSIO_PRAGMAS:-${bdosio_p1} ${bdosio_p2} ${bdosio_p3}}"
 # 1 = pack the .COMs with the host optimal (-e)
 # self-extractor; 0 = leave them raw
 PACK="${PACK:-1}"
+
+# Recorded -m ceilings for the shipped binaries: each is that binary's
+# measured minimum (unpacked image top plus the relocated stub tail) plus
+# 128 bytes of headroom -- plus 48 more for lzpack/lzunpack, whose shipped
+# self-extractors carry the -C runtime memory-check block.  pack() refuses
+# -- and fails the build -- when an image outgrows its ceiling, so size
+# regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
+# bytes TPA floor depends on it).
+MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-23618}"
+MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-13068}"
+MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27145}"
+MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-25015}"
+MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14287}"
+MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28103}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
 # (optimal-parser) build raises it (e.g. 0xDDFF = 56K) because -e needs a
@@ -311,22 +324,37 @@ trim_bss()
 
 # Pack a CP/M-80 .COM into a smaller self-extracting one with the host optimal
 # size (-e) compressor.  Leaves the file on any failures (i.e., incompressible)
+# unless a recorded -m ceiling (second argument) was given: packing under the
+# ceiling makes any unexpected growth of the unpacked image fail the build
+# loudly instead of silently eating headroom future TPAs depend on.
 
 pack()
 {
-  before= after=
+  before= after= mcap= chk=
   [ "${PACK}" = 0 ] && return 0
   [ -x ./lzpack ] || {
     printf '%s\n' ">> host ./lzpack missing; not packing $1"
     return 0
   }
+  mcap="${2:-}"
+  # A non-empty third argument adds -C: the shipped self-extractor then
+  # verifies at run time that unpacking will not reach the BDOS or the
+  # live stack, refusing cleanly on a too-small TPA.  The 48-byte check
+  # block rides inside the recorded -m ceiling's headroom.
+  chk="${3:+-C}"
   before=$(wc -c < "$1")
-  if ./lzpack -e -o "$1.p" "$1" > /dev/null 2>&1 && [ -f "$1.p" ]; then
+  if ./lzpack -e ${chk} ${mcap:+-m "${mcap}"} -o "$1.p" "$1" > /dev/null 2>&1 \
+    && [ -f "$1.p" ]; then
     after=$(wc -c < "$1.p")
     mv -f "$1.p" "$1"
     SXR=" self-extractor"
     printf \
       '%s\n' ">> packed $1 (host -e${SXR}): ${before} -> ${after} bytes"
+  elif [ -n "${mcap}" ]; then
+    rm -f "$1.p"
+    printf '%s\n' \
+      ">> FATAL: $1 (${before} bytes) exceeds its recorded -m ${mcap} ceiling"
+    FITFAIL=1
   else
     rm -f "$1.p"
     printf '%s\n' ">> $1 did not pack smaller; left raw"
@@ -404,7 +432,7 @@ build_arch()
   # unpacker restores larger programs).
   # shellcheck disable=SC2086
   run_zcc zcc +cpm -O3 --opt-code-size -m lzpack.c -clib="${clib}" -o "${lc}" \
-    -DLZPACK_STREAM=1 -DLZPACK_COMPRESS_ONLY -DLZPACK_NO_AUTOARCH \
+    -DLZPACK_STREAM=1 -DLZPACK_COMPRESS_ONLY \
     "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
     ${LZPACK_EXTRA_DEFS:-} ${BDOSIO_PRAGMAS} \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
@@ -434,9 +462,20 @@ build_arch()
   trim_bss "${uc}" "${um}"
   trim_bss "${sc}" "${sm}"
   printf '%s\n' ""
-  pack "${lc}"
-  pack "${uc}"
-  pack "${sc}"
+  # Per-binary recorded -m ceilings (see the MCAP_* tunables above); the
+  # shipped pair also gets the -C runtime memory check.
+  case "${clib}" in
+  8080)
+    pack "${lc}" "${MCAP_8080_LZPACK}" checked
+    pack "${uc}" "${MCAP_8080_LZUNPACK}" checked
+    pack "${sc}" "${MCAP_8080_STUBASM}"
+    ;;
+  *)
+    pack "${lc}" "${MCAP_Z80_LZPACK}" checked
+    pack "${uc}" "${MCAP_Z80_LZUNPACK}" checked
+    pack "${sc}" "${MCAP_Z80_STUBASM}"
+    ;;
+  esac
   printf '%s\n' ""
   ls -l "${lc}" "${uc}" "${sc}"
   printf '%s\n' ""

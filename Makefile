@@ -27,7 +27,8 @@ build: all
 
 # Builds the native LZPACK binary.
 
-lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h lzpack.c
+lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h \
+		lzpack.c
 	@eval echo \
 		"$${CC-$(CC)}" $(CFLAGS) -I. -o $@ lzpack.c 2> /dev/null || :
 	@eval \
@@ -98,6 +99,27 @@ stubasm: stubasm.c
 
 ################################################################################
 
+# Builds the message-string compressor.
+
+strpack: strpack.c
+	@eval echo \
+		"$${CC-$(CC)}" $(CFLAGS) -o $@ strpack.c 2> /dev/null || :
+	@eval \
+		"$${CC-$(CC)}" $(CFLAGS) -o $@ strpack.c
+
+################################################################################
+
+# Builds the dictionary-coded message catalog from the message definitions.
+
+csmsg.h: messages.def strpack
+	./strpack messages.def > $@
+	@command -v "$${AWK:-awk}" > /dev/null 2>&1 && { "$${AWK:-awk}" \
+	'/STRPACK_(PLAIN|CODED|BOOK|NET)/ { a[++i]=$$4 } END { printf \
+	"[msgs] %d bytes plain == %d coded + %d book (net %d).\n", \
+	a[1], a[2], a[3], a[4] }' $@ 2> /dev/null || :; } || :
+
+################################################################################
+
 # Strips native binaries.
 
 strip:
@@ -111,14 +133,15 @@ strip:
 # Clean up artifacts from the local native build.
 
 clean:
-	rm -f lzpack stubasm lzpack.o stubasm.o lzpack.exe stubasm.exe
+	rm -f lzpack stubasm strpack lzpack.o stubasm.o strpack.o
+	rm -f lzpack.exe stubasm.exe strpack.exe
 
 ################################################################################
 
 # Clean up all the builds and assorted build, testing, and temporary detritus.
 
 distclean reallyclean: clean
-	rm -f cs8080.h csz80.h csr8080.h csrz80.h cschk.h
+	rm -f cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h
 	rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
 	rm -f compile_commands.json compile_commands.events.json log.pvs
 	rm -f ./*.pop ./*.unp ./*.t a.out a.exe core core-*
@@ -137,7 +160,7 @@ distclean reallyclean: clean
 
 # Builds both decompression stubs from the assembly source code.
 
-stub stubs: cs8080.h csz80.h csr8080.h csrz80.h cschk.h stubasm.c
+stub stubs: cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h stubasm.c
 
 ################################################################################
 
@@ -145,7 +168,7 @@ stub stubs: cs8080.h csz80.h csr8080.h csrz80.h cschk.h stubasm.c
 # https://z88dk.org/
 
 cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		stubasm.c lzpack.c .build-cpm.sh .common.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
 ################################################################################
@@ -154,7 +177,7 @@ cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://github.com/z88dk/z88dk
 
 cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		stubasm.c lzpack.c .build-cpm.sh .common.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
 ################################################################################
@@ -163,7 +186,7 @@ cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://hub.docker.com/r/z88dk/z88dk
 
 cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		stubasm.c lzpack.c .build-cpm.sh .common.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
 ################################################################################
@@ -171,8 +194,8 @@ cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # CP/M-86 build using the tsupplis Aztec C v4.2 CP/M-86 cross-toolchain.
 # https://github.com/tsupplis/cpm86-crossdev
 
-cpm86 cpm-86: cs8080.h csz80.h cschk.h stubasm.c lzpack.c lz86body.asm \
-	.lz86gen.sh
+cpm86 cpm-86: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
+	lz86body.asm .lz86gen.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx aztec42_cc aztec42_sqz aztec42_link \
@@ -209,8 +232,8 @@ cpm86 cpm-86: cs8080.h csz80.h cschk.h stubasm.c lzpack.c lz86body.asm \
 # Real-mode MS-DOS build using Open Watcom V2.0's "owcc" compiler driver.
 # https://github.com/open-watcom/open-watcom-v2
 
-msdos dos pcdos: cs8080.h csz80.h cschk.h stubasm.c lzpack.c lz86body.asm \
-	.lz86gen.sh
+msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
+	lz86body.asm .lz86gen.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx owcc wasm)
@@ -235,7 +258,7 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h stubasm.c lzpack.c lz86body.asm \
 # Protected-mode (386+) MS-DOS build using DJGPP and embedded CWSDPMI.
 # https://www.delorie.com/djgpp/
 
-djgpp: cs8080.h csz80.h cschk.h stubasm.c lzpack.c
+djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	@mkdir -p ./djgpp/
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
@@ -271,7 +294,8 @@ djgpp: cs8080.h csz80.h cschk.h stubasm.c lzpack.c
 # ELKS 8086 (https://github.com/ghaerr/elks) build using IA16-GCC.
 # https://gitlab.com/tkchia/build-ia16
 
-elks: cs8080.h csz80.h cschk.h stubasm.c lzpack.c lz86body.asm .lz86gen.sh
+elks: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c lz86body.asm \
+	.lz86gen.sh
 	@mkdir -p ./elks/
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
@@ -286,7 +310,7 @@ elks: cs8080.h csz80.h cschk.h stubasm.c lzpack.c lz86body.asm .lz86gen.sh
 
 # Windows 32-bit MSVCRT and 64-bit UCRT builds using Fedora MinGW-w64 GCC
 
-windows: cs8080.h csz80.h cschk.h stubasm.c lzpack.c
+windows: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx \

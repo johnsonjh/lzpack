@@ -1,0 +1,7 @@
+# Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+# SPDX-License-Identifier: MIT-0
+# scspell-id: 9b2a4596-60ab-11f1-924d-80ee73e9b8e7
+
+# messages.def fields are tab-separated and legitimately end
+# with a space or an empty field: never "fix" whitespace in it.
+messages.def	-whitespace

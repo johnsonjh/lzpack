@@ -259,7 +259,8 @@ command -v flawfinder > /dev/null 2>&1 && {
   if (
     set -x
     flawfinder --quiet --dataonly --omittime --error-level=3 --context \
-      --minlevel=3 stubasm.c lzpack.c tests/t_autoarch.c tests/t_memtop.c
+      --minlevel=3 stubasm.c strpack.c lzpack.c tests/t_autoarch.c \
+      tests/t_memtop.c
   ); then
     :
   else
@@ -273,7 +274,8 @@ command -v flawfinder > /dev/null 2>&1 && {
 command -v cppi > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
   for f in ./cs8080.h ./csz80.h ./csr8080.h ./csrz80.h ./cschk.h \
-    ./stubasm.c ./lzpack.c ./tests/t_autoarch.c ./tests/t_memtop.c; do
+    ./stubasm.c ./strpack.c ./lzpack.c ./tests/t_autoarch.c \
+    ./tests/t_memtop.c; do
     if (
       set -x
       cppi -a --check "${f}"
@@ -318,7 +320,7 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
     # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
       ${CPPCHECK_FLAGS:?} --platform=unix64 \
-      ./stubasm.c ./lzpack.c
+      ./stubasm.c ./strpack.c ./lzpack.c
   ); then
     :
   else
@@ -336,7 +338,7 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
     # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
       ${CPPCHECK_FLAGS:?} --platform=unix32 \
-      ./stubasm.c ./lzpack.c
+      ./stubasm.c ./strpack.c ./lzpack.c
   ); then
     :
   else
@@ -359,7 +361,7 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
     # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
       ${CPPCHECK_FLAGS:?} --platform=win64 \
-      ./stubasm.c ./lzpack.c
+      ./stubasm.c ./strpack.c ./lzpack.c
   ); then
     :
   else
@@ -382,7 +384,7 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
     # shellcheck disable=SC2086
     "${CPPCHECK:-cppcheck}" \
       ${CPPCHECK_FLAGS:?} --platform=avr8 \
-      ./stubasm.c ./lzpack.c
+      ./stubasm.c ./strpack.c ./lzpack.c
   ); then
     :
   else
@@ -984,6 +986,7 @@ command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
   if (
     set -x
     "${CH_CMD:-ch}" -n ./stubasm.c
+    "${CH_CMD:-ch}" -n ./strpack.c
   ); then
     :
   else
@@ -1094,7 +1097,7 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
     set -x
     "${OLINT:?}" \
       -O -fd -std=c89 -err=warn -XCC=no \
-      -errchk=structarg,parentheses,locfmtchk stubasm.c
+      -errchk=structarg,parentheses,locfmtchk stubasm.c strpack.c
   ); then
     :
   else
@@ -1418,7 +1421,7 @@ NetBSD)
     fi
     if (
       set -x
-      lint -a -aa -b -c -e -g -h -P -r -u -w -z stubasm.c
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z stubasm.c strpack.c
     ); then
       :
     else

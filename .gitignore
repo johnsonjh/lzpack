@@ -27,6 +27,7 @@ core-*
 /cpm-z80/
 /cs8080.h
 cschk.h
+csmsg.h
 /csr8080.h
 /csrz80.h
 /csz80.h
@@ -62,6 +63,7 @@ log.pvs
 pvsreport
 __pycache__/
 /README.wip
+strpack
 /stubasm
 /*.t
 /tags
