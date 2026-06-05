@@ -15,7 +15,7 @@ It works very much like Yoshihiko Mino's classic *PopCom!* utility, but packs
 tighter by using a better compression engine and decompresses faster by using
 smaller hand‑optimized decompression stubs.
 
-The **LZPACK** program, as well as the packed executables it generates, run
+The **LZPACK** program, as well as the packed executables it generates, runs
 in far more places, such as CP/M‑80 systems with 8080, 8085, or V20 processors
 that *PopCom!* doesn't support, while maintaining the same or
 smaller footprint.
@@ -37,7 +37,7 @@ better compression results.
     + [Decompressors](#decompressors)
     + [Performance](#performance)
 - [Usage](#usage)
-  * [Memory ceiling (`-m`)](#memory-ceiling--m)
+  * [Memory ceiling (`-M`)](#memory-ceiling--m)
   * [Runtime memory check (`-C`)](#runtime-memory-check--c)
 - [Downloads](#downloads)
 - [Building from source](#building-from-source)
@@ -76,7 +76,7 @@ making it simple to decompress (and recompress) already packed executables.
 **LZPACK** (and **LZPACK**‑packed binaries) can run on a *plain 8080*, not
 just the Z80.  **LZPACK** analyzes the file to be packed and automatically
 detects if the program actually uses Z80 instructions, and picks a matching
-extraction stub.
+decompression stub.
 
 Users can also specify `-8` to explicitly use the 8080 stub, or `-Z` to force
 the Z80 stub, in case the automatic detection gets it wrong (which can happen).
@@ -104,11 +104,11 @@ Z80 stubs are assembled from their included sources during the build process
 using an included custom assembler, [**StubASM**](stubasm.c), also written in
 portable C89.
 
-It may not the smallest executable packer, nor the most technically impressive,
-but is permissively licensed, portable (able to run on machines ranging from
-tiny CP/M‑80 systems to current workstations running any operating system),
-and extremely compatible (without depending on undefined behavior or
-undocumented functionality of any hardware or software).
+It may not be the smallest executable packer, nor the most technically
+impressive, but is permissively licensed, portable (able to run on machines
+ranging from tiny CP/M‑80 systems to current workstations running any
+operating system), and extremely compatible (without depending on undefined
+behavior or undocumented functionality of any hardware or software).
 
 ### Compression results
 
@@ -135,18 +135,18 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
 * The "**/N+**" column is the **extra compression** mode.  On a memory‑rich
   host it parses the whole file at once and beats the standard mode by at
-  least few bytes (**/N+`-e`** vs **/N**).
+  least few bytes (**/N+`-E`** vs **/N**).
 
 * The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
-  CP/M‑80 (or other memory memory constrained systems), the match window and
-  compression ratio scales with the available memory: a small TPA means a
+  CP/M‑80 (or other memory‑constrained systems), the match window and
+  compression ratio scale with the available memory: a small TPA means a
   small window and somewhat larger output.
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
   including, the final `0x00` or `0x1A` bytes in the last 128‑byte "record").
 
-* On CP/M‑80 2.2 systems, files do not have exact lengths but instead occupy
+* On CP/M 2.2 systems, files do not have exact lengths but instead occupy
   fixed‑size records of 1024 bits (128 bytes).  When **LZPACK** is operating
   on CP/M‑Plus (CP/M‑80 or CP/M‑86 3+) or DOS‑PLUS (CP/M‑86 4+), the
   [LRBC](https://www.seasip.info/Cpm/bytelen.html) (Last Record Byte Count)
@@ -210,11 +210,11 @@ Each implementation has **two modes**, which trade memory for size:
 1. The **standard compression** mode uses a small parse block, keeping its
    working set tiny and leaving the most room for a large match window.
 
-2. The **extra compression** mode (`-e`) enlarges the block for the tightest
+2. The **extra compression** mode (`-E`) enlarges the block for the tightest
    possible parse.
 
-On a memory‑rich host, using `-e` trims down files by at least a few more
-bytes.  On CP/M‑80 systems, due to memory constraints, the `-e` option is
+On a memory‑rich host, using `-E` trims down files by at least a few more
+bytes.  On CP/M‑80 systems, due to memory constraints, the `-E` option is
 not available.
 
 #### Decompressors
@@ -276,30 +276,30 @@ The **CP/M‑80** version of **LZPACK** is split into two utilities:
 
 On all other platforms a single `lzpack` tool is provided, as shown above.
 
-### Memory ceiling (`-m`)
+### Memory ceiling (`-M`)
 
 As a packed program decompresses in place on the target machine, the image
 expands to its full original size at `0x100` with the relocated decompressor
 sitting above it.  At packing time, **LZPACK** verifies that everything fits
 below a memory ceiling (*MEMTOP*), and will refuse to produce an output file
 otherwise.  The default is at `0xBDFF`, so all packed programs are guaranteed
-to run on any **48K&nbsp;TPA** system, but the `-m` option can be used to
+to run on any **48K&nbsp;TPA** system, but the `-M` option can be used to
 override this, for example:
 
-* Use `-m 64` to pack programs too large for **48K&nbsp;TPA**, but the result
+* Use `-M 64` to pack programs too large for **48K&nbsp;TPA**, but the result
   *requires* a correspondingly larger TPA at run time.
-* Use `-m 32` (or less) to guarantee the output runs on smaller systems, or
+* Use `-M 32` (or less) to guarantee the output runs on smaller systems, or
   to keep the unpacker away from any resident driver that might have stolen
   the top of the TPA, or to enforce a maximum image size while developing new
   software.
 
-The `-m` option accepts an argument in three formats:
+The `-M` option accepts an argument in three formats:
 
 |              Format | Example                    | Description                    |
 |--------------------:|:---------------------------|:-------------------------------|
-| KB size (≤64)       | `-m 32` (or `-m 32K`)      | kilobytes (48 is default)      |
-| hex address         | `-m 0x7DFF`                | literal *MEMTOP* address       |
-| decimal address     | `-m 65023`                 | literal *MEMTOP* address (>64) |
+| KB size (≤64)       | `-M 32` (or `-M 32K`)      | kilobytes (48 is default)      |
+| hex address         | `-M 0x7DFF`                | literal *MEMTOP* address       |
+| decimal address     | `-M 65023`                 | literal *MEMTOP* address (>64) |
 
 Values below `0x1190` (**4K**) or above `0xFFFF` (**64K**) are rejected.
 
@@ -310,13 +310,13 @@ program will eventually run on, for example, a much smaller TPA than the one
 running the packer, or a system that has a resident driver that might lower
 the BDOS pointer at `0x0006`, which could be silently overwritten during
 decompression.  The `-C` option enhances the stub with a small (**48**‑byte)
-runtime check.  It verifies the highest address the unpacker will write to
-lies below the BDOS base and that at least 16 bytes are clear of the live
+runtime check.  It verifies that the highest address the unpacker will write
+to lies below the BDOS base and that at least 16 bytes are clear of the live
 inherited stack.  If the program does not fit, it prints `No room` and aborts.
 
 Because this check adds an extra 48 bytes to every packed executable it is
 disabled by default.  Enabling it does **not** consume any high memory, and it
-is never relocated, so it won't change what fits under any given `-m` setting.
+is never relocated, so it won't change what fits with any given `-M` setting.
 
 ## Downloads
 
