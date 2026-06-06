@@ -270,7 +270,48 @@ lzopen (const char *fn, int wr)
 
 /******************************************************************************/
 
+#if defined(__8080)
+# include "csr8080.h"
+# define LZ_ASM_RESTORE
+# define LZ_RCORE decompr8080
+# define LZ_RCORE_LEN S8R_DLEN
+# define LZ_RCORE_FIX decompr8080_fix
+# define LZ_RCORE_FIX_N DECOMPR8080_FIX_N
+# define LZ_RCORE_SRCV S8R_SRCV_INIT
+# define LZ_RCORE_DSTV S8R_DSTV_INIT
+# define LZ_RCORE_OEHI S8R_OUT_END_HI
+# define LZ_RCORE_OELO S8R_OUT_END_LO
+#elif defined(__Z80)
+# include "csrz80.h"
+# define LZ_ASM_RESTORE
+# define LZ_RCORE decomprz80
+# define LZ_RCORE_LEN SRZ_DLEN
+# define LZ_RCORE_FIX decomprz80_fix
+# define LZ_RCORE_FIX_N DECOMPRZ80_FIX_N
+# define LZ_RCORE_SRCV SRZ_SRCV_INIT
+# define LZ_RCORE_DSTV SRZ_DSTV_INIT
+# define LZ_RCORE_OEHI SRZ_OUT_END_HI
+# define LZ_RCORE_OELO SRZ_OUT_END_LO
+#endif
+
+/******************************************************************************/
+
+#if !defined(LZ_ASM_RESTORE) && !defined(LZPACK_COMPRESS_ONLY)
+# if defined(__ELKS__) || (defined(__WATCOMC__) && defined(__I86__)) || \
+     defined(__AZTEC_C_42T__)
+#  define LZ_ASM_RESTORE_86
+# endif
+#endif
+
+/******************************************************************************/
+
 #include "csmsg.h"
+
+/******************************************************************************/
+
+#include "cschk.h"
+
+#define CHK_SP_SLACK 16
 
 /******************************************************************************/
 
@@ -318,7 +359,8 @@ lxmalloc (size_t n)
 
   if (!p)
     {
-      (void)fprintf (stderr, "ERROR: Out of memory!\n");
+      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      (void)fprintf (stderr, MSG_E_OOM);
 
       exit (1);
     }
@@ -351,46 +393,10 @@ lxmalloc (size_t n)
 
 /******************************************************************************/
 
-#if defined(__8080)
-# include "csr8080.h"
-# define LZ_ASM_RESTORE
-# define LZ_RCORE decompr8080
-# define LZ_RCORE_LEN S8R_DLEN
-# define LZ_RCORE_FIX decompr8080_fix
-# define LZ_RCORE_FIX_N DECOMPR8080_FIX_N
-# define LZ_RCORE_SRCV S8R_SRCV_INIT
-# define LZ_RCORE_DSTV S8R_DSTV_INIT
-# define LZ_RCORE_OEHI S8R_OUT_END_HI
-# define LZ_RCORE_OELO S8R_OUT_END_LO
-#elif defined(__Z80)
-# include "csrz80.h"
-# define LZ_ASM_RESTORE
-# define LZ_RCORE decomprz80
-# define LZ_RCORE_LEN SRZ_DLEN
-# define LZ_RCORE_FIX decomprz80_fix
-# define LZ_RCORE_FIX_N DECOMPRZ80_FIX_N
-# define LZ_RCORE_SRCV SRZ_SRCV_INIT
-# define LZ_RCORE_DSTV SRZ_DSTV_INIT
-# define LZ_RCORE_OEHI SRZ_OUT_END_HI
-# define LZ_RCORE_OELO SRZ_OUT_END_LO
-#endif
-
-/******************************************************************************/
-
-#if !defined(LZ_ASM_RESTORE) && !defined(LZPACK_COMPRESS_ONLY)
-# if defined(__ELKS__) || (defined(__WATCOMC__) && defined(__I86__)) || \
-     defined(__AZTEC_C_42T__)
-#  define LZ_ASM_RESTORE_86
-# endif
-#endif
-
-/******************************************************************************/
-
 #ifndef LZPACK_DECODE_ONLY
 
 # include "csz80.h"
 # include "cs8080.h"
-# include "cschk.h"
 
 # define Z80_HEADROOM 51
 # define STUBLEN (Z80_SETUP_LEN + Z80_DCMP_LEN)
@@ -419,8 +425,6 @@ static unsigned memtop;
  * to unpack when the highest write would reach the BDOS base (word at
  * 0x0006) or come within CHK_SP_SLACK bytes of the live inherited stack.
  */
-
-# define CHK_SP_SLACK 16
 
 static int opt_checked = 0;
 
@@ -1173,7 +1177,8 @@ g_bit (void)
     {
       if (ip >= ip_end)
         {
-          (void)fprintf (stderr, "ERROR: unexpected end of data\n");
+          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          (void)fprintf (stderr, MSG_E_EOD);
 
           exit (1);
         }
@@ -1213,7 +1218,8 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (ip >= ip_end)
         {
-          (void)fprintf (stderr, "ERROR: unexpected end of data\n");
+          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          (void)fprintf (stderr, MSG_E_EOD);
 
           exit (1);
         }
@@ -1271,7 +1277,8 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
           if (ip >= ip_end)
             {
-              (void)fprintf (stderr, "ERROR: unexpected end of data\n");
+              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              (void)fprintf (stderr, MSG_E_EOD);
 
               exit (1);
             }
@@ -1359,8 +1366,8 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
     cp:
       if (off >= (unsigned)pos)
         {
-          (void)fprintf (stderr,
-                         "ERROR: invalid compressed data (underflow)\n");
+          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          (void)fprintf (stderr, MSG_E_UNDERFLOW);
 
           exit (1);
         }
@@ -2287,6 +2294,12 @@ lz_mfputs (const char *m, FILE *f)
 
 /******************************************************************************/
 
+# if defined(__GNUC__) || defined(__clang__) && \
+   !(defined(__OPEN64__) || defined(__OPENCC__) || defined(__PCC__))
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wformat-nonliteral"
+# endif
+
 static int
 lz_fprintf (FILE *f, const char *fmt, ...)
 {
@@ -2316,6 +2329,11 @@ lz_printf (const char *fmt, ...)
 
   return r;
 }
+
+# if defined(__GNUC__) || defined(__clang__) && \
+   !(defined(__OPEN64__) || defined(__OPENCC__) || defined(__PCC__))
+#  pragma GCC diagnostic pop
+# endif
 
 #endif
 
@@ -2959,9 +2977,8 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
         n = r_outlen;
 
         if (verbose)
-          (void)fprintf (stderr,
-                         "  %-12s already packed; recompressing original\n",
-                         fn);
+          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          (void)fprintf (stderr, MSG_P_REPACK, fn);
       }
   }
 #  endif
@@ -4365,10 +4382,50 @@ do_restore (const char *fn, const char *oname, int verbose)
 
 /******************************************************************************/
 
+#ifndef LZPACK_COMPRESS_ONLY
+
+/*
+ * True for the per-file patch slots in the -C check block: the two limit
+ * words and the three +stub_v fixup operands.  Every other byte of a
+ * genuine block must equal the chkstub[] template byte.
+ */
+
+static int
+chk_patch_slot (int k)
+{
+  int i;
+
+  if (k == CHK_DST_LIM || k == CHK_DST_LIM + 1
+      || k == CHK_SP_LIM || k == CHK_SP_LIM + 1)
+    return 1;
+
+  for (i = 0; i < CHKSTUB_FIX_N; i++)
+    if (k == (int)chkstub_fix[i][0] || k == (int)chkstub_fix[i][0] + 1)
+      return 1;
+
+  return 0;
+}
+
+#endif
+
+/******************************************************************************/
+
+/*
+ * The -C check-block recognizer below is compiled out of compress-only
+ * builds: on the split CP/M-80 pair listing is LZUNPACK's job, and every
+ * byte of the packer's static footprint competes with its match window
+ * (the Z80 packer's 8K-window-at-52,978-bytes TPA floor depends on it).
+ */
+
 static int
 do_list (const char *fn)
 {
   unsigned char hdr[LITCNT];
+#ifndef LZPACK_COMPRESS_ONLY
+  static unsigned char chkb[CHK_LEN];
+  long chk_off = -1;
+  int chk_got = 0;
+#endif
   long n, outlen;
   unsigned stubv, lit_src;
   size_t got;
@@ -4387,6 +4444,15 @@ do_list (const char *fn)
    * file, so listing never needs a whole-file buffer.  Count only after a
    * full header was read, and stop on the first short read, so fread is
    * never issued on a stream already at EOF or in error.
+   *
+   * The sizing pass doubles as the -C check-block capture: the JMP target
+   * in the header names the stub address, so the CHK_LEN bytes at that file
+   * offset -- the check block, when the file carries one -- are copied out
+   * of the passing 128-byte chunks.  Nothing here trusts the offset: bytes
+   * are only captured where the chunks actually cover them, and the window
+   * is validated against the chkstub[] template only after parse_header()
+   * accepts the file, so a foreign or corrupted input at worst reports no
+   * floor.
    */
 
   got = lzread (hdr, (size_t)LITCNT, f);
@@ -4396,9 +4462,33 @@ do_list (const char *fn)
     {
       unsigned char buf[128];
 
+#ifndef LZPACK_COMPRESS_ONLY
+      if (hdr[0] == 0xc3)
+        chk_off = (long)get16 (hdr + 1) - TPA;
+      else if (hdr[0] == 0x18 && hdr[2] == 0xc3)
+        chk_off = (long)get16 (hdr + 3) - TPA;
+
+      if (chk_off < LITCNT) /* would overlap the header: not a -C stub */
+        chk_off = -1;
+#endif
+
       for (;;)
         {
           size_t r = lzread (buf, sizeof (buf), f);
+
+#ifndef LZPACK_COMPRESS_ONLY
+          if (chk_off >= 0)
+            {
+              long lo = (chk_off > n) ? chk_off : n;
+              long hi = chk_off + (long)CHK_LEN;
+
+              if (hi > n + (long)r)
+                hi = n + (long)r;
+
+              for (; lo < hi; lo++, chk_got++)
+                chkb[lo - chk_off] = buf[lo - n];
+            }
+#endif
 
           n += (long)r;
 
@@ -4433,6 +4523,65 @@ do_list (const char *fn)
     (void)printf (MSG_P_LSIZES,
                   fn, n, outlen, p10 / 10, p10 % 10);
   }
+
+#ifndef LZPACK_COMPRESS_ONLY
+
+  /*
+   * Report whether the file carries the -C runtime memory check, and the
+   * memory floor embedded in it when it does.  The captured window counts
+   * as a check block only when every byte was read from inside the
+   * (LRBC-corrected) file, every template byte matches chkstub[], and all
+   * three +stub_v fixup operands equal the values put_check() would have
+   * patched for this stub address; DST_LIM then holds the enforced floor
+   * + 1, and a DST_LIM raised beyond its SP_LIM-derived unpack bound marks
+   * an explicit -F floor.
+   */
+
+  {
+    int ischk = 0;
+
+    if (chk_got == CHK_LEN && chk_off + (long)CHK_LEN <= n)
+      {
+        int k;
+
+        ischk = 1;
+
+        for (k = 0; k < CHK_LEN; k++)
+          if (chkb[k] != chkstub[k] && !chk_patch_slot (k))
+            {
+              ischk = 0;
+
+              break;
+            }
+
+        if (ischk)
+          for (k = 0; k < CHKSTUB_FIX_N; k++)
+            if (get16 (chkb + chkstub_fix[k][0])
+                != ((stubv + (unsigned)chkstub_fix[k][1]) & 0xFFFFU))
+              {
+                ischk = 0;
+
+                break;
+              }
+      }
+
+    if (ischk)
+      {
+        unsigned dlim = get16 (chkb + CHK_DST_LIM);
+        unsigned slim = get16 (chkb + CHK_SP_LIM);
+
+        /* Flawfinder: ignore */ /* False positive CWE-134 */
+        (void)printf ((dlim != ((slim - CHK_SP_SLACK) & 0xFFFFU))
+                        ? MSG_P_LFLOORF
+                        : MSG_P_LFLOOR0,
+                      fn, (dlim - 1U) & 0xFFFFU);
+      }
+    else
+      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      (void)printf (MSG_P_LNOCHK, fn);
+  }
+
+#endif /* !LZPACK_COMPRESS_ONLY */
 
   return 0;
 }
@@ -4543,22 +4692,15 @@ usage (void)
 {
   /*
    * The conditional lines are hoisted into plain variables BEFORE the
-   * fprintf calls: with LZ_BDOS_IO, fprintf is a macro, and a preprocessing
-   * directive inside a macro argument list is undefined behavior (V1119).
+   * LZ_MPUTS calls: with LZ_BDOS_IO, a preprocessing directive inside a
+   * macro argument list is undefined behavior (V1119).  The -E and no-E
+   * compress lines are whole-message variants in the catalog (selected by
+   * LZPACK_NO_OPT), so no %s splicing is needed here.
    */
 
   const char *lrbc = MSG_NONE;
 #ifndef LZPACK_DECODE_ONLY
   const char *rline;
-# ifdef LZPACK_NO_OPT
-  static const char *exopt = "";
-  static const char *expad = "     ";
-  static const char *extra = "";
-# else
-  static const char *exopt = "[-E] ";
-  static const char *expad = "";
-  static const char *extra = "-E: extra, ";
-# endif
 #endif
 
   herald (stderr);
@@ -4591,8 +4733,7 @@ usage (void)
 # endif
 
   LZ_MPUTS (stderr, MSG_U_HDR);
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
-  (void)fprintf (stderr, MSG_U_PACKLN, exopt, expad, extra);
+  LZ_MPUTS (stderr, MSG_U_PACKLN);
   LZ_MPUTS (stderr, rline);
   LZ_MPUTS (stderr, MSG_U_LO);
   LZ_MPUTS (stderr, MSG_U_MC);

@@ -81,6 +81,37 @@ find_command ./.build-cpm.sh ./lzpack mktemp sed tr
 
 ################################################################################
 
+# Optional KiB equivalents under each byte column, used when bc(1) exists.
+
+export FIND_COMMAND_FATAL=0
+
+# shellcheck disable=SC2310
+if find_command bc > /dev/null 2>&1; then
+  HAVE_BC=1
+else
+  HAVE_BC=0
+fi
+
+export FIND_COMMAND_FATAL=1
+
+# "(22.6K)" for a positive byte count, "-" for anything else (e.g. the -1
+# a failed bisect reports).  Only called when HAVE_BC is 1.
+
+kb_cell()
+{
+  case "$1" in
+  '' | *[!0-9]*)
+    printf '%s\n' "-"
+    ;;
+  *)
+    # shellcheck disable=SC2312
+    printf '(%sK)\n' "$(printf 'scale=1; %s / 1024\n' "$1" | bc)"
+    ;;
+  esac
+}
+
+################################################################################
+
 TMPD=$(mktemp -d "${TMPDIR:-/tmp}/mcap-verify.XXXXXX")
 trap 'rm -rf "${TMPD}"' EXIT INT TERM
 
@@ -171,6 +202,13 @@ for arch in z80 8080; do
     printf '%-14s %8s %8s %9s %9s %7s  %s\n' \
       "${arch}/${prog}" "${min}" "${minc}" "${exp}" "${rec}" \
       "$((rec - bind))" "${verdict}"
+
+    if [ "${HAVE_BC}" -eq 1 ]; then
+      # shellcheck disable=SC2312
+      printf '%-14s %8s %8s %9s %9s\n' \
+        "" "$(kb_cell "${min}")" "$(kb_cell "${minc}")" \
+        "$(kb_cell "${exp}")" "$(kb_cell "${rec}")"
+    fi
   done
 done
 

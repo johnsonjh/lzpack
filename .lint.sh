@@ -57,8 +57,8 @@ export CPE1704TKS=1
 ################################################################################
 
 export FIND_COMMAND_FATAL=1
-find_command "${AWK:-awk}" diff grep "${MAKE:-make}" mkdir paste rm rmdir \
-  sed sleep uname
+find_command "${AWK:-awk}" diff grep head "${MAKE:-make}" mkdir paste rm \
+  rmdir sed sleep uname
 
 ################################################################################
 
@@ -71,7 +71,7 @@ if out=$(
     "${CLANG_CMD:-clang}" "${CPPCHECK:-cppcheck}" codespell cppi flawfinder \
     git "${GCC_CMD:-gcc}" plog-converter pvs-studio-analyzer \
     "${REUSE_CMD:-reuse}" "${SCAN_BUILD_CMD:-scan-build}" \
-    "${SHELLCHECK_CMD:-shellcheck}" "${SHFMT_CMD:-shfmt}" \
+    "${SHELLCHECK_CMD:-shellcheck}" "${SHFMT_CMD:-shfmt}" valgrind \
     "${HOME}/src/smatch/smatch" "${HOME}/src/smatch/cgcc" 2>&1
 ); then
   status=0
@@ -514,6 +514,49 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
 
 ################################################################################
 
+apCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
+apCFLAGS="${apCFLAGS:?} -U_FORTIFY_SOURCE"
+apCFLAGS="${apCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
+apCFLAGS="${apCFLAGS:?} -DGCC_ANALYZER -march=native -fanalyzer"
+apCFLAGS="${apCFLAGS:?} -DLZPACK_PACKED_MSGS"
+
+command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer packed-msgs <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  if (
+    set -x
+    "${MAKE:-make}" \
+      CC="${GCC_CMD:-gcc}" \
+      CFLAGS="${apCFLAGS:?}"
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' \
+    ">>>>>>>>>>>>>>>> gcc analyzer streaming opt packed-msgs <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  if (
+    set -x
+    "${MAKE:-make}" \
+      CC="${GCC_CMD:-gcc}" \
+      CFLAGS="${apCFLAGS:?} -DLZPACK_STREAM -DLZPACK_OPT"
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
 lCFLAGS="-U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
 lCFLAGS="${lCFLAGS:-} -Wno-padded -Wno-missing-noreturn"
 lCFLAGS="${lCFLAGS:-} -Wno-disabled-macro-expansion"
@@ -624,6 +667,50 @@ command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
     "${MAKE:-make}" \
       CC="${CLANG_CMD:-clang}" \
       CFLAGS="${lCFLAGS:?} -DLZPACK_NO_PROGRESS"
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+lpCFLAGS="-U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
+lpCFLAGS="${lpCFLAGS:-} -Wno-padded -Wno-missing-noreturn"
+lpCFLAGS="${lpCFLAGS:-} -Wno-disabled-macro-expansion"
+lpCFLAGS="${lpCFLAGS:-} -Wno-used-but-marked-unused -Werror -ferror-limit=0"
+lpCFLAGS="${lpCFLAGS:-} -std=c89 -Wno-padded -Wno-used-but-marked-unused"
+lpCFLAGS="${lpCFLAGS:-} -DLZPACK_PACKED_MSGS"
+
+command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> clang strict packed-msgs <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  if (
+    set -x
+    "${MAKE:-make}" \
+      CC="${CLANG_CMD:-clang}" \
+      CFLAGS="${lpCFLAGS:?}"
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+}
+
+################################################################################
+
+command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' \
+    ">>>>>>>>>>>>>>>> clang strict streaming opt packed-msgs <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  if (
+    set -x
+    "${MAKE:-make}" \
+      CC="${CLANG_CMD:-clang}" \
+      CFLAGS="${lpCFLAGS:?} -DLZPACK_STREAM -DLZPACK_OPT"
   ); then
     :
   else
@@ -882,6 +969,58 @@ command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
 
 ################################################################################
 
+command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
+  command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> scan-build packed-msgs <<<<<<<<<<<<<<<<"
+    "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+    # shellcheck disable=SC2119
+    TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
+    rm -f "${TMPFILE:?}"
+    if (
+      set -x
+      "${SCAN_BUILD_CMD:-scan-build}" \
+        --status-bugs \
+        -o "${TMPFILE:?}" "${MAKE:-make}" \
+        CFLAGS="-O -DLZPACK_PACKED_MSGS" all > /dev/null 2>&1
+    ); then
+      rm -rf "${TMPFILE:?}" || :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
+      rc=1
+    fi
+  }
+}
+
+################################################################################
+
+command -v "${SCAN_BUILD_CMD:-scan-build}" > /dev/null 2>&1 && {
+  command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' \
+      ">>>>>>>>>>>>>>>> scan-build stream opt packed-msgs <<<<<<<<<<<<<<<<"
+    "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+    # shellcheck disable=SC2119
+    TMPFILE="$(mktemp 2> /dev/null || mktemp_lzpack)"
+    rm -f "${TMPFILE:?}"
+    if (
+      set -x
+      "${SCAN_BUILD_CMD:-scan-build}" \
+        --status-bugs -o "${TMPFILE:?}" \
+        "${MAKE:-make}" \
+        CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS" \
+        all > /dev/null 2>&1
+    ); then
+      rm -rf "${TMPFILE:?}" || :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      printf '\n%s\n' "*** scan-build reported issues; see '${TMPFILE:?}'"
+      rc=1
+    fi
+  }
+}
+
+################################################################################
+
 command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
   command -v pvs-studio-analyzer > /dev/null 2>&1 && {
     command -v plog-converter > /dev/null 2>&1 && {
@@ -959,6 +1098,72 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
         set -x
         "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
           CFLAGS="-O3 -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS" \
+          > /dev/null
+      )
+      (
+        set -x
+        pvs-studio-analyzer analyze -q --intermodular -j 1 -o log.pvs
+      )
+      if (
+        set -x
+        plog-converter -a "GA:1,2,3" -t fullhtml log.pvs \
+          -o pvsreport --indicateWarnings
+      ); then
+        :
+      else
+        printf '%s\n' "****** FAILURE DETECTED ******"
+        rc=1
+      fi
+    }
+  }
+}
+################################################################################
+
+command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
+  command -v pvs-studio-analyzer > /dev/null 2>&1 && {
+    command -v plog-converter > /dev/null 2>&1 && {
+      printf '\n%s\n\n' \
+        ">>>>>>>>>>>>>>>> pvs-studio packed-msgs <<<<<<<<<<<<<<<<"
+      rm -f compile_commands.json log.pvs 2> /dev/null
+      rm -f -r ./pvsreport 2> /dev/null 2>&1
+      "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+      (
+        set -x
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+          CFLAGS="-O3 -DLZPACK_PACKED_MSGS" > /dev/null
+      )
+      (
+        set -x
+        pvs-studio-analyzer analyze -q --intermodular -j 1 -o log.pvs
+      )
+      if (
+        set -x
+        plog-converter -a "GA:1,2,3" -t fullhtml log.pvs \
+          -o pvsreport --indicateWarnings
+      ); then
+        :
+      else
+        printf '%s\n' "****** FAILURE DETECTED ******"
+        rc=1
+      fi
+    }
+  }
+}
+
+################################################################################
+
+command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
+  command -v pvs-studio-analyzer > /dev/null 2>&1 && {
+    command -v plog-converter > /dev/null 2>&1 && {
+      printf '\n%s\n\n' \
+        ">>>>>>>>>>>>>>>> pvs-studio stream opt packed-msgs <<<<<<<<<<<<<<<<"
+      rm -f compile_commands.json log.pvs 2> /dev/null
+      rm -f -r ./pvsreport 2> /dev/null 2>&1
+      "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+      (
+        set -x
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+          CFLAGS="-O3 -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS" \
           > /dev/null
       )
       (
@@ -1104,6 +1309,29 @@ command -v "${OLINT:-}" > /dev/null 2>&1 && {
   if (
     set -x
     "${OLINT:?}" \
+      -DLZPACK_PACKED_MSGS -O -fd -std=c89 -err=warn -XCC=no \
+      -errchk=structarg,parentheses,locfmtchk lzpack.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    set -x
+    "${OLINT:?}" \
+      -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS \
+      -O -fd -std=c89 -err=warn -XCC=no \
+      -errchk=structarg,parentheses,locfmtchk lzpack.c
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  if (
+    set -x
+    "${OLINT:?}" \
       -O -fd -std=c89 -err=warn -XCC=no \
       -errchk=structarg,parentheses,locfmtchk stubasm.c
   ); then
@@ -1205,6 +1433,7 @@ command -v "${SHELLCHECK_CMD:-shellcheck}" > /dev/null 2>&1 && {
       ./.lz86gen.sh \
       ./.mcap-verify.sh \
       ./.updatedocs.sh \
+      ./.wincap.sh \
       ./tests/run.sh
   ); then
     :
@@ -1227,6 +1456,7 @@ command -v "${SHFMT_CMD:-shfmt}" > /dev/null 2>&1 && {
       ./.lz86gen.sh \
       ./.mcap-verify.sh \
       ./.updatedocs.sh \
+      ./.wincap.sh \
       ./tests/run.sh
   ); then
     :
@@ -1380,6 +1610,166 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
 
 ################################################################################
 
+command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
+  command -v "${HOME}/src/smatch/cgcc" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' ">>>>>>>>>>>>>>>> smatch packed-msgs <<<<<<<<<<<<<<<<"
+    "${MAKE:-make}" clean > /dev/null 2>&1 || :
+    if (
+      set -x
+      "${MAKE:-make}" \
+        CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
+        CFLAGS="-O -DLZPACK_PACKED_MSGS" CC="${HOME}/src/smatch/cgcc"
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+  }
+}
+
+################################################################################
+
+command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
+  command -v "${HOME}/src/smatch/cgcc" > /dev/null 2>&1 && {
+    printf '\n%s\n\n' \
+      ">>>>>>>>>>>>>>>> smatch stream opt packed-msgs <<<<<<<<<<<<<<<<"
+    "${MAKE:-make}" clean > /dev/null 2>&1 || :
+    if (
+      set -x
+      "${MAKE:-make}" \
+        CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
+        CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS" \
+        CC="${HOME}/src/smatch/cgcc"
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+  }
+}
+
+################################################################################
+
+SAN_CFLAGS="-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all"
+SAN_CFLAGS="${SAN_CFLAGS:?} -fno-omit-frame-pointer"
+
+san_probe()
+{
+  sp_rc=1
+  # shellcheck disable=SC2119
+  sp_d="$(mktemp -d 2> /dev/null || mktemp_lzpack)"
+  printf '%s\n' '#include <stdio.h>' \
+    'int main(void) { (void)puts("ok"); return 0; }' > "${sp_d}/t.c"
+  # shellcheck disable=SC2086
+  if "${CLANG_CMD:-clang}" ${SAN_CFLAGS:?} -o "${sp_d}/t" "${sp_d}/t.c" \
+    > /dev/null 2>&1 \
+    && "${sp_d}/t" > /dev/null 2>&1; then
+    sp_rc=0
+  fi
+  rm -rf "${sp_d}" || :
+  return "${sp_rc}"
+}
+
+################################################################################
+
+san_cycle()
+{
+  sc_rc=1
+  # shellcheck disable=SC2119
+  sc_d="$(mktemp -d 2> /dev/null || mktemp_lzpack)"
+  head -c 20000 ./lzpack.c > "${sc_d}/in.bin"
+  if ./lzpack -E -C -F 0xBDFF -O "${sc_d}/t.pop" "${sc_d}/in.bin" \
+    && ./lzpack -L "${sc_d}/t.pop" "${sc_d}/in.bin" \
+    && ./lzpack -R -O "${sc_d}/t.unp" "${sc_d}/t.pop" \
+    && diff "${sc_d}/in.bin" "${sc_d}/t.unp" > /dev/null 2>&1; then
+    sc_rc=0
+  fi
+  rm -rf "${sc_d}" || :
+  return "${sc_rc}"
+}
+
+################################################################################
+
+command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' \
+    ">>>>>>>>>>>>>>>> clang sanitizers standard <<<<<<<<<<<<<<<<"
+  # shellcheck disable=SC2310
+  if san_probe; then
+    "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+    # shellcheck disable=SC2310
+    if (
+      set -x
+      "${MAKE:-make}" \
+        CC="${CLANG_CMD:-clang}" \
+        CFLAGS="${SAN_CFLAGS:?}"
+    ) && san_cycle; then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+  else
+    printf '%s\n' ">> sanitizer runtime unavailable; SKIPPING sanitizer test"
+  fi
+}
+
+################################################################################
+
+command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
+  printf '\n%s\n\n' \
+    ">>>>>>>>>>>>>>>> clang sanitizers stream opt packed-msgs <<<<<<<<<<<<<<<<"
+  # shellcheck disable=SC2310
+  if san_probe; then
+    "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+    # shellcheck disable=SC2310
+    if (
+      set -x
+      "${MAKE:-make}" \
+        CC="${CLANG_CMD:-clang}" \
+        CFLAGS="${SAN_CFLAGS:?} -DLZPACK_STREAM -DLZPACK_OPT \
+          -DLZPACK_PACKED_MSGS"
+    ) && san_cycle; then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+  else
+    printf '%s\n' ">> sanitizer runtime unavailable; SKIPPING sanitizer test"
+  fi
+}
+
+################################################################################
+
+command -v valgrind > /dev/null 2>&1 && {
+  printf '\n%s\n\n' ">>>>>>>>>>>>>>>> valgrind memcheck <<<<<<<<<<<<<<<<"
+  "${MAKE:-make}" distclean > /dev/null 2>&1 || :
+  # shellcheck disable=SC2119
+  vg_d="$(mktemp -d 2> /dev/null || mktemp_lzpack)"
+  head -c 20000 ./lzpack.c > "${vg_d}/in.bin"
+  if (
+    set -x
+    "${MAKE:-make}" CFLAGS="-O1 -g" \
+      && valgrind --quiet --error-exitcode=99 --leak-check=full \
+        ./lzpack -E -C -F 0xBDFF -O "${vg_d}/t.pop" "${vg_d}/in.bin" \
+      && valgrind --quiet --error-exitcode=99 --leak-check=full \
+        ./lzpack -L "${vg_d}/t.pop" "${vg_d}/in.bin" \
+      && valgrind --quiet --error-exitcode=99 --leak-check=full \
+        ./lzpack -R -O "${vg_d}/t.unp" "${vg_d}/t.pop" \
+      && diff "${vg_d}/in.bin" "${vg_d}/t.unp" > /dev/null 2>&1
+  ); then
+    :
+  else
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rc=1
+  fi
+  rm -rf "${vg_d}" || :
+}
+
+################################################################################
+
 case "$(uname -s 2> /dev/null || :)" in
 NetBSD)
   if command -p -v lint > /dev/null 2>&1; then
@@ -1434,6 +1824,25 @@ NetBSD)
       set -x
       lint -a -aa -b -c -e -g -h -P -r -u -w -z \
         -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS lzpack.c
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z -DLZPACK_PACKED_MSGS lzpack.c
+    ); then
+      :
+    else
+      printf '%s\n' "****** FAILURE DETECTED ******"
+      rc=1
+    fi
+    if (
+      set -x
+      lint -a -aa -b -c -e -g -h -P -r -u -w -z \
+        -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS lzpack.c
     ); then
       :
     else

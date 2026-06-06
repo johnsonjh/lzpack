@@ -115,11 +115,11 @@ PACK="${PACK:-1}"
 # fails the build -- when an image outgrows its ceiling, so size
 # regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
 # bytes TPA floor depends on it).
-MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-23370}"
-MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12823}"
+MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-23321}"
+MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-13732}"
 MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27794}"
-MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-24770}"
-MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14047}"
+MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-24720}"
+MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14971}"
 MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28610}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
@@ -569,6 +569,28 @@ if command -v "${TNYLPO}" > /dev/null 2>&1; then
 else
   printf '\n%s\n' ">> tnylpo not found (set TNYLPO=...); skipping smoke test"
 fi
+
+################################################################################
+
+# Final check: the minimum TPA needed for each compression-window size on
+# the packers just built, with a hard gate on the standard Z80 packer's 8K
+# window at the MSX-DOS fleet floor (see .wincap.sh): a static-footprint
+# regression that would demote real MSX machines to a 4K window FAILS the
+# build here.  .wincap.sh warns loudly and succeeds when tnylpo (or its -m
+# TPA patch) is unavailable.
+
+wincap_dirs=""
+
+for arch in ${ARCHS}; do
+  case "${arch}" in
+  ixiy) wincap_dirs="${wincap_dirs} cpm-z80${OUT_SUFFIX}" ;;
+  8080) wincap_dirs="${wincap_dirs} cpm-8080${OUT_SUFFIX}" ;;
+  *) wincap_dirs="${wincap_dirs} cpm-${arch}${OUT_SUFFIX}" ;;
+  esac
+done
+
+# shellcheck disable=SC2086
+./.wincap.sh ${wincap_dirs}
 
 ################################################################################
 

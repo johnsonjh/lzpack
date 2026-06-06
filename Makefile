@@ -178,7 +178,7 @@ stub stubs: cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h stubasm.c
 # https://z88dk.org/
 
 cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh .wincap.sh
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
 ################################################################################
@@ -187,7 +187,7 @@ cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://github.com/z88dk/z88dk
 
 cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh .wincap.sh
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
 ################################################################################
@@ -196,7 +196,7 @@ cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://hub.docker.com/r/z88dk/z88dk
 
 cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh .wincap.sh
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
 ################################################################################

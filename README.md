@@ -363,12 +363,19 @@ static storage from the linker's map and add the runtime's stack reserve, or
 if you are cross-developing, simply measure the value empirically by using an
 emulator that can dynamically shrink the TPA.
 
-The **LZPACK** build can serve as an example of this process, as the shipped
-CP/M‑80 binaries (`LZPACK.COM` and `LZUNPACK.COM`) are packed with a floor
-derived from each tool's own map plus the stack reserve, so on any system
-with a TPA large enough for them to *unpack* but too small for them to fully
-*initialize*, they simply print `No room` and exit cleanly, which would be
-impossible to achieve using C code alone.
+It is hoped that the **LZPACK** build can serve as an example of this process,
+since the shipped CP/M‑80 binaries (`LZPACK.COM` and `LZUNPACK.COM`) are
+packed with a floor derived from each tool's own map plus the stack reserve,
+so on any system with a TPA large enough for them to *unpack* but too small
+for them to fully *initialize*, they simply print `No room` and exit cleanly,
+which would be impossible to achieve using C code alone.
+
+The `-L` (list) command reads the check block back out of a packed file.
+It reports `no -C check` for files packed without `-C`, the enforced floor
+for checked files (`-C check; floor 0xBDFF`), and marks floors that were
+raised beyond the unpack bound with `(-F)`.  On **CP/M‑80** systems the list
+option is part of `LZUNPACK.COM`, so the embedded floor of any packed program
+can be inspected on the target machine itself.
 
 </details>
 
