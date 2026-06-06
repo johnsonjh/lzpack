@@ -427,7 +427,7 @@ check_48k()
   elif [ "$3" -gt 0 ]; then
     avail=$((ceil - 0x${end} - 2048 - STACKSZ))
     win=$((avail / 3))
-    RFR="room for "
+    RFR="room for"
     WND="-byte window"
     printf ">> [%s] fits %dK: peak 0x%04X <= 0x%04X (${RFR} ~%d${WND})\n" \
       "$1" "${kib}" "${peak}" "${ceil}" "${win}"

@@ -16,8 +16,8 @@ but packs tighter by using a better compression engine and decompresses
 faster by using smaller hand‑optimized decompression stubs.
 
 The **LZPACK** program and the packed executables it produces can run on a
-much wider range of CP/M‑80 systems than *PopCom!* including those with 8080,
-8085, or V20 processors and those with less than 48K&nbsp;TPA.
+wide range of CP/M‑80 machines, including systems with Z80, 8080, 8085, and
+V20 processors, and systems with less than 48K&nbsp;TPA.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
 as on MS‑DOS, Windows, Linux, or in any UNIX‑like environment) gives even
