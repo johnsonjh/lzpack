@@ -7,9 +7,9 @@
 
 # Compatible defaults.
 
-CC="$$(command -v cc 2> /dev/null || command -v gcc 2> /dev/null || \
-	command -v clang 2> /dev/null || echo cc)"
-CFLAGS?=-O
+XCC=$$(command -v cc 2> /dev/null || command -v gcc 2> /dev/null || \
+	command -v clang 2> /dev/null || echo cc)
+XCFLAGS=-O
 
 ################################################################################
 
@@ -30,9 +30,12 @@ build: all
 lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h \
 		lzpack.c
 	@eval echo \
-		"$${CC-$(CC)}" $(CFLAGS) -I. -o $@ lzpack.c 2> /dev/null || :
+		"$${CC:-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" -I. \
+		-o $@ lzpack.c "$${LDFLAGS:-$(XLDFLAGS)}" \
+		2> /dev/null || :
 	@eval \
-		"$${CC-$(CC)}" $(CFLAGS) -I. -o $@ lzpack.c
+		"$${CC:-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" -I. \
+		-o $@ lzpack.c "$${LDFLAGS:-$(XLDFLAGS)}"
 
 ################################################################################
 
@@ -93,9 +96,12 @@ cschk.h: chk.asm stubasm
 
 stubasm: stubasm.c
 	@eval echo \
-		"$${CC-$(CC)}" $(CFLAGS) -o $@ stubasm.c 2> /dev/null || :
+		"$${CC-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" \
+		-o $@ stubasm.c "$${LDFLAGS:-$(XLDFLAGS)}" \
+		2> /dev/null || :
 	@eval \
-		"$${CC-$(CC)}" $(CFLAGS) -o $@ stubasm.c
+		"$${CC-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" \
+		-o $@ stubasm.c "$${LDFLAGS:-$(XLDFLAGS)}"
 
 ################################################################################
 
@@ -103,9 +109,12 @@ stubasm: stubasm.c
 
 strpack: strpack.c
 	@eval echo \
-		"$${CC-$(CC)}" $(CFLAGS) -o $@ strpack.c 2> /dev/null || :
+		"$${CC-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" \
+		-o $@ strpack.c "$${LDFLAGS:-$(XLDFLAGS)}" \
+		2> /dev/null || :
 	@eval \
-		"$${CC-$(CC)}" $(CFLAGS) -o $@ strpack.c
+		"$${CC-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" \
+		-o $@ strpack.c "$${LDFLAGS:-$(XLDFLAGS)}"
 
 ################################################################################
 
@@ -412,7 +421,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	"$${MAKE:-make}" all
 	./.updatedocs.sh
 	"$${MAKE:-make}" distclean
-	"$${GIT_CMD-git}" status || :
+	"$${GIT_CMD:-git}" status || :
 
 ################################################################################
 
