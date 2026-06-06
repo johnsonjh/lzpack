@@ -247,7 +247,7 @@ sec_begin
 
 # shellcheck disable=SC2119
 st="$(mktemp 2> /dev/null || mktemp_lzpack)"
-sdir="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzst.$$")"
+sdir="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzst.$$$$")"
 mkdir -p "${sdir}"
 
 # shellcheck disable=SC2086,SC2248

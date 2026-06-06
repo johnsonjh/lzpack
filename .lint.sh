@@ -69,7 +69,7 @@ if out=$(
   find_command \
     "${BEAR_CMD:-bear}" "${BLACK_CMD:-black}" "${CH_CMD:-ch}" \
     "${CLANG_CMD:-clang}" "${CPPCHECK:-cppcheck}" codespell cppi flawfinder \
-    git "${GCC_CMD:-gcc}" plog-converter pvs-studio-analyzer \
+    git "${GCC_CMD:-gcc}" mktemp plog-converter pvs-studio-analyzer \
     "${REUSE_CMD:-reuse}" "${SCAN_BUILD_CMD:-scan-build}" \
     "${SHELLCHECK_CMD:-shellcheck}" "${SHFMT_CMD:-shfmt}" valgrind \
     "${HOME}/src/smatch/smatch" "${HOME}/src/smatch/cgcc" 2>&1
@@ -1659,7 +1659,8 @@ san_probe()
 {
   sp_rc=1
   # shellcheck disable=SC2119
-  sp_d="$(mktemp -d 2> /dev/null || mktemp_lzpack)"
+  sp_d="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzsp.$$$$")"
+  mkdir -p "${sp_d:?}"
   printf '%s\n' '#include <stdio.h>' \
     'int main(void) { (void)puts("ok"); return 0; }' > "${sp_d}/t.c"
   # shellcheck disable=SC2086
@@ -1678,7 +1679,8 @@ san_cycle()
 {
   sc_rc=1
   # shellcheck disable=SC2119
-  sc_d="$(mktemp -d 2> /dev/null || mktemp_lzpack)"
+  sc_d="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzsc.$$$$")"
+  mkdir -p "${sc_d:?}"
   head -c 20000 ./lzpack.c > "${sc_d}/in.bin"
   if ./lzpack -E -C -F 0xBDFF -O "${sc_d}/t.pop" "${sc_d}/in.bin" \
     && ./lzpack -L "${sc_d}/t.pop" "${sc_d}/in.bin" \
@@ -1747,7 +1749,8 @@ command -v valgrind > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> valgrind memcheck <<<<<<<<<<<<<<<<"
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   # shellcheck disable=SC2119
-  vg_d="$(mktemp -d 2> /dev/null || mktemp_lzpack)"
+  vg_d="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzvg.$$$$")"
+  mkdir -p "${vg_d:?}"
   head -c 20000 ./lzpack.c > "${vg_d}/in.bin"
   if (
     set -x

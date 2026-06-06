@@ -138,7 +138,9 @@ kb_cell()
 
 ################################################################################
 
-TMPD=$(mktemp -d "${TMPDIR:-/tmp}/wincap.XXXXXX")
+TMPD=$(mktemp -d "${TMPDIR:-/tmp}/wincap.XXXXXX" 2> /dev/null \
+  || printf '%s\n' "${TMPDIR:-/tmp}/wincap.$$$$")
+mkdir -p "${TMPD:?}"
 trap 'rm -rf "${TMPD}"' EXIT INT TERM
 
 ################################################################################
