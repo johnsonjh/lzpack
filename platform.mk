@@ -13,7 +13,7 @@
 
 ################################################################################
 
-# Detect OS with `uname -s`
+# Detect OS with `uname`
 UNAME_S:=$(shell uname -s 2> /dev/null)
 ifneq "$(findstring AIX,$(UNAME_S))" ""
  UNAME_M:=$(shell uname -p 2> /dev/null)
