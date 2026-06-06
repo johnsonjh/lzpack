@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v0.999999"
+#define LZPACK_VER "v1.0-beta-1"
 
 /******************************************************************************/
 
@@ -1816,7 +1816,7 @@ lz_ment (int idx, int *len)
   const unsigned char *p = lz_msgbook;
 
   while (0 < idx--)
-    p += 1 + *p;
+    p += 1 + (long)*p;
 
   *len = *p;
 
