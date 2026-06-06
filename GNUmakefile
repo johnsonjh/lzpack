@@ -20,6 +20,7 @@ include platform.mk
 
 export CC
 export CFLAGS
+export LDFLAGS
 
 ################################################################################
 
