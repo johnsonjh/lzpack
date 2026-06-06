@@ -161,8 +161,12 @@ ifndef NO_LTO
    endif
   endif
  endif
- CFLAGS+=$(LTO_FLAGS)
- LDFLAGS+=$(LTO_FLAGS)
+ ifeq ($(findstring -flto,$(CFLAGS)),)
+  CFLAGS+=$(LTO_FLAGS)
+ endif
+ ifeq ($(findstring -flto,$(LDFLAGS)),)
+  LDFLAGS+=$(LTO_FLAGS)
+ endif
 endif
 
 ################################################################################
