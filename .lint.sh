@@ -1754,7 +1754,8 @@ command -v valgrind > /dev/null 2>&1 && {
   head -c 20000 ./lzpack.c > "${vg_d}/in.bin"
   if (
     set -x
-    ulimit -n 384
+    # shellcheck disable=SC3045
+    ulimit -n 384 > /dev/null 2>&1 || :
     "${MAKE:-make}" CFLAGS="-O1 -g" \
       && valgrind --quiet --error-exitcode=99 --leak-check=full \
         ./lzpack -E -C -F 0xBDFF -O "${vg_d}/t.pop" "${vg_d}/in.bin" \
