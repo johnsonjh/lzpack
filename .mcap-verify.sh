@@ -114,7 +114,7 @@ kb_cell()
 
 TMPD=$(mktemp -d "${TMPDIR:-/tmp}/mcap-verify.XXXXXX" 2> /dev/null \
   || printf '%s\n' "${TMPDIR:-/tmp}/mcap-verify.$$$$")
-mkdir "${TMPD:?}"
+mkdir -p "${TMPD:?}" > /dev/null 2>&1 || :
 trap 'rm -rf "${TMPD}"' EXIT INT TERM
 
 ################################################################################
