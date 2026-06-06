@@ -1494,6 +1494,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CC="${HOME}/src/smatch/cgcc"
@@ -1514,6 +1517,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_NO_OPT" CC="${HOME}/src/smatch/cgcc"
@@ -1534,6 +1540,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_NO_PROGRESS" CC="${HOME}/src/smatch/cgcc"
@@ -1554,6 +1563,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM" CC="${HOME}/src/smatch/cgcc"
@@ -1574,6 +1586,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT" CC="${HOME}/src/smatch/cgcc"
@@ -1595,6 +1610,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS" \
@@ -1616,6 +1634,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_PACKED_MSGS" CC="${HOME}/src/smatch/cgcc"
@@ -1637,6 +1658,9 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
+      unset CC > /dev/null 2>&1 || :
+      unset CFLAGS > /dev/null 2>&1 || :
+      unset LDFLAGS > /dev/null 2>&1 || :
       "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS" \
@@ -1660,7 +1684,7 @@ san_probe()
   sp_rc=1
   # shellcheck disable=SC2119
   sp_d="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzsp.$$$$")"
-  mkdir -p "${sp_d:?}"
+  mkdir -p "${sp_d:?}" || :
   printf '%s\n' '#include <stdio.h>' \
     'int main(void) { (void)puts("ok"); return 0; }' > "${sp_d}/t.c"
   # shellcheck disable=SC2086
@@ -1680,7 +1704,7 @@ san_cycle()
   sc_rc=1
   # shellcheck disable=SC2119
   sc_d="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzsc.$$$$")"
-  mkdir -p "${sc_d:?}"
+  mkdir -p "${sc_d:?}" || :
   head -c 20000 ./lzpack.c > "${sc_d}/in.bin"
   if ./lzpack -E -C -F 0xBDFF -O "${sc_d}/t.pop" "${sc_d}/in.bin" \
     && ./lzpack -L "${sc_d}/t.pop" "${sc_d}/in.bin" \
@@ -1750,7 +1774,7 @@ command -v valgrind > /dev/null 2>&1 && {
   "${MAKE:-make}" distclean > /dev/null 2>&1 || :
   # shellcheck disable=SC2119
   vg_d="$(mktemp -d 2> /dev/null || printf '%s\n' "${TMPDIR:-/tmp}/lzvg.$$$$")"
-  mkdir -p "${vg_d:?}"
+  mkdir -p "${vg_d:?}" || :
   head -c 20000 ./lzpack.c > "${vg_d}/in.bin"
   if (
     set -x
