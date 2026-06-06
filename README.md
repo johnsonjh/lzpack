@@ -11,20 +11,19 @@ while leaving them directly executable: every packed file is a
 *self‑extracting* `.COM` that decompresses itself and runs without any
 separate unpacker and requires no changes to how the program is invoked.
 
-It works very much like Yoshihiko Mino's classic *PopCom!* utility, but packs
-tighter by using a better compression engine and decompresses faster by using
-smaller hand‑optimized decompression stubs.
+It works very much like Yoshihiko Mino's classic CP/M‑80 *PopCom!* utility,
+but packs tighter by using a better compression engine and decompresses
+faster by using smaller hand‑optimized decompression stubs.
 
-The **LZPACK** program, as well as the packed executables it generates, runs
-in far more places, such as CP/M‑80 systems with 8080, 8085, or V20 processors
-that *PopCom!* does not support, while maintaining the same or
-smaller footprint.
+The **LZPACK** program and the packed executables it produces can run on a
+much wider range of CP/M‑80 systems than *PopCom!* including those with 8080,
+8085, or V20 processors and those with less than 48K&nbsp;TPA.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
-as on MS‑DOS, Windows, Linux, or in a UNIX‑like environment) gives even
+as on MS‑DOS, Windows, Linux, or in any UNIX‑like environment) gives even
 better compression results.
 
-[Precompiled binaries are available for download.](#downloads)
+[Precompiled binaries for many systems are available for download.](#downloads)
 
 ---
 

@@ -165,7 +165,7 @@ for arch in z80 8080; do
 
       [ "${RC}" -eq 0 ] && RC=2
 
-      SUGGEST="${SUGGEST}  ${name}: ${rec} -> ${exp}"
+      SUGGEST="${SUGGEST}  ${name}: ${rec} -> ${exp}\$"
     fi
 
     printf '%-14s %8s %8s %9s %9s %7s  %s\n' \
@@ -177,8 +177,8 @@ done
 ################################################################################
 
 [ -n "${SUGGEST}" ] && {
-  printf '%s\n' "" ">> Update .build-cpm.sh:"
-  printf '%s' "${SUGGEST}"
+  printf '%s\n\n' "" ">> Update .build-cpm.sh:"
+  printf '%s\n' "${SUGGEST}" | sed -e 's|\$|\n|g' -e 's|:|\t|g'
 }
 
 exit "${RC}"
