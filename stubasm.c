@@ -1608,7 +1608,7 @@ emit_bytes (const char *name, const unsigned char *b, int n)
 
 static int fx_off[MAXREF], fx_tgt[MAXREF], nfx;
 static char sl_name[MAXREF][NAMELEN];
-static int sl_off[MAXREF], sl_w[MAXREF], nsl;
+static int sl_off[MAXREF], nsl;
 
 static void
 collect (const char *const *patch)
@@ -1644,7 +1644,6 @@ collect (const char *const *patch)
           (void)strcpy (sl_name[nsl], refs[j].name);
 
           sl_off[nsl] = refs[j].off;
-          sl_w[nsl] = refs[j].width;
 
           nsl++;
         }
