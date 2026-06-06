@@ -20,10 +20,29 @@ $(info [MAKE] Platform = $(UNAME_S) $(UNAME_M))
 
 ################################################################################
 
-# Detect if CC is GCC or Clang with `-v`
-GCC_CLANG=$(shell $(CC) -v 2>&1 | \
- grep -q -i -e "gcc version" -e "clang version" 2> /dev/null && \
+# Detect if CC is GCC with `-v`
+GCC_COMP=$(shell $(CC) -v 2>&1 | \
+ grep -q -i "gcc version" 2> /dev/null && \
   printf '%s\n' "1")
+
+################################################################################
+
+# Detect if CC is Clang with `-v`
+CLANG_COMP=$(shell $(CC) -v 2>&1 | \
+ grep -q -i "clang version" 2> /dev/null && \
+  printf '%s\n' "1")
+
+################################################################################
+
+# Set GCC_CLANG is CC is GCC or Clang
+ifeq ($(GCC_COMP),1)
+ GCC_CLANG=1
+ COMP_NAME=(GCC)
+endif
+ifeq ($(CLANG_COMP),1)
+ GCC_CLANG=1
+ COMP_NAME=(Clang)
+endif
 
 ################################################################################
 
@@ -45,14 +64,14 @@ endif
 
 ################################################################################
 
-# Detect if CC is GCC by name
+# Detect if CC is GCC by name (we'll trust it acts like real GCC)
 ifneq "$(findstring gcc,$(CC))" ""
  GCC_CLANG=1
 endif
 
 ################################################################################
 
-# Detect if CC is Clang by name
+# Detect if CC is Clang by name (we'll trust it acts like real Clang)
 ifneq "$(findstring clang,$(CC))" ""
  GCC_CLANG=1
 endif
@@ -61,7 +80,7 @@ endif
 
 # Show compiler details if we haven't already
 ifeq ($(GCC_CLANG),1)
- $(info [MAKE] Compiler = $(CC) (GCC/Clang))
+ $(info [MAKE] Compiler = $(CC) $(COMP_NAME))
 endif
 ifneq ($(GCC_CLANG),1)
  ifneq ($(SUNCC_CMP),1)
@@ -102,6 +121,13 @@ endif
 # Upgrade GCC/Clang plain -O to -O3 (if not overridden with another level)
 ifeq ($(GCC_CLANG),1)
  CFLAGS := $(patsubst -O,-O3,$(CFLAGS))
+endif
+
+################################################################################
+
+# Same as above for Sun/Oracle compilers, but use -xO5
+ifeq ($(SUNCC_CMP),1)
+ CFLAGS := $(patsubst -O,-xO5,$(CFLAGS))
 endif
 
 ################################################################################
