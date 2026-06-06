@@ -95,7 +95,7 @@ targets such as CP/M‑86, real‑mode MS‑DOS, and ELKS.  This is not only fas
 than the ANSI C89 version but also smaller, which leaves more memory available
 for compression.
 
-For extremely memory constrained systems, custom builds can be created that
+For extremely memory‑constrained systems, custom builds can be created that
 completely exclude the `-R` decompression code, which might save a few
 precious bytes.
 
@@ -277,7 +277,7 @@ The **CP/M‑80** version of **LZPACK** is split into two utilities:
   * `LZPACK.COM` for compression only, and,
   * `LZUNPACK.COM` for decompression and listing.
 
-On all other platforms a single `lzpack` tool is provided, as shown above.
+On all other platforms, a single `lzpack` tool is provided, as shown above.
 
 ### Memory ceiling (`-M`)
 
@@ -287,7 +287,7 @@ sitting above it.  At packing time, **LZPACK** verifies that everything fits
 below a memory ceiling (*MEMTOP*), and will refuse to produce an output file
 otherwise.  The default is at `0xBDFF`, so all packed programs are guaranteed
 to run on any **48K&nbsp;TPA** system, but the `-M` option can be used to
-override this, for example:
+override this; for example:
 
 * Use `-M 64` to pack programs too large for **48K&nbsp;TPA**, but the result
   *requires* a correspondingly larger TPA at run time.
@@ -309,13 +309,14 @@ Values below `0x1190` (**4K**) or above `0xFFFF` (**64K**) are rejected.
 ### Runtime memory check (`-C`)
 
 The packing‑time checks cannot know the details of the machine the packed
-program will eventually run on, for example, a much smaller TPA than the one
-running the packer, or a system that has a resident driver that might lower
-the BDOS pointer at `0x0006`, which could be silently overwritten during
-decompression.  The `-C` option enhances the stub with a small (48‑byte)
-runtime check.  It verifies that the highest address the unpacker will write
-to lies below the BDOS base and that at least 16 bytes are clear of the live
-inherited stack.  If the program does not fit, it prints `No room` and aborts.
+program will eventually run on; for example, it might have a much smaller TPA
+than the one running the packer, or it might have a resident driver that
+lowers the BDOS pointer at `0x0006`, which could be silently overwritten
+during decompression.  The `-C` option enhances the stub with a small
+(48‑byte) runtime check.  It verifies that the highest address the unpacker
+will write to lies below the BDOS base and that at least 16 bytes are clear
+of the live inherited stack.  If the program does not fit, it prints `No room`
+and aborts.
 
 Because this check adds an extra 48 bytes to every packed executable, it is
 disabled by default.  Enabling it does **not** consume any high memory, and it
@@ -334,7 +335,7 @@ not end‑users.
 The `-C` option adds a check that refuses a TPA that the *unpacker* would
 overrun, but a packed program *almost always* needs more memory to actually
 *run* than it does to simply unpack.  With a TPA that sits between those
-two bounds the program unpacks successfully but then crashes (or silently
+two bounds, the program unpacks successfully but then crashes (or silently
 corrupts memory) during its own startup (which would still happen even in
 the absence of any executable compression).
 
