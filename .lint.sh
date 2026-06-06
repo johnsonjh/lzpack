@@ -1494,7 +1494,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CC="${HOME}/src/smatch/cgcc"
     ); then
@@ -1514,7 +1514,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_NO_OPT" CC="${HOME}/src/smatch/cgcc"
     ); then
@@ -1534,7 +1534,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_NO_PROGRESS" CC="${HOME}/src/smatch/cgcc"
     ); then
@@ -1554,7 +1554,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM" CC="${HOME}/src/smatch/cgcc"
     ); then
@@ -1574,7 +1574,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT" CC="${HOME}/src/smatch/cgcc"
     ); then
@@ -1595,7 +1595,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS" \
         CC="${HOME}/src/smatch/cgcc"
@@ -1616,7 +1616,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_PACKED_MSGS" CC="${HOME}/src/smatch/cgcc"
     ); then
@@ -1637,7 +1637,7 @@ command -v "${HOME}/src/smatch/smatch" > /dev/null 2>&1 && {
     "${MAKE:-make}" clean > /dev/null 2>&1 || :
     if (
       set -x
-      "${MAKE:-make}" \
+      "${MAKE:-make}" -f Makefile \
         CHECK="${HOME}/src/smatch/smatch --two-pass --full-path" \
         CFLAGS="-O -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS" \
         CC="${HOME}/src/smatch/cgcc"
