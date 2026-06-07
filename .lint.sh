@@ -58,7 +58,7 @@ export CPE1704TKS=1
 
 export FIND_COMMAND_FATAL=1
 find_command "${AWK:-awk}" diff grep head "${MAKE:-make}" mkdir paste rm \
-  rmdir sed sleep uname
+  rmdir sed sleep tr uname
 
 ################################################################################
 
@@ -1205,53 +1205,40 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
 
 ################################################################################
 
+ch_check()
+{
+  cc_rc=0
+  cc_tmp="$(mktemp 2> /dev/null || mktemp_lzpack)"
+  printf '+ %s -n %s\n' "${CH_CMD:-ch}" "$1"
+  "${CH_CMD:-ch}" -n "$1" > "${cc_tmp:?}" 2>&1 || cc_rc="$?"
+  # ch prints NUL and whitespace progress noise even on a clean file, and it
+  # exits 0 even when it reports a diagnostic; strip the noise and treat any
+  # remaining (real) output -- as well as a nonzero exit -- as a failure.
+  cc_msg="$(tr -d '\000' < "${cc_tmp:?}" | tr -d '[:space:]')"
+  if [ "${cc_rc}" -ne 0 ] || [ -n "${cc_msg}" ]; then
+    tr -d '\000' < "${cc_tmp:?}"
+    printf '%s\n' "****** FAILURE DETECTED ******"
+    rm -f "${cc_tmp:?}" || :
+    return 1
+  fi
+  rm -f "${cc_tmp:?}" || :
+  return 0
+}
+
+################################################################################
+
 command -v "${CH_CMD:-ch}" > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> ch <<<<<<<<<<<<<<<<"
-  if (
-    set -x
-    "${CH_CMD:-ch}" -n ./stubasm.c
-  ); then
-    :
-  else
-    printf '%s\n' "****** FAILURE DETECTED ******"
-    rc=1
-  fi
-  if (
-    set -x
-    "${CH_CMD:-ch}" -n ./lzpack.c
-  ); then
-    :
-  else
-    printf '%s\n' "****** FAILURE DETECTED ******"
-    rc=1
-  fi
-  if (
-    set -x
-    "${CH_CMD:-ch}" -n ./strpack.c
-  ); then
-    :
-  else
-    printf '%s\n' "****** FAILURE DETECTED ******"
-    rc=1
-  fi
-  if (
-    set -x
-    (cd tests && "${CH_CMD:-ch}" -n ./t_autoarch.c)
-  ); then
-    :
-  else
-    printf '%s\n' "****** FAILURE DETECTED ******"
-    rc=1
-  fi
-  if (
-    set -x
-    (cd tests && "${CH_CMD:-ch}" -n ./t_memtop.c)
-  ); then
-    :
-  else
-    printf '%s\n' "****** FAILURE DETECTED ******"
-    rc=1
-  fi
+  # shellcheck disable=SC2310
+  ch_check ./stubasm.c || rc=1
+  # shellcheck disable=SC2310
+  ch_check ./lzpack.c || rc=1
+  # shellcheck disable=SC2310
+  ch_check ./strpack.c || rc=1
+  # shellcheck disable=SC2310
+  (cd tests && ch_check ./t_autoarch.c) || rc=1
+  # shellcheck disable=SC2310
+  (cd tests && ch_check ./t_memtop.c) || rc=1
 }
 
 ################################################################################
