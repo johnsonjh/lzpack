@@ -17,6 +17,26 @@ trim_trailing_whitespace = true
 
 ################################################################################
 
+[.gitignore]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+insert_final_newline = true
+max_line_length = 80
+trim_trailing_whitespace = true
+
+################################################################################
+
+[.gitattributes]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+insert_final_newline = true
+max_line_length = 80
+trim_trailing_whitespace = true
+
+################################################################################
+
 [*.{py,asm}]
 charset = utf-8
 end_of_line = lf
