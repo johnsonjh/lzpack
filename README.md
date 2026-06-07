@@ -393,9 +393,9 @@ can be inspected on the target machine itself.
 | [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit&nbsp;UCRT)   |
 | [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB |**ELKS**&nbsp;(8086/8088)             |
 
-* If you need a CP/M ARC utility, `UNARC` is available here for
-  [8080](.utils/unarca.com) and [Z80](.utils/unarcz.com) CP/M‑80, or
-  `ARCCPM` for [8086/8088](.utils/arccpm.cmd) CP/M‑86.
+If you need a CP/M ARC utility, `UNARC` is available for
+[8080](.utils/unarca.com) and [Z80](.utils/unarcz.com) CP/M‑80, and
+`ARCCPM` for [8086/8088](.utils/arccpm.cmd) CP/M‑86.
 
 ## Building from source
 
