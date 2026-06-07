@@ -400,8 +400,8 @@ If you need a CP/M ARC utility, `UNARC` is available for
 
 ## Building from source
 
-**LZPACK** needs **only an ANSI C89 compiler** to build on any UNIX‑like
-system.
+**LZPACK** needs **only an ANSI C89 compiler** to build on any
+UNIX‑like system.
 
 * To build a native binary, just run `make` (or `gmake`), which builds
   **StubASM**, assembles the stubs, and then compiles `lzpack`:
