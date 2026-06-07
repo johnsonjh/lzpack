@@ -402,12 +402,20 @@ can be inspected on the target machine itself.
 **LZPACK** needs **only an ANSI C89 compiler** to build on any
 UNIX‑like system.
 
-To build a native binary, just run `make` (or `gmake`), which builds
-**StubASM**, assembles the stubs, and then compiles `lzpack`:
+* To build a native binary, just run `make` (or `gmake`), which builds
+  **StubASM**, assembles the stubs, and then compiles `lzpack`:
 
-```sh
-make
-```
+  ```sh
+  make
+  ```
+
+* You can also explicitly set `CC`, `CFLAGS`, `LDFLAGS`, etc.  For example, to
+  build optimized 64‑bit binaries on IBM AIX using the IBM XL C/C++ compiler
+  and AIX `make`:
+
+  ```sh
+  make CC=xlc CFLAGS="-O3 -q64" LDFLAGS="-Wl,-b64"
+  ```
 
 ### Build targets
 
