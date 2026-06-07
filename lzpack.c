@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v1.0-beta-2"
+#define LZPACK_VER "v1.0-beta-3"
 
 /******************************************************************************/
 
@@ -212,7 +212,7 @@ static const char *lz_mload (const char *m, char *out);
 #  define LZ_CPUT(c) lz_cput (c)
 # endif
 
-#else /* !LZ_BDOS_IO */
+#else
 
 /******************************************************************************/
 
@@ -247,11 +247,11 @@ static int lz_printf (const char *fmt, ...);
 /* Flawfinder: ignore */ /* False positive CWE-134 */
 #  define printf  lz_printf  /* //-V1059 */
 
-# else /* !LZPACK_PACKED_MSGS */
+# else
 
 #  define LZ_MPUTS(f, s) ((void)fputs ((s), (f)))
 
-# endif /* LZPACK_PACKED_MSGS */
+# endif
 
 /******************************************************************************/
 
@@ -1793,16 +1793,19 @@ cpm_set_byte_count (const char *fn, long nbytes)
 #if defined(LZ_MSG_PACKED) && !(defined(LZ_BDOS_IO) && defined(__SCCZ80))
 
 static const unsigned char *
-lz_ment (int idx, int *len)
+lz_ment (int idx)
 {
   const unsigned char *p = lz_msgbook;
 
   while (0 < idx--)
-    p += 1 + (long)*p;
+    {
+      while (0 == (0x80 & *p))
+        p++;
 
-  *len = *p;
+      p++;
+    }
 
-  return p + 1;
+  return p;
 }
 
 /******************************************************************************/
@@ -1821,11 +1824,15 @@ lz_mload (const char *m, char *out)
         *o++ = (char)c;
       else
         {
-          int el;
-          const unsigned char *e = lz_ment (c - 0x80, &el);
+          const unsigned char *e = lz_ment (c - 0x80);
+          int ch;
 
-          while (0 < el--)
-            *o++ = (char)*e++;
+          do
+            {
+              ch = *e++;
+              *o++ = (char)(0x7f & ch);
+            }
+          while (0 == (0x80 & ch));
         }
     }
 
@@ -2076,29 +2083,34 @@ lz_mputs (const char *m)
         jp      lzmd_mp1
 .lzmd_mp2
         push    hl
-        call    lzmd_walk       ; HL = entry text, B = length
+        call    lzmd_walk       ; HL = entry text
 .lzmd_mp3
-        ld      a,(hl)
+        ld      a,(hl)          ; entry byte; bit 7 marks the last one
         inc     hl
+        or      a
+        jp      m,lzmd_mp4
         call    lzmd_pra
-        dec     b
-        jp      nz,lzmd_mp3
+        jp      lzmd_mp3
+.lzmd_mp4
+        and     127             ; strip the terminator bit
+        call    lzmd_pra
         pop     hl              ; resume the coded string
         jp      lzmd_mp1
-.lzmd_walk                      ; Z + A = doubled index -> HL, B
-        ld      hl,_lz_msgbook  ; entries are length-prefixed
+.lzmd_walk                      ; Z + A = doubled index -> HL
+        ld      hl,_lz_msgbook  ; bit-7-terminated entries, no lengths
 .lzmd_w1
         jp      z,lzmd_w2       ; Z: add a,a on entry, dec a after
-        ld      c,(hl)          ; skip one entry: HL += length + 1
-        ld      b,0
-        inc     hl
-        add     hl,bc
+        ld      c,a             ; park the doubled index
+.lzmd_w3
+        ld      a,(hl)          ; skip one entry: scan just past its
+        inc     hl              ;   bit-7 terminator byte
+        or      a
+        jp      p,lzmd_w3
+        ld      a,c
         dec     a               ; the index rides doubled, so count
         dec     a               ;   it down by two per entry
         jp      lzmd_w1
-.lzmd_w2
-        ld      b,(hl)
-        inc     hl              ; falls onto the RET sccz80 emits below
+.lzmd_w2                        ; falls onto the RET sccz80 emits below
 #  endasm
 }
 
@@ -2129,14 +2141,19 @@ lz_mload (const char *m, char *out)
         ret
 .lzmd_ml2
         push    hl
-        call    lzmd_walk       ; HL = entry text, B = length
+        call    lzmd_walk       ; HL = entry text
 .lzmd_ml3
-        ld      a,(hl)
+        ld      a,(hl)          ; entry byte; bit 7 marks the last one
         inc     hl
+        or      a
+        jp      m,lzmd_ml4
         ld      (de),a
         inc     de
-        dec     b
-        jp      nz,lzmd_ml3
+        jp      lzmd_ml3
+.lzmd_ml4
+        and     127             ; strip the terminator bit
+        ld      (de),a
+        inc     de
         pop     hl              ; resume the coded string
         jp      lzmd_ml1
 #  endasm
@@ -2144,7 +2161,7 @@ lz_mload (const char *m, char *out)
 
 /******************************************************************************/
 
-# else /* !__SCCZ80 */
+# else
 
 static void
 lz_cput (int c)
@@ -2179,16 +2196,20 @@ lz_mputs (const char *m)
         lz_cput (c);
       else
         {
-          int el;
-          const unsigned char *e = lz_ment (c - 0x80, &el);
+          const unsigned char *e = lz_ment (c - 0x80);
+          int ch;
 
-          while (0 < el--)
-            lz_cput (*e++);
+          do
+            {
+              ch = *e++;
+              lz_cput (0x7f & ch);
+            }
+          while (0 == (0x80 & ch));
         }
     }
 }
 
-# endif /* __SCCZ80 */
+# endif
 
 /******************************************************************************/
 
@@ -2265,11 +2286,15 @@ lz_mfputs (const char *m, FILE *f)
         (void)putc (c, f);
       else
         {
-          int el;
-          const unsigned char *e = lz_ment (c - 0x80, &el);
+          const unsigned char *e = lz_ment (c - 0x80);
+          int ch;
 
-          while (0 < el--)
-            (void)putc (*e++, f);
+          do
+            {
+              ch = *e++;
+              (void)putc (0x7f & ch, f);
+            }
+          while (0 == (0x80 & ch));
         }
     }
 }
@@ -4593,7 +4618,7 @@ do_list (const char *fn)
       (void)printf (MSG_P_LNOCHK, fn);
   }
 
-#endif /* !LZPACK_COMPRESS_ONLY */
+#endif
 
   return 0;
 }

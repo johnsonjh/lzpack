@@ -154,14 +154,21 @@ head -c 2000 ./lzpack.c > "${TMPD}/in.bin"
 ################################################################################
 
 # Run the packer under a t-byte TPA and print the window size it reports
-# (empty output when it refuses to run or gets no window at all).
+# (empty output when it refuses to run or gets no window at all).  Marginal
+# TPAs can hang the emulated packer outright (stack-graze zones; one burned
+# hours before the LZ_STD_RESERVE margin was widened), so every probe is
+# capped when a timeout command exists: a timed-out probe is a refusal.
+
+TGUARD=""
+command -v timeout > /dev/null 2>&1 && TGUARD="timeout 60"
 
 probe()
 {
   pr_t=$1
   rm -f "${TMPD:?}/in.pop" "${TMPD:?}/lztmp."* 2> /dev/null || :
   (
-    cd "${TMPD:?}" && "${TNYLPO}" -m "${pr_t}" -n lzpack.com in.bin
+    # shellcheck disable=SC2086
+    cd "${TMPD:?}" && ${TGUARD} "${TNYLPO}" -m "${pr_t}" -n lzpack.com in.bin
   ) 2> /dev/null \
     | tr -d '\r' \
     | sed -n 's/.* window \([0-9][0-9]*\) bytes.*/\1/p' \
