@@ -102,8 +102,9 @@ static int
 eval_guard (const char *g)
 {
   int carried = 1;
+  int more = 1;
 
-  for (;;)
+  while (0 != more)
     {
       int neg = 0;
       size_t nl;
@@ -148,13 +149,14 @@ eval_guard (const char *g)
         g++;
 
       if (0 == *g)
-        return carried;
-
-      if (0 != strncmp (g, "&&", 2))
+        more = 0;
+      else if (0 != strncmp (g, "&&", 2))
         return -1;
-
-      g += 2;
+      else
+        g += 2;
     }
+
+  return carried;
 }
 
 /******************************************************************************/
