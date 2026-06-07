@@ -402,10 +402,6 @@ can be inspected on the target machine itself.
 **LZPACK** needs **only an ANSI C89 compiler** to build on any UNIX‑like
 system.
 
-The GNU GCC, LLVM Clang, PCC, NVIDIA HPC SDK C/C++, Oracle Studio C/C++,
-DMD ImportC, CompCert C, Open64, PathScale EKOPath, IBM XL C/C++,
-IBM Open XL C/C++, and МЦСТ LCC compilers are regularly tested.
-
 * To build a native binary, just run `make` (or `gmake`), which builds
   **StubASM**, assembles the stubs, and then compiles `lzpack`:
 
@@ -420,6 +416,10 @@ IBM Open XL C/C++, and МЦСТ LCC compilers are regularly tested.
   ```sh
   make CC=xlc CFLAGS="-O3 -q64" LDFLAGS="-Wl,-b64"
   ```
+
+* The GNU GCC, LLVM Clang, PCC, NVIDIA HPC SDK C/C++, Oracle Studio C/C++,
+  DMD ImportC, CompCert C, Open64, PathScale EKOPath, IBM XL C/C++,
+  IBM Open XL C/C++, and МЦСТ LCC compilers are regularly tested.
 
 ### Build targets
 
