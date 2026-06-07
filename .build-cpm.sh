@@ -115,12 +115,12 @@ PACK="${PACK:-1}"
 # fails the build -- when an image outgrows its ceiling, so size
 # regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
 # bytes TPA floor depends on it).
-MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-21712}"
-MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-13707}"
+MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-21733}"
+MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-13902}"
 MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27760}"
-MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23008}"
-MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14877}"
-MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28574}"
+MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23097}"
+MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-15183}"
+MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28642}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
 # (optimal-parser) build raises it (e.g. 0xDDFF = 56K) because -e needs a
@@ -356,7 +356,7 @@ chk_floor()
 
 pack()
 {
-  before= after= mcap= chk= floor=
+  before= after= mcap= chk= floor= arch=
   [ "${PACK}" = 0 ] && return 0
   [ -x ./lzpack ] || {
     printf '%s\n' ">> host ./lzpack missing; not packing $1"
@@ -373,14 +373,22 @@ pack()
   # "No room", nothing touched -- any TPA the unpacked tool could not
   # safely start up in, instead of crashing mid-CRT.
   floor="${4:-}"
+  # The fifth argument forces the self-extractor stub (-8 or -Z): each
+  # build dir's target CPU is known, and autodetect must not choose --
+  # is_z80_file() linear-decodes the whole image with 8080 instruction
+  # lengths, so the coded message catalog's high-bit DATA bytes land on
+  # Z80-prefix positions and misclassify the 8080-clib tools as Z80,
+  # which would ship 8080 archives that cannot self-extract on a real
+  # 8080/8085 (every Z80 emulator runs them fine, hiding the break).
+  arch="${5:-}"
   before=$(wc -c < "$1")
   # shellcheck disable=SC2086
   if ./lzpack -e ${chk} ${floor:+-F "${floor}"} ${mcap:+-m "${mcap}"} \
-    -o "$1.p" "$1" > /dev/null 2>&1 \
+    ${arch} -o "$1.p" "$1" > /dev/null 2>&1 \
     && [ -f "$1.p" ]; then
     after=$(wc -c < "$1.p")
     mv -f "$1.p" "$1"
-    SXR=" self-extractor${floor:+, -F ${floor}}"
+    SXR=" self-extractor${arch:+ ${arch}}${floor:+, -F ${floor}}"
     printf \
       '%s\n' ">> packed $1 (host -e${SXR}): ${before} -> ${after} bytes"
   elif [ -n "${mcap}" ]; then
@@ -497,20 +505,22 @@ build_arch()
   printf '%s\n' ""
   # Per-binary recorded -m ceilings (see the MCAP_* tunables above); all
   # three shipped tools get the -C runtime memory check, with the BDOS
-  # bound raised (-F) to each tool's own map-derived runtime floor.
+  # bound raised (-F) to each tool's own map-derived runtime floor, and
+  # the stub forced to the build dir's target CPU (see pack() for why
+  # autodetect must not choose here).
   lzfloor="$(chk_floor "${lm}")"
   uzfloor="$(chk_floor "${um}")"
   safloor="$(chk_floor "${sm}")"
   case "${clib}" in
   8080)
-    pack "${lc}" "${MCAP_8080_LZPACK}" checked "${lzfloor}"
-    pack "${uc}" "${MCAP_8080_LZUNPACK}" checked "${uzfloor}"
-    pack "${sc}" "${MCAP_8080_STUBASM}" checked "${safloor}"
+    pack "${lc}" "${MCAP_8080_LZPACK}" checked "${lzfloor}" -8
+    pack "${uc}" "${MCAP_8080_LZUNPACK}" checked "${uzfloor}" -8
+    pack "${sc}" "${MCAP_8080_STUBASM}" checked "${safloor}" -8
     ;;
   *)
-    pack "${lc}" "${MCAP_Z80_LZPACK}" checked "${lzfloor}"
-    pack "${uc}" "${MCAP_Z80_LZUNPACK}" checked "${uzfloor}"
-    pack "${sc}" "${MCAP_Z80_STUBASM}" checked "${safloor}"
+    pack "${lc}" "${MCAP_Z80_LZPACK}" checked "${lzfloor}" -Z
+    pack "${uc}" "${MCAP_Z80_LZUNPACK}" checked "${uzfloor}" -Z
+    pack "${sc}" "${MCAP_Z80_STUBASM}" checked "${safloor}" -Z
     ;;
   esac
   printf '%s\n' ""

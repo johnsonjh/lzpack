@@ -373,11 +373,13 @@ for them to fully *initialize*, they simply print `No room` and exit cleanly,
 which would be impossible to achieve using C code alone.
 
 The `-L` (list) command reads the check block back out of a packed file.
-It reports `no -C check` for files packed without `-C`, the enforced floor
-for checked files (`-C check; floor 0xBDFF`), and marks floors that were
-raised beyond the unpack bound with `(-F)`.  On **CP/M‑80** systems the list
-option is part of `LZUNPACK.COM`, so the embedded floor of any packed program
-can be inspected on the target machine itself.
+It reports `no -C check` for files packed without `-C` and the enforced
+floor for checked files (`-C check; floor 0xBDFF`).  The size line also
+tags the self-extractor's architecture (`[Z80]` or `[8080]`), recognized
+from the stub bytes themselves; files whose stub is not recognized (foreign
+tools, or other **LZPACK** versions) simply list untagged.  On **CP/M‑80**
+systems the list option is part of `LZUNPACK.COM`, so the embedded floor of
+any packed program can be inspected on the target machine itself.
 
 </details>
 

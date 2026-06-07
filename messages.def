@@ -9,8 +9,8 @@ MSG_E_OARG	-	ERROR: -O requires an argument\n
 MSG_E_UNKNOWN	-	ERROR: unknown option %s\n
 MSG_E_OMULTI	-	ERROR: -O cannot be used with multiple files\n
 MSG_P_LNOTPOP	-	  %-16s (not a PopCom! or LZPACK file)\n
-MSG_P_LSIZES	-	  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)\n
-MSG_P_LFLOORF	!defined(LZPACK_COMPRESS_ONLY)	  %-16s -C check; floor 0x%04X (-F)\n
+MSG_P_LSIZES	defined(LZPACK_COMPRESS_ONLY)	  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)\n
+MSG_P_LSIZES	!defined(LZPACK_COMPRESS_ONLY)	  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)%s\n
 MSG_P_LFLOOR0	!defined(LZPACK_COMPRESS_ONLY)	  %-16s -C check; floor 0x%04X\n
 MSG_P_LNOCHK	!defined(LZPACK_COMPRESS_ONLY)	  %-16s no -C check\n
 MSG_V_HERALD1	-	%s %s - CP/M-80 (8080 and Z80) executable %s\n

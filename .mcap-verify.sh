@@ -176,9 +176,18 @@ for arch in z80 8080; do
     name="${name}_$(printf '%s' "${prog}" | tr '[:lower:]' '[:upper:]')"
     rec=$(recorded "${name}")
 
-    min=$(bisect "${raw}")
+    # Mirror pack(): the stub is forced to the build dir's target CPU
+    # (autodetect misreads coded-catalog data bytes as Z80 opcodes), and
+    # the 8080 stub is larger, so the bisect must force the same arch or
+    # it measures the wrong minimum.
+    case "${arch}" in
+    8080) af="-8" ;;
+    *) af="-Z" ;;
+    esac
 
-    minc=$(bisect "${raw}" -C)
+    min=$(bisect "${raw}" "${af}")
+
+    minc=$(bisect "${raw}" "${af}" -C)
     exp=$((min + 176))
     bind=${minc}
 

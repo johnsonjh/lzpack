@@ -711,11 +711,15 @@ def test_checked_floor(runner, results):
 
 
 # -L must report the -C check block and its embedded floor: no check ->
-# "no -C check"; plain -C -> the unpack-bound floor without the (-F) mark;
-# -F -> the exact requested floor with it.  A foreign (never packed) file
-# must list as not-PopCom with no check/floor line at all -- and, above
-# all, must never crash the lister.  On the CP/M-80 split pair the -L legs
-# route to lzunpack.com, so this also proves the shipped lister's report.
+# "no -C check"; -C and -F -> the embedded floor, undecorated.  The size
+# line carries a [Z80]/[8080] stub tag recognized from the setup block's
+# prologue: it must match a forced -Z/-8 stub, and must be omitted --
+# never guessed, never a crash -- when the setup bytes are not an exact
+# known prologue (a future or hand-altered stub).  A foreign (never
+# packed) file must list as not-PopCom with no check/floor line or tag at
+# all -- and, above all, must never crash the lister.  On the CP/M-80
+# split pair the -L legs route to lzunpack.com, so this also proves the
+# shipped lister's report.
 def test_list_floor(runner, results):
     tag = "med.com -L floor"
     wd = _scratch("med.com")
@@ -723,29 +727,71 @@ def test_list_floor(runner, results):
         pdata, _plog = _pack(runner, wd, "med.com", [], "p.pop")
         cdata, _clog = _pack(runner, wd, "med.com", ["-C"], "c.pop")
         fdata, flog = _pack(runner, wd, "med.com", ["-F", "0xBDFF"], "f.pop")
-        if pdata is None or cdata is None:
+        zdata, _zlog = _pack(runner, wd, "med.com", ["-Z"], "z.pop")
+        edata, _elog = _pack(runner, wd, "med.com", ["-8"], "e.pop")
+        if pdata is None or cdata is None or zdata is None or edata is None:
             emit(results, tag, "FAIL", "-", "missing pack output")
             return
         _rc, lp = runner(wd, ["-L", "p.pop"])
         _rc, lc = runner(wd, ["-L", "c.pop"])
         _rc, lx = runner(wd, ["-L", "med.com"])
+        _rc, lz = runner(wd, ["-L", "z.pop"])
+        _rc, le = runner(wd, ["-L", "e.pop"])
         p_ok = "no -C check" in lp and "floor 0x" not in lp
         c_ok = (
             re.search(r"-C check; floor 0x[0-9A-F]{4}", lc) is not None
             and "(-F)" not in lc
         )
-        x_ok = "not a PopCom" in lx and "check" not in lx
+        x_ok = (
+            "not a PopCom" in lx
+            and "check" not in lx
+            and "[Z80]" not in lx
+            and "[8080]" not in lx
+        )
+        z_ok = "[Z80]" in lz and "[8080]" not in lz
+        e_ok = "[8080]" in le and "[Z80]" not in le
+        # future-stub leg: flip the setup prologue's CPU-discriminator
+        # byte (located by the same signature the lister matches); the
+        # tag must drop while the floor report stays intact
+        g = bytearray(cdata)
+        sv = (g[1] | g[2] << 8) if g[0] == 0xC3 else (g[3] | g[4] << 8)
+        gi = -1
+        for i in range(sv - 0x100, min(sv - 0x100 + 96, len(g) - 7)):
+            if (
+                g[i] == 0x21
+                and (g[i + 1] | g[i + 2] << 8) == sv - 16
+                and g[i + 3 : i + 6] == b"\x11\x00\x01"
+                and g[i + 6] in (0x01, 0x06)
+            ):
+                gi = i
+                break
+        g_ok = False
+        if gi >= 0:
+            g[gi + 6] = 0xFF
+            open(os.path.join(wd, "g.pop"), "wb").write(bytes(g))
+            _rc, lg = runner(wd, ["-L", "g.pop"])
+            g_ok = (
+                "[Z80]" not in lg
+                and "[8080]" not in lg
+                and re.search(r"-C check; floor 0x[0-9A-F]{4}", lg) is not None
+            )
         if fdata is None and "unknown option" in flog:
             f_ok = None  # packer has no -F (COMPRESS_ONLY); skip that leg
         else:
             _rc, lf = runner(wd, ["-L", "f.pop"])
-            f_ok = re.search(r"-C check; floor 0xBDFF \(-F\)", lf) is not None
-        ok = p_ok and c_ok and x_ok and f_ok is not False
-        note = "plain=%s -C=%s -F=%s foreign=%s" % (
+            f_ok = (
+                re.search(r"-C check; floor 0xBDFF", lf) is not None
+                and "(-F)" not in lf
+            )
+        ok = p_ok and c_ok and x_ok and z_ok and e_ok and g_ok and (f_ok is not False)
+        note = "plain=%s -C=%s -F=%s foreign=%s Z80=%s 8080=%s future=%s" % (
             "OK" if p_ok else "BAD",
             "OK" if c_ok else "BAD",
             "skipped" if f_ok is None else ("OK" if f_ok else "BAD"),
             "OK" if x_ok else "BAD",
+            "OK" if z_ok else "BAD",
+            "OK" if e_ok else "BAD",
+            "OK" if g_ok else "BAD",
         )
         if not ok:
             bad = lp if not p_ok else (lc if not c_ok else (lx if not x_ok else lf))

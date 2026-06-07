@@ -2972,8 +2972,8 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
 #  ifndef LZPACK_COMPRESS_ONLY
   {
-    unsigned r_stubv, r_litsrc;
-    long r_outlen;
+    unsigned r_stubv = 0, r_litsrc = 0;
+    long r_outlen = 0;
 
     if (parse_header (data, n, &r_stubv, &r_litsrc, &r_outlen) == 0
         && r_outlen >= LITCNT && r_outlen <= MZXFILE
@@ -3843,8 +3843,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (n >= 16)
     {
-      unsigned rsv, rls;
-      long rol;
+      unsigned rsv = 0, rls = 0;
+      long rol = 0;
 
       in = lzopen (fn, 0);
 
@@ -4111,6 +4111,15 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
 /******************************************************************************/
 
+/*
+ * The three outputs are written only on the success (0) return, and every
+ * caller reads them only then -- but older flow analyzers cannot see
+ * through the out-parameters (Open64 4.5 warned "might be used
+ * uninitialized" at each call site), so callers zero-initialize the
+ * receiving locals at declaration.  Keep that convention at new call
+ * sites.
+ */
+
 static int
 parse_header (const unsigned char *data, long n, unsigned *stubv,
               unsigned *lit_src, long *outlen)
@@ -4148,8 +4157,8 @@ static int
 do_restore (const char *fn, const char *oname, int verbose)
 {
   unsigned char *data = g_a, *out = g_b;
-  long n, outlen, pstart;
-  unsigned stubv, lit_src;
+  long n, outlen = 0, pstart;
+  unsigned stubv = 0, lit_src = 0;
   char nb[1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
@@ -4247,8 +4256,8 @@ do_restore (const char *fn, const char *oname, int verbose)
 {
   unsigned char *buf;
   unsigned char hdr[LITCNT], lit[LITCNT];
-  long n, outlen, pllen, ming, bufsz, srcoff;
-  unsigned stubv, lit_src;
+  long n, outlen = 0, pllen, ming, bufsz, srcoff;
+  unsigned stubv = 0, lit_src = 0;
   char nb[64];
   LZF *f;
 
@@ -4448,10 +4457,11 @@ chk_patch_slot (int k)
 /******************************************************************************/
 
 /*
- * The -C check-block recognizer below is compiled out of compress-only
- * builds: on the split CP/M-80 pair listing is LZUNPACK's job, and every
- * byte of the packer's static footprint competes with its match window
- * (the Z80 packer's 8K-window-at-52,978-bytes TPA floor depends on it).
+ * The -C check-block recognizer and stub-architecture tag below are
+ * compiled out of compress-only builds: on the split CP/M-80 pair listing
+ * is LZUNPACK's job, and every byte of the packer's static footprint
+ * competes with its match window (the Z80 packer's
+ * 8K-window-at-52,978-bytes TPA floor depends on it).
  */
 
 static int
@@ -4459,12 +4469,14 @@ do_list (const char *fn)
 {
   unsigned char hdr[LITCNT];
 #ifndef LZPACK_COMPRESS_ONLY
-  static unsigned char chkb[CHK_LEN];
+  static unsigned char chkb[CHK_LEN + 7];
+  const char *tag = "";
   long chk_off = -1;
   int chk_got = 0;
+  int ischk = 0;
 #endif
-  long n, outlen;
-  unsigned stubv, lit_src;
+  long n, outlen = 0;
+  unsigned stubv = 0, lit_src = 0;
   size_t got;
   LZF *f = lzopen (fn, 0);
 
@@ -4483,13 +4495,14 @@ do_list (const char *fn)
    * never issued on a stream already at EOF or in error.
    *
    * The sizing pass doubles as the -C check-block capture: the JMP target
-   * in the header names the stub address, so the CHK_LEN bytes at that file
-   * offset -- the check block, when the file carries one -- are copied out
-   * of the passing 128-byte chunks.  Nothing here trusts the offset: bytes
-   * are only captured where the chunks actually cover them, and the window
-   * is validated against the chkstub[] template only after parse_header()
-   * accepts the file, so a foreign or corrupted input at worst reports no
-   * floor.
+   * in the header names the stub address, so the CHK_LEN + 7 bytes at that
+   * file offset -- the check block, when the file carries one, plus the
+   * start of the setup block behind it (the stub-architecture tag below
+   * reads its prologue) -- are copied out of the passing 128-byte chunks.
+   * Nothing here trusts the offset: bytes are only captured where the
+   * chunks actually cover them, and the window is validated against the
+   * chkstub[] template only after parse_header() accepts the file, so a
+   * foreign or corrupted input at worst reports no floor and no tag.
    */
 
   got = lzread (hdr, (size_t)LITCNT, f);
@@ -4517,7 +4530,7 @@ do_list (const char *fn)
           if (chk_off >= 0)
             {
               long lo = (chk_off > n) ? chk_off : n;
-              long hi = chk_off + (long)CHK_LEN;
+              long hi = chk_off + (long)(CHK_LEN + 7);
 
               if (hi > n + (long)r)
                 hi = n + (long)r;
@@ -4553,70 +4566,102 @@ do_list (const char *fn)
       return 0;
     }
 
-  {
-    long p10 = (outlen ? (n * 1000L + outlen / 2) / outlen : 0);
-
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
-    (void)printf (MSG_P_LSIZES,
-                  fn, n, outlen, p10 / 10, p10 % 10);
-  }
-
 #ifndef LZPACK_COMPRESS_ONLY
 
   /*
-   * Report whether the file carries the -C runtime memory check, and the
-   * memory floor embedded in it when it does.  The captured window counts
-   * as a check block only when every byte was read from inside the
+   * Recognize the -C runtime memory check, and the memory floor embedded
+   * in it when the file carries one.  The captured window counts as a
+   * check block only when every byte was read from inside the
    * (LRBC-corrected) file, every template byte matches chkstub[], and all
    * three +stub_v fixup operands equal the values put_check() would have
    * patched for this stub address; DST_LIM then holds the enforced floor
-   * + 1, and a DST_LIM raised beyond its SP_LIM-derived unpack bound marks
-   * an explicit -F floor.
+   * + 1.
    */
 
-  {
-    int ischk = 0;
+  if (chk_got >= CHK_LEN && chk_off + (long)CHK_LEN <= n)
+    {
+      int k;
 
-    if (chk_got == CHK_LEN && chk_off + (long)CHK_LEN <= n)
-      {
-        int k;
+      ischk = 1;
 
-        ischk = 1;
+      for (k = 0; k < CHK_LEN; k++)
+        if (chkb[k] != chkstub[k] && !chk_patch_slot (k))
+          {
+            ischk = 0;
 
-        for (k = 0; k < CHK_LEN; k++)
-          if (chkb[k] != chkstub[k] && !chk_patch_slot (k))
+            break;
+          }
+
+      if (ischk)
+        for (k = 0; k < CHKSTUB_FIX_N; k++)
+          if (get16 (chkb + chkstub_fix[k][0])
+              != ((stubv + (unsigned)chkstub_fix[k][1]) & 0xFFFFU))
             {
               ischk = 0;
 
               break;
             }
+    }
 
-        if (ischk)
-          for (k = 0; k < CHKSTUB_FIX_N; k++)
-            if (get16 (chkb + chkstub_fix[k][0])
-                != ((stubv + (unsigned)chkstub_fix[k][1]) & 0xFFFFU))
-              {
-                ischk = 0;
+  /*
+   * Stub-architecture tag for the size line.  The setup block -- at the
+   * stub address, behind the check block when the file carries one --
+   * opens with the same "restore the 16 literal header bytes" prologue on
+   * both CPUs, 21 ll hh (LXI H/LD HL, LIT_SRC) 11 00 01 (LXI D/LD DE,
+   * 0100h), and diverges on the seventh byte's counter load: 01 (Z80
+   * LD BC,16 in sz80s.asm) vs 06 (8080 MVI B,16 in s8080s.asm).  The tag
+   * is claimed only when that prologue matches byte-for-byte AND its
+   * LIT_SRC operand equals the header-derived literal-save address, so
+   * old, foreign, or future stub layouts simply list untagged (the
+   * harness pins both encodings).
+   */
 
-                break;
-              }
-      }
+  {
+    int sbase = ischk ? CHK_LEN : 0;
 
-    if (ischk)
+    if (chk_got >= sbase + 7 && chk_off + (long)sbase + 7 <= n)
       {
-        unsigned dlim = get16 (chkb + CHK_DST_LIM);
-        unsigned slim = get16 (chkb + CHK_SP_LIM);
+        const unsigned char *sp = chkb + sbase;
 
-        /* Flawfinder: ignore */ /* False positive CWE-134 */
-        (void)printf ((dlim != ((slim - CHK_SP_SLACK) & 0xFFFFU))
-                        ? MSG_P_LFLOORF
-                        : MSG_P_LFLOOR0,
-                      fn, (dlim - 1U) & 0xFFFFU);
+        if (sp[0] == 0x21 && get16 (sp + 1) == lit_src
+            && sp[3] == 0x11 && sp[4] == 0x00 && sp[5] == 0x01)
+          {
+            if (sp[6] == 0x01)
+              tag = "  [Z80]";
+            else if (sp[6] == 0x06)
+              tag = "  [8080]";
+          }
       }
-    else
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)printf (MSG_P_LNOCHK, fn);
   }
+
+#endif
+
+  {
+    long p10 = (outlen ? (n * 1000L + outlen / 2) / outlen : 0);
+
+#ifndef LZPACK_COMPRESS_ONLY
+    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    (void)printf (MSG_P_LSIZES,
+                  fn, n, outlen, p10 / 10, p10 % 10, tag);
+#else
+    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    (void)printf (MSG_P_LSIZES,
+                  fn, n, outlen, p10 / 10, p10 % 10);
+#endif
+  }
+
+#ifndef LZPACK_COMPRESS_ONLY
+
+  if (ischk)
+    {
+      unsigned dlim = get16 (chkb + CHK_DST_LIM);
+
+      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      (void)printf (MSG_P_LFLOOR0, fn, (dlim - 1U) & 0xFFFFU);
+    }
+  else
+    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    (void)printf (MSG_P_LNOCHK, fn);
 
 #endif
 
