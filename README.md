@@ -329,11 +329,12 @@ The `-F` option is mostly useful to developers of CP/M‑80 software and
 not end‑users.
 
 <details>
- <summary>Expand this section for further details.</summary>
+ <summary><b><i>Expand this section for further details.</i></b></summary>
 
 <br>
+
 The `-C` option adds a check that refuses a TPA that the *unpacker* would
-overrun, but a packed program *almost always* needs more memory to actually
+overrun, but a packed program almost always needs more memory to actually
 *run* than it does to simply unpack.  With a TPA that sits between those
 two bounds, the program unpacks successfully but then crashes (or silently
 corrupts memory) during its own startup (which would still happen even in
