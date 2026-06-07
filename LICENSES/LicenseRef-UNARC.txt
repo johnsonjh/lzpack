@@ -1,0 +1,23 @@
+The UNARC program and its associated documentation is the copyrighted property
+of its author -- it is NOT in the public domain.  HOWEVER...  Free use,
+distribution, and modification of these files is permitted (and encouraged),
+subject to the following conditions:
+
+(1)  Such use or distribution must be for non-profit purposes only.
+(2)  The author's copyright notice may not be altered or removed.
+(3)  Modifications to this program or its documentation files may not be
+     distributed without notification of and approval by the author.
+(4)  The source program code may not be used, in whole or in part, in any
+     other publicly-distributed or derivative work without similar
+     notification and approval.
+
+No fee is requested or expected for the use and distribution of this program
+subject to the above conditions.  The author reserves the right to modify
+these conditions for any future revisions of this program.  Questions,
+comments, suggestions, commercial inquiries, and bug reports or fixes are
+welcomed by the author:
+
+                     Robert A. Freed
+                     62 Miller Road
+                     Newton Centre, MA  02159
+                     Telephone (617) 332-3533

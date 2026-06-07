@@ -24,3 +24,15 @@ path = "messages.def"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
 SPDX-License-Identifier = "MIT-0"
+
+[[annotations]]
+path = ".utils/arccpm.cmd"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "1987 Reimer Mellin and D.J.Weatherall"
+SPDX-License-Identifier = "CC-PDM-1.0"
+
+[[annotations]]
+path = ".utils/unarc*.com"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "1987 Robert A. Freed"
+SPDX-License-Identifier = "LicenseRef-UNARC"
