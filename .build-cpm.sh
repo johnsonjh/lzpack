@@ -118,8 +118,8 @@ PACK="${PACK:-1}"
 MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-21712}"
 MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-13707}"
 MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27760}"
-MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23009}"
-MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14878}"
+MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23008}"
+MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-14877}"
 MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28574}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
@@ -348,37 +348,6 @@ chk_floor()
 
 ################################################################################
 
-# The following is to work around a z88dk bug:
-# The PACKERS floor higher still, at their window-fit boundary: every TPA
-# between the CRT floor and the first one whose heap holds the minimum
-# match window (3*WINMIN) plus the engine's parse-DP reserve is useless to
-# them anyway (win_alloc refuses every size), and a few exact TPA values
-# just below that boundary make the emulated 8080 packer hang outright
-# instead of failing cleanly (pre-existing; v1.0-beta-1 loops forever at
-# e.g. TPA 30,664 under tnylpo -m).  Flooring at the boundary plus margin
-# turns that whole fringe into the stub's clean "No room".  LZ_RESERVE
-# mirrors LZ_STD_RESERVE in lzpack.c ((128+1)*(2+6)+512 on the 16-bit
-# builds) and must be re-derived if that macro changes.  Of the 256
-# margin, allocator block headers and CRT slack consume about 70, and
-# the rest covers the hang holes (observed up to 6 bytes wide, within
-# 6 bytes of the boundary) with room for geometry drift; the formula
-# tracks __BSS_END, so the cover survives size changes.  The harness
-# mirrors this formula (and the tunables) in _map_floor_tpa.
-
-LZ_RESERVE="${LZ_RESERVE:-1544}"
-
-win_floor()
-{
-  end=
-  [ -f "$1" ] || return 0
-  end=$(sed -n 's/^__BSS_END_head *= *\$\([0-9A-Fa-f]*\).*/\1/p' "$1" | head -1)
-  [ -n "${end}" ] || return 0
-  printf '%d\n' \
-    "$((0x${end} + STACKSZ + 3 * WINMIN + LZ_RESERVE + 256 - 1))"
-}
-
-################################################################################
-
 # Pack a CP/M-80 .COM into a smaller self-extracting one with the host optimal
 # size (-e) compressor.  Leaves the file on any failures (i.e., incompressible)
 # unless a recorded -m ceiling (second argument) was given: packing under the
@@ -529,7 +498,7 @@ build_arch()
   # Per-binary recorded -m ceilings (see the MCAP_* tunables above); all
   # three shipped tools get the -C runtime memory check, with the BDOS
   # bound raised (-F) to each tool's own map-derived runtime floor.
-  lzfloor="$(win_floor "${lm}")"
+  lzfloor="$(chk_floor "${lm}")"
   uzfloor="$(chk_floor "${um}")"
   safloor="$(chk_floor "${sm}")"
   case "${clib}" in

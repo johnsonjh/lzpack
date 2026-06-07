@@ -755,20 +755,16 @@ def test_list_floor(runner, results):
         shutil.rmtree(wd, ignore_errors=True)
 
 
-# The build's tunables (.build-cpm.sh): the shipped floors are derived from
-# them, so the probes below must mirror any override.
+# The build's stack reserve (STACKSZ in .build-cpm.sh): the shipped floor is
+# derived from it, so the probe below must mirror an override.
 STACKSZ = int(os.environ.get("STACKSZ", 1024))
-WINMIN = int(os.environ.get("WINMIN", 1024))
-LZ_RESERVE = int(os.environ.get("LZ_RESERVE", 1544))
 
 
 def _map_floor_tpa(compath):
     """First safe TPA size (bytes, for tnylpo -m) of a shipped checked tool,
     from the .map beside its .com: the build patches DST_LIM = __BSS_END +
     STACKSZ + 128 (chk_floor in .build-cpm.sh), and the BDOS base for a TPA
-    of t bytes is 0x100 + t, so the edge TPA is DST_LIM - 0x100.  The packer
-    floors higher, at its window-fit boundary (win_floor: + 3*WINMIN +
-    LZ_RESERVE more), so its whole useless no-window fringe refuses."""
+    of t bytes is 0x100 + t, so the edge TPA is DST_LIM - 0x100."""
     mp = os.path.splitext(compath)[0] + ".map"
     try:
         m = re.search(r"^__BSS_END_head\s*=\s*\$([0-9A-Fa-f]+)", open(mp).read(), re.M)
@@ -776,11 +772,7 @@ def _map_floor_tpa(compath):
         return None
     if not m:
         return None
-    tpa = int(m.group(1), 16) + STACKSZ + 128 - 0x100
-    if os.path.basename(compath).lower().startswith("lzpack"):
-        # win_floor's margin is 256 where chk_floor's is 128: add the rest
-        tpa += 3 * WINMIN + LZ_RESERVE + 128
-    return tpa
+    return int(m.group(1), 16) + STACKSZ + 128 - 0x100
 
 
 # Shipped split-pair startup floor (cpm/tnylpo runs only): the build packs
@@ -799,13 +791,11 @@ def test_checked_startup(runner, results):
         _pdata, _plog = _pack(runner, wd, "med.com", [], "m.pop")
         legs = [
             # (tag, shipped binary, argv, acceptable at-floor outputs)
-            # at the packer's window-aware floor the minimum window fits,
-            # so a small input packs; OOM stays accepted against drift
             (
                 "lzpack startup floor",
                 CPMCOM,
                 ["med.com"],
-                ("=>", "out of memory for compression window"),
+                ("out of memory for compression window",),
             ),
             (
                 "lzunpack startup floor",
