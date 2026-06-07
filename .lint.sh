@@ -395,7 +395,25 @@ command -v "${CPPCHECK:-cppcheck}" > /dev/null 2>&1 && {
 
 ################################################################################
 
+GCCW=""
+
+command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
+  for gw in -Wlogical-op -Wduplicated-cond -Wduplicated-branches \
+    -Wjump-misses-init -Warith-conversion -Wtrampolines \
+    -Wcast-align=strict -Wshift-overflow=2 -Wformat-overflow=2 \
+    -Wformat-truncation=2 -Wstringop-overflow=4 -Walloc-zero \
+    -Wnull-dereference -Wuse-after-free=3 -Wdangling-pointer=2; do
+    printf '%s\n' "int main(void){return 0;}" \
+      | "${GCC_CMD:-gcc}" -Werror "${gw}" -x c -c -o /dev/null - \
+        > /dev/null 2>&1 \
+      && GCCW="${GCCW} ${gw}"
+  done
+}
+
+################################################################################
+
 aCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
+aCFLAGS="${aCFLAGS:?} -Wsign-conversion${GCCW}"
 aCFLAGS="${aCFLAGS:?} -U_FORTIFY_SOURCE"
 aCFLAGS="${aCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
 aCFLAGS="${aCFLAGS:?} -DGCC_ANALYZER -march=native -fanalyzer"
@@ -515,6 +533,7 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
 ################################################################################
 
 apCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
+apCFLAGS="${apCFLAGS:?} -Wsign-conversion${GCCW}"
 apCFLAGS="${apCFLAGS:?} -U_FORTIFY_SOURCE"
 apCFLAGS="${apCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
 apCFLAGS="${apCFLAGS:?} -DGCC_ANALYZER -march=native -fanalyzer"

@@ -393,6 +393,17 @@ lxmalloc (size_t n)
 
 /******************************************************************************/
 
+#if MZXFILE <= 65535L
+# define LZ_POS16 1 /* positions fit 16 bits; lzpos/lzcost may narrow */
+typedef unsigned int lzpos;
+typedef unsigned int lzcost;
+#else
+typedef long lzpos;
+typedef long lzcost;
+#endif
+
+/******************************************************************************/
+
 #ifndef LZPACK_DECODE_ONLY
 
 # include "csz80.h"
@@ -436,7 +447,9 @@ static unsigned opt_chk_floor = 0;
 
 /******************************************************************************/
 
+# ifndef LZPACK_STREAM
 static long ol, tagpos;
+# endif
 static int tagcnt;
 
 /******************************************************************************/
@@ -566,31 +579,6 @@ e_byte (int x)
 /******************************************************************************/
 
 #  ifdef __AZTEC_C_42T__
-static char *
-xmemmove(char *dst, const char *src, unsigned int n)
-{
-  char *d = dst;
-  const char *s = src;
-
-  if ((unsigned long)d <= (unsigned long)s) {
-    while (n--)
-      *d++ = *s++;
-  } else {
-    d += n;
-    s += n;
-    while (n--)
-      *--d = *--s;
-  }
-
-  return dst;
-}
-#   undef memmove
-#   define memmove xmemmove /* //-V1059 */
-#  endif
-
-/******************************************************************************/
-
-#  ifdef __AZTEC_C_42T__
 #   ifndef NEED_REMOVE
 #    define NEED_REMOVE
 #   endif
@@ -620,11 +608,16 @@ xremove (const char *filename)
 /******************************************************************************/
 
 /*
- * Streaming encoder: the payload is written to a temp file as it is produced,
- * so only a small hold buffer is kept in RAM.  The single tag byte is the only
- * byte ever modified after being written; everything strictly before it is
- * final and may be flushed.  At most a handful of bytes accumulate between tag
- * boundaries, so OBSZ need only be small.
+ * Streaming encoder: the payload is written to a temp file as it is
+ * produced, so only a small hold buffer is kept in RAM.  The single tag
+ * byte is the only byte ever modified after being written, and the buffer
+ * is flushed whole exactly when each new tag byte starts, so the live tag
+ * byte is ALWAYS s_obuf[0] and the bytes flushed are always final.  At
+ * most 1 + 8 * 2 bytes accumulate between tag boundaries (eight tokens of
+ * at most two payload bytes each), so OBSZ has ample slack.  s_ototal
+ * counts flushed bytes; it is the only wide accumulator on this path (an
+ * incompressible input's payload can pass 65535) but is touched only once
+ * per flush, so all per-bit and per-byte arithmetic stays 16-bit native.
  */
 
 #  ifndef OBSZ
@@ -633,28 +626,20 @@ xremove (const char *filename)
 
 static LZF *s_of;
 static unsigned char s_obuf[OBSZ];
-static long s_obase;
+static unsigned s_on;
+static long s_ototal;
 
 /******************************************************************************/
 
 static void
-obuf_flush (long upto)
+obuf_flush (void)
 {
-  long cnt = upto - s_obase;
-
-  if (cnt > 0)
+  if (s_on)
     {
-      unsigned int len;
-      int off;
+      (void)lzwrite (s_obuf, (size_t)s_on, s_of);
 
-      (void)lzwrite (s_obuf, (size_t)cnt, s_of);
-
-      off = (int)cnt;
-      len = (unsigned int)(ol - upto);
-
-      (void)memmove((char *)s_obuf, (const char *)(s_obuf + off), len);
-
-      s_obase = upto;
+      s_ototal += (long)s_on;
+      s_on = 0;
     }
 }
 
@@ -664,9 +649,8 @@ static void
 e_init_stream (LZF *f)
 {
   s_of = f;
-  s_obase = 0;
-  ol = 0;
-  tagpos = -1;
+  s_on = 0;
+  s_ototal = 0;
   tagcnt = 8;
 }
 
@@ -677,15 +661,14 @@ e_bit (int b)
 {
   if (tagcnt == 8)
     {
-      obuf_flush (ol);
-      tagpos = ol;
-      s_obuf[ol - s_obase] = 0;
-      ol++;
+      obuf_flush ();
+      s_obuf[0] = 0; /* the new tag byte; see the flush-whole invariant */
+      s_on = 1;
       tagcnt = 0;
     }
 
   if (b)
-    s_obuf[tagpos - s_obase] |= (unsigned char)(1 << (7 - tagcnt));
+    s_obuf[0] |= (unsigned char)(1 << (7 - tagcnt));
 
   tagcnt++;
 }
@@ -695,8 +678,7 @@ e_bit (int b)
 static void
 e_byte (int x)
 {
-  s_obuf[ol - s_obase] = (unsigned char)(x & 0xff);
-  ol++;
+  s_obuf[s_on++] = (unsigned char)(x & 0xff);
 }
 
 # endif
@@ -2380,6 +2362,8 @@ readfile (const char *fn, unsigned char *buf, size_t max)
 
 /******************************************************************************/
 
+#if !defined(LZPACK_STREAM) || !defined(LZPACK_COMPRESS_ONLY)
+
 static int
 writefile (const char *fn, const unsigned char *buf, long n)
 {
@@ -2391,12 +2375,14 @@ writefile (const char *fn, const unsigned char *buf, long n)
   (void)lzwrite (buf, (size_t)n, f);
   (void)lzclose (f);
 
-#ifdef LZ_CPM
+# ifdef LZ_CPM
   (void)cpm_set_byte_count (fn, n);
-#endif
+# endif
 
   return 0;
 }
+
+#endif
 
 /******************************************************************************/
 
@@ -2758,8 +2744,8 @@ static const unsigned char op8080_len[256] = {
  * shifts the setup block and everything measured from it by that amount.
  */
 
-static long
-put_check (unsigned char *dst, long stub_v, long wtop)
+static int
+put_check (unsigned char *dst, lzpos stub_v, lzpos wtop)
 {
   int i;
 
@@ -2774,11 +2760,11 @@ put_check (unsigned char *dst, long stub_v, long wtop)
   put16 (dst + CHK_DST_LIM, (unsigned)(wtop + 1));
 
 # ifndef LZPACK_COMPRESS_ONLY
-  if (opt_chk_floor && (long)opt_chk_floor > wtop)
+  if (opt_chk_floor && (lzpos)opt_chk_floor > wtop)
     put16 (dst + CHK_DST_LIM,
-           (unsigned)((long)opt_chk_floor < 0xFFFFL
-                        ? (long)opt_chk_floor + 1
-                        : 0xFFFFL));
+           (unsigned)(opt_chk_floor < 0xFFFFU
+                        ? opt_chk_floor + 1U
+                        : 0xFFFFU));
 # endif
 
   put16 (dst + CHK_SP_LIM, (unsigned)(wtop + 1 + CHK_SP_SLACK));
@@ -3140,11 +3126,11 @@ static int parse_header (const unsigned char *data, long n, unsigned *stubv,
 
 static unsigned char *s_win;
 static int *s_lnk;
-static long s_winsz, s_wmask, s_maxback;
+static lzpos s_winsz, s_wmask, s_maxback;
 static LZF *s_in;
-static long s_N, s_loaded;
-static long s_win_start = WIN_MAX;
-static long s_win_reserve;
+static lzpos s_N, s_loaded;
+static lzpos s_win_start = WIN_MAX;
+static lzpos s_win_reserve;
 
 /******************************************************************************/
 
@@ -3160,8 +3146,10 @@ win_alloc (void)
         {
           if (s_win_reserve)
             {
-              /* This window leaves enough heap for the DP block only if a
-               * probe of the reserve succeeds; otherwise try a smaller one. */
+              /*
+               * This window leaves enough heap for the DP block only if a
+               * probe of the reserve succeeds; otherwise try a smaller one.
+               */
               void *guard = malloc ((size_t)s_win_reserve);
 
               if (!guard)
@@ -3188,7 +3176,7 @@ win_alloc (void)
   s_wmask = s_winsz - 1;
   s_maxback = s_winsz - LOOKAHEAD - 1;
 
-  if (s_maxback > MAXDIST)
+  if (s_maxback > (lzpos)MAXDIST)
     s_maxback = MAXDIST;
 
   return 0;
@@ -3206,8 +3194,11 @@ win_free (void)
 /******************************************************************************/
 
 static void
-win_load (long upto)
+win_load_ahead (lzpos pos)
 {
+  lzpos upto = (s_N - pos > (lzpos)(LOOKAHEAD + 1)) ? (pos + (LOOKAHEAD + 1))
+                                                    : s_N;
+
   if (upto > s_N)
     upto = s_N;
 
@@ -3230,7 +3221,7 @@ win_load (long upto)
 /******************************************************************************/
 
 static int
-s_hash3 (long i)
+s_hash3 (lzpos i)
 {
   return (int)((((unsigned)s_win[i & s_wmask] << 10)
                 ^ ((unsigned)s_win[(i + 1) & s_wmask] << 5)
@@ -3240,11 +3231,11 @@ s_hash3 (long i)
 /******************************************************************************/
 
 static void
-s_hinsert (long i)
+s_hinsert (lzpos i)
 {
   int h;
 
-  if (i + 2 >= s_N)
+  if (i >= s_N || s_N - i <= 2)
     return;
 
   h = s_hash3 (i);
@@ -3283,6 +3274,20 @@ s_hinsert (long i)
 #   define LZ_STDBLK_MIN 128L
 #  endif
 
+#  ifdef LZ_POS16
+#   define LZ_OCOST_MAX 0xFFFFU
+#   if LZ_STDBLK > 7000
+#    error "LZ_STDBLK too large for 16-bit lzcost (max 7000)"
+#   endif
+#   ifndef LZPACK_NO_OPT
+#    if LZ_OPTBLK > 7000
+#     error "LZ_OPTBLK too large for 16-bit lzcost (max 7000)"
+#    endif
+#   endif
+#  else
+#   define LZ_OCOST_MAX 0x3fffffffL
+#  endif
+
 /*
  * Heap to reserve below the match window for the parse-DP arrays: enough
  * for the smallest block both engines fall back to.  opt_alloc then grows
@@ -3292,7 +3297,7 @@ s_hinsert (long i)
 
 #  ifndef LZ_STD_RESERVE
 #   define LZ_STD_RESERVE \
-  ((long)(LZ_STDBLK_MIN + 1) * (sizeof (long) + 3 * sizeof (int)) + 512L)
+  ((long)(LZ_STDBLK_MIN + 1) * (sizeof (lzcost) + 3 * sizeof (int)) + 512L)
 #  endif
 
 #  ifndef LZ_OPTDEPTH
@@ -3313,11 +3318,11 @@ s_hinsert (long i)
     (p) = NULL;        \
   } while (never)
 
-static long *o_cost;
+static lzcost *o_cost;
 static int *o_tlen;
 static int *o_tdist;
 static int *o_stk;
-static long o_blk;
+static lzpos o_blk;
 
 static int o_l2d[MAXLEN + 1];
 
@@ -3360,13 +3365,13 @@ opt_cost_tables (void)
  */
 
 static int
-opt_alloc (long want, long lo)
+opt_alloc (lzpos want, lzpos lo)
 {
   for (o_blk = want; o_blk >= lo; o_blk >>= 1)
     {
       size_t s = (size_t)(o_blk + 1);
 
-      o_cost = (long *)LZ_OPT_ALLOC (s * sizeof (long));
+      o_cost = (lzcost *)LZ_OPT_ALLOC (s * sizeof (lzcost));
       o_tlen = (int *)LZ_OPT_ALLOC (s * sizeof (int));
       o_tdist = (int *)LZ_OPT_ALLOC (s * sizeof (int));
       o_stk = (int *)LZ_OPT_ALLOC (s * sizeof (int));
@@ -3397,11 +3402,11 @@ opt_free (void)
 /******************************************************************************/
 
 static long
-compress_stream (LZF *in, long n, int start, LZF *out, int depth,
+compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
                  unsigned char *first16, const char *ptag)
 {
-  long seg_start, apos, ins;
-  long k;
+  lzpos seg_start, apos, ins;
+  lzpos k;
 
 #  ifdef LZPACK_NO_PROGRESS
   (void)ptag; /* progress is compiled out; prog_show() ignores its tag */
@@ -3413,37 +3418,35 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
 
   opt_cost_tables ();
 
-  for (k = 0; k < HSZ; k++)
+  for (k = 0; k < (lzpos)HSZ; k++)
     head[k] = -1;
 
   e_init_stream (out);
 
-  win_load ((long)LOOKAHEAD + 1);
+  win_load_ahead (0);
 
-  for (k = 0; k < LITCNT && (long)k < n; k++)
+  for (k = 0; k < LITCNT && k < n; k++)
     first16[k] = s_win[k & s_wmask];
 
-  for (apos = 0; apos < start && apos + 2 < n; apos++)
+  for (apos = 0; apos < (lzpos)start && n - apos > 2; apos++)
     {
-      win_load (apos + LOOKAHEAD + 1);
+      win_load_ahead (apos);
       s_hinsert (apos);
     }
 
-  ins = start;
+  ins = (lzpos)start;
 
-  for (seg_start = start; seg_start < n;)
+  for (seg_start = (lzpos)start; seg_start < n;)
     {
-      long seg_end = seg_start + o_blk;
-      long span, j;
-
-      if (seg_end > n)
-        seg_end = n;
+      /* seg_start + o_blk, subtract-first: a 16-bit lzpos cannot wrap */
+      lzpos seg_end = (n - seg_start > o_blk) ? (seg_start + o_blk) : n;
+      lzpos span, j;
 
       span = seg_end - seg_start;
 
       for (j = 0; j <= span; j++)
         {
-          o_cost[j] = 0x3fffffffL;
+          o_cost[j] = LZ_OCOST_MAX;
           o_tlen[j] = 0;
           o_tdist[j] = 0;
         }
@@ -3452,17 +3455,17 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
 
       for (apos = seg_start; apos < seg_end; apos++)
         {
-          long jc = apos - seg_start;
+          lzpos jc = apos - seg_start;
           int cap;
 
           while (ins < apos)
             {
-              win_load (ins + LOOKAHEAD + 1);
+              win_load_ahead (ins);
               s_hinsert (ins);
               ins++;
             }
 
-          win_load (apos + LOOKAHEAD + 1);
+          win_load_ahead (apos);
 
           if (o_cost[jc] + 9 < o_cost[jc + 1])
             {
@@ -3473,22 +3476,22 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
 
           cap = MAXLEN;
 
-          if ((long)cap > seg_end - apos)
+          if ((lzpos)cap > seg_end - apos)
             cap = (int)(seg_end - apos);
 
-          if ((long)cap > n - apos)
+          if ((lzpos)cap > n - apos)
             cap = (int)(n - apos);
 
-          if (cap >= 3 && apos + 2 < n)
+          if (cap >= 3 && n - apos > 2)
             {
-              long base = apos & ~s_wmask;
+              lzpos base = apos & ~s_wmask;
               int stored = head[s_hash3 (apos)];
               int dep = depth, maxml = 0;
 
               while (stored >= 0 && dep-- > 0)
                 {
-                  long p = base | (long)stored;
-                  long d;
+                  lzpos p = base | (lzpos)stored;
+                  lzpos d;
                   int ml;
 
                   if (p > apos)
@@ -3496,12 +3499,12 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
 
                   d = apos - p;
 
-                  if (d <= 0 || d > s_maxback)
+                  if (d == 0 || d > s_maxback)
                     break;
 
                   if (maxml > 0 && maxml < cap
-                      && s_win[(p + maxml) & s_wmask]
-                           != s_win[(apos + maxml) & s_wmask])
+                      && s_win[(p + (lzpos)maxml) & s_wmask]
+                           != s_win[(apos + (lzpos)maxml) & s_wmask])
                     {
                       stored = s_lnk[p & s_wmask];
 
@@ -3511,8 +3514,8 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
                   ml = 0;
 
                   while (ml < cap
-                         && s_win[(p + ml) & s_wmask]
-                              == s_win[(apos + ml) & s_wmask])
+                         && s_win[(p + (lzpos)ml) & s_wmask]
+                              == s_win[(apos + (lzpos)ml) & s_wmask])
                     ml++;
 
                   if (ml > maxml)
@@ -3537,29 +3540,30 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
                 for (L = 3; L <= maxml; L++)
                   {
                     int d = o_l2d[L];
-                    long c2 = o_cost[jc] + OMBITS (d, L);
+                    lzpos jL = jc + (lzpos)L;
+                    lzcost c2 = o_cost[jc] + OMBITS (d, L);
 
-                    if (c2 < o_cost[jc + L])
+                    if (c2 < o_cost[jL])
                       {
-                        o_cost[jc + L] = c2;
-                        o_tlen[jc + L] = L;
-                        o_tdist[jc + L] = d;
+                        o_cost[jL] = c2;
+                        o_tlen[jL] = L;
+                        o_tdist[jL] = d;
                       }
                   }
               }
             }
 
-          if (cap >= 2 && apos + 1 < n)
+          if (cap >= 2 && n - apos > 1)
             {
-              long lo = (apos > 128) ? (apos - 128) : 0;
-              long p;
+              lzpos lo = (apos > 128) ? (apos - 128) : 0;
+              lzpos p;
 
-              for (p = apos - 1; p >= lo; p--)
+              for (p = apos; p-- > lo;)
                 if (s_win[p & s_wmask] == s_win[apos & s_wmask]
                     && s_win[(p + 1) & s_wmask] == s_win[(apos + 1) & s_wmask])
                   {
                     int d2 = (int)(apos - p);
-                    long c2 = o_cost[jc] + OMBITS (d2, 2);
+                    lzcost c2 = o_cost[jc] + OMBITS (d2, 2);
 
                     if (c2 < o_cost[jc + 2])
                       {
@@ -3574,11 +3578,11 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
         }
 
       {
-        long sp = 0, kk;
+        int sp = 0, kk;
 
-        for (kk = span; kk > 0;)
+        for (kk = (int)span; kk > 0;)
           {
-            o_stk[sp++] = (int)kk;
+            o_stk[sp++] = kk;
             kk -= (o_tlen[kk] > 1 ? o_tlen[kk] : 1);
           }
 
@@ -3596,32 +3600,32 @@ compress_stream (LZF *in, long n, int start, LZF *out, int depth,
 
       while (ins < seg_end)
         {
-          win_load (ins + LOOKAHEAD + 1);
+          win_load_ahead (ins);
           s_hinsert (ins);
           ins++;
         }
 
       seg_start = seg_end;
 
-      prog_show (ptag, seg_start - start);
+      prog_show (ptag, (long)(seg_start - (lzpos)start));
     }
 
-  obuf_flush (ol);
+  obuf_flush ();
 
-  return ol;
+  return s_ototal;
 }
 
 /******************************************************************************/
 
 static long
-assemble_z80_stream (LZF *outf, const unsigned char *first16, long pllen,
-                     LZF *pl, long outlen, long pl_dst_top)
+assemble_z80_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
+                     LZF *pl, lzpos outlen, lzpos pl_dst_top)
 {
   unsigned out_end = (unsigned)(TPA + outlen);
-  long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
-  long stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
+  lzpos lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
+  lzpos stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
   unsigned char hdr[LITCNT], stub[STUBLEN], chkb[CHK_LEN];
-  long chk, k;
+  lzpos chk, k;
 
   (void)memcpy (hdr, first16, LITCNT);
   hdr[0] = 0xc3;
@@ -3643,7 +3647,7 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, long pllen,
 
   (void)lzwrite (first16, LITCNT, outf);
 
-  chk = put_check (chkb, stub_v, stub_dst_top);
+  chk = (lzpos)put_check (chkb, stub_v, stub_dst_top);
 
   if (chk)
     (void)lzwrite (chkb, (size_t)chk, outf);
@@ -3666,7 +3670,7 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, long pllen,
 
   {
     /* GETBIT is CALLed; retarget call operands to the relocated routine */
-    long getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
+    lzpos getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
     int gi;
 
     for (gi = 0; gi < Z80_GETBIT_FIX_N; gi++)
@@ -3675,22 +3679,22 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, long pllen,
 
   (void)lzwrite (stub, STUBLEN, outf);
 
-  return LITCNT + pllen + LITCNT + chk + STUBLEN;
+  return (long)(pllen + chk + (lzpos)(LITCNT + LITCNT + STUBLEN));
 }
 
 /******************************************************************************/
 
 static long
-assemble_8080_stream (LZF *outf, const unsigned char *first16, long pllen,
-                      LZF *pl, long outlen, long pl_dst_top)
+assemble_8080_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
+                      LZF *pl, lzpos outlen, lzpos pl_dst_top)
 {
   unsigned out_end = (unsigned)(TPA + outlen);
-  long lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
-  long decomp_file_v;
-  long stub_run = pl_dst_top + 51;
-  long dcmp_dsttop = stub_run + S8_DLEN - 1;
+  lzpos lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
+  lzpos decomp_file_v;
+  lzpos stub_run = pl_dst_top + 51;
+  lzpos dcmp_dsttop = stub_run + S8_DLEN - 1;
   unsigned char hdr[LITCNT], su[S8_SLEN], de[S8_DLEN], chkb[CHK_LEN];
-  long chk, k;
+  lzpos chk, k;
   int i;
 
   (void)memcpy (hdr, first16, LITCNT);
@@ -3713,7 +3717,7 @@ assemble_8080_stream (LZF *outf, const unsigned char *first16, long pllen,
 
   (void)lzwrite (first16, LITCNT, outf);
 
-  chk = put_check (chkb, stub_v, dcmp_dsttop);
+  chk = (lzpos)put_check (chkb, stub_v, dcmp_dsttop);
 
   if (chk)
     (void)lzwrite (chkb, (size_t)chk, outf);
@@ -3746,7 +3750,7 @@ assemble_8080_stream (LZF *outf, const unsigned char *first16, long pllen,
   (void)lzwrite (su, S8_SLEN, outf);
   (void)lzwrite (de, S8_DLEN, outf);
 
-  return LITCNT + pllen + LITCNT + chk + S8_SLEN + S8_DLEN;
+  return (long)(pllen + chk + (lzpos)(LITCNT + LITCNT + S8_SLEN + S8_DLEN));
 }
 
 /******************************************************************************/
@@ -3754,11 +3758,11 @@ assemble_8080_stream (LZF *outf, const unsigned char *first16, long pllen,
 #  ifndef LZPACK_NO_AUTOARCH
 
 static int
-is_z80_file (LZF *f, long n)
+is_z80_file (LZF *f, lzpos n)
 {
-  long pos = 0;
+  lzpos rem = n;
 
-  while (pos < n)
+  while (rem)
     {
       int op = lzgetc (f);
       int skip;
@@ -3766,14 +3770,19 @@ is_z80_file (LZF *f, long n)
       if (op == EOF)
         return 0;
 
-      pos++;
+      rem--;
 
       if (op == 0xCB || op == 0xDD || op == 0xED || op == 0xFD)
         return 1;
 
-      for (skip = op8080_len[op] - 1; skip > 0; skip--, pos++)
-        if (lzgetc (f) == EOF)
-          return 0;
+      for (skip = op8080_len[op] - 1; skip > 0; skip--)
+        {
+          if (lzgetc (f) == EOF)
+            return 0;
+
+          if (rem)
+            rem--;
+        }
     }
 
   return 0;
@@ -3789,7 +3798,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   LZF *in, *tmp, *outf;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
   long stub_dst_top, dcmp_dsttop;
-  long dp_blk = LZ_STDBLK; /* parse-DP block target (LZ_OPTBLK for -E) */
+  lzpos dp_blk = (lzpos)LZ_STDBLK; /* parse-DP block (LZ_OPTBLK for -E) */
   const char *dp_tag = ""; /* progress tag, "-E" for the -E engine */
   unsigned char first16[LITCNT];
   char nb[64];
@@ -3879,7 +3888,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
       if (df)
         {
-          use8080 = (is_z80_file (df, n) ? 0 : 1);
+          use8080 = (is_z80_file (df, (lzpos)n) ? 0 : 1);
           (void)lzclose (df);
         }
     }
@@ -3917,7 +3926,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
    */
 
   s_win_start = WIN_MAX;
-  s_win_reserve = LZ_STD_RESERVE;
+  s_win_reserve = (lzpos)LZ_STD_RESERVE;
 
   if (win_alloc ())
     {
@@ -3929,7 +3938,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
-  if (opt_alloc (dp_blk, LZ_STDBLK_MIN))
+  if (opt_alloc (dp_blk, (lzpos)LZ_STDBLK_MIN))
     {
       win_free ();
       (void)lzclose (in);
@@ -3943,11 +3952,12 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (verbose)
     /* Flawfinder: ignore */ /* False positive CWE-134 */
     (void)fprintf (stderr, MSG_P_WINDOW,
-                   fn, s_winsz, s_maxback);
+                   fn, (long)s_winsz, (long)s_maxback);
 
   prog_begin (verbose, n - LITCNT, fn);
 
-  pllen = compress_stream (in, n, LITCNT, tmp, LZ_OPTDEPTH, first16, dp_tag);
+  pllen = compress_stream (in, (lzpos)n, LITCNT, tmp, LZ_OPTDEPTH, first16,
+                           dp_tag);
 
   opt_free ();
 
@@ -4039,9 +4049,11 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
   if (use8080)
-    (void)assemble_8080_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
+    (void)assemble_8080_stream (outf, first16, (lzpos)pllen, tmp,
+                                (lzpos)outlen, (lzpos)pl_dst_top);
   else
-    (void)assemble_z80_stream (outf, first16, pllen, tmp, outlen, pl_dst_top);
+    (void)assemble_z80_stream (outf, first16, (lzpos)pllen, tmp,
+                               (lzpos)outlen, (lzpos)pl_dst_top);
 
   (void)lzclose (outf);
   (void)lzclose (tmp);
