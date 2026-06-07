@@ -178,8 +178,6 @@ compares the **LZPACK** decompression stubs against those from the
   *PopCom!*'s **230 bytes**, nearly **20% smaller**.
 * *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
   decompressor weighs in at only **\~11%** larger than the *PopCom!* Z80 code.
-  No **LZPACK** stub will ever be larger than two CP/M‑80 disk records
-  (256 bytes).
 
 ### Operation
 
