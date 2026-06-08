@@ -418,6 +418,13 @@ UNIX‑like system.
   make CC=xlc CFLAGS="-O3 -q64" LDFLAGS="-Wl,-b64"
   ```
 
+* To build a native binary on Windows using the Microsoft Visual Studio C/C++
+  compiler, from a **Developer Command Prompt for Visual Studio** window, run:
+
+  ```sh
+  msvcbuild.bat
+  ```
+
 The GNU GCC, LLVM Clang, PCC, NVIDIA HPC SDK C/C++, Oracle Studio C/C++,
 DMD ImportC, CompCert C, Open64, PathScale EKOPath, IBM XL C/C++,
 IBM Open XL C/C++, and МЦСТ LCC compilers are regularly tested.
@@ -471,7 +478,8 @@ invocation will be automatically determined by the build system.
   *important* that you have ***all*** of the optional linters, static analysis
   tools, emulators, and cross‑toolchains installed, and that **both**
   `make lint` and `make test` pass completely clean, as this is a
-  prerequisite for any change.
+  prerequisite for any change.  Every linter has, at some point, caught real
+  bugs in the code.
 
 * Usage of AI (artificial intelligence) tools by contributors is currently
   permitted, subject to the same conditions as the
