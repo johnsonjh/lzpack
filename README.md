@@ -140,9 +140,17 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   mode by at least a few bytes (**/N+`-E`** vs. **/N**).
 
 * The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
-  CP/M‑80 (or other memory‑constrained systems), the match window and
+  CP/M‑80 (or any other memory‑constrained system), the window sizes and
   compression ratio scale with the available memory: a small TPA means a
-  small window and somewhat larger output.
+  small compression window and somewhat larger output.  Currently any Z80
+  system with **49.6K**&nbsp;TPA or any 8080 system with **50.8K**&nbsp;TPA
+  is able to run the *"full strength"* (8K window) compressor.  See the
+  following table:
+
+  |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
+  |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
+  |  **Z80** | `29,316`&nbsp;(`28.6K`) | `32,388`&nbsp;(`31.6K`) | `38,532`&nbsp;(`37.6K`) | `50,820`&nbsp;(`49.6K`) |
+  | **8080** | `30,614`&nbsp;(`29.8K`) | `33,686`&nbsp;(`32.8K`) | `39,830`&nbsp;(`38.8K`) | `52,118`&nbsp;(`50.8K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
@@ -257,7 +265,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v1.0-beta-5 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v1.0-beta-6 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
