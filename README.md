@@ -469,6 +469,10 @@ standard build and setting `CPM_BACKEND=docker` forces the Docker‑ized build.
 If the `CPM_BACKEND` environment variable is unset, a proper **z88dk**
 invocation will be automatically determined by the build system.
 
+The *complete* CP/M‑80 build (which automatically sets and verifies `-M` and
+`-F` values) requires a [patched](tnylpo.diff) version of *Georg Brein*'s
+[`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator available in your `PATH`.
+
 ### Developer notes
 
 * `make lint` needs only a POSIX shell to run (plus whichever linters and
@@ -477,11 +481,11 @@ invocation will be automatically determined by the build system.
 
 * `make test` requires `python3`, several emulators, and many cross‑toolchains
   installed if you want to run *all* the tests (of which there are about 400).
-  At a minimum, you need a [patched](tnylpo.diff) version of Georg Brein's
-  [`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator and Joe Hallen's
-  [CPM](https://github.com/jhallen/cpm) emulator installed.  You should build
-  these with full optimizations enabled, as the test suite is extensive with
-  a lengthy runtime.
+  At a minimum, you need a [patched](tnylpo.diff) version of *Georg Brein*'s
+  [`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator and *Joe Hallen*'s
+  [`cpm`](https://github.com/jhallen/cpm) emulator installed.  You should
+  build these with full optimizations enabled, as the test suite is extensive
+  with a lengthy runtime.
 
 * If you would like to contribute to **LZPACK** development, it is *extremely*
   *important* that you have ***all*** of the optional linters, static analysis
@@ -491,7 +495,7 @@ invocation will be automatically determined by the build system.
   bugs in the code.
 
 * Usage of AI (artificial intelligence) tools by contributors is currently
-  permitted, subject to the same conditions as the
+  permitted, subject to the same terms and conditions as the
   [LLVM AI Tool Use Policy](https://llvm.org/docs/AIToolPolicy.html), but
   this permission may be withdrawn at any time and without notice.
 
