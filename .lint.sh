@@ -1208,6 +1208,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
 ch_check()
 {
   cc_rc=0
+  # shellcheck disable=SC2119
   cc_tmp="$(mktemp 2> /dev/null || mktemp_lzpack)"
   printf '+ %s -n %s\n' "${CH_CMD:-ch}" "$1"
   "${CH_CMD:-ch}" -n "$1" > "${cc_tmp:?}" 2>&1 || cc_rc="$?"
