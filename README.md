@@ -477,7 +477,7 @@ invocation will be automatically determined by the build system.
 
 * `make test` requires `python3`, several emulators, and many cross‑toolchains
   installed if you want to run *all* the tests (of which there are about 400).
-  At a minimum, you need Georg Brein's
+  At a minimum, you need a [patched](tnylpo.diff) version of Georg Brein's
   [`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator and Joe Hallen's
   [CPM](https://github.com/jhallen/cpm) emulator installed.  You should build
   these with full optimizations enabled, as the test suite is extensive with

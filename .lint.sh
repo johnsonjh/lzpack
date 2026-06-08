@@ -180,7 +180,7 @@ command -v codespell > /dev/null 2>&1 && {
           | paste -sd',' -
       } | sed 's/^/"/; s/$/"/')
       codespell --ignore-words-list \
-        "expad,ACI,clen,DAA" --skip "${CODESPELL_EXCLUDE:-}" .
+        "expad,ACI,clen,DAA,executeable" --skip "${CODESPELL_EXCLUDE:-}" .
     ); then
       :
     else
