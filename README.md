@@ -145,7 +145,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   small compression window and somewhat larger output.  Currently any Z80
   system with **49.6K**&nbsp;TPA or any 8080 system with **50.8K**&nbsp;TPA
   is able to run the *"full strength"* (8K window) compressor.  See the
-  following table:
+  following table for compression window size vs. available TPA:
 
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
