@@ -1,0 +1,211 @@
+diff --git a/main.c b/main.c
+index 37f5eb3..fbc1ae7 100644
+--- a/main.c
++++ b/main.c
+@@ -185,20 +185,21 @@ usage(void) {
+ 	perr("    -l (<n>|@)       number of full screen mode lines *");
+ 	perr("    -m (<n>|@)       set CP/M memory size in kilobytes");
+ 	perr("    -n               never actually close files");
+ 	perr("    -o (n|y|[y,]<fg>,<bg>)");
+ 	perr("                     use colors *");
+ 	perr("    -r               reverse backspace and delete keys *");
+ 	perr("    -s               use full screen mode console");
+ 	perr("    -t (<n>|@)       delay before exiting full screen mode *");
+ 	perr("    -v <level>       set log level");
+ 	perr("    -w               use alternative cursor key codes *");
++	perr("    -X (<n>|<n>K)    set exact TPA size (bytes or KiB)");
+ 	perr("    -y (n|<n>,<ns>)  add <ns> nanoseconds delay every <n> "
+ 	    "instructions");
+ 	perr("    -z {a|e|i|n|s|x} set dump options");
+ 	perr("options with an asterisk (*) apply only to full screen mode");
+ }
+ 
+ 
+ /*
+  * print error message if a command line option has been defined more than once
+  */
+@@ -573,21 +574,21 @@ premature_exit:
+  */
+ static int
+ get_config(int argc, char **argv) {
+ 	int rc = 0, opt, i;
+ 	char *cfn = NULL, *cp;
+ 	static const char valid_drives[] = "abcdefghijklmnop";
+ 	size_t l;
+ 	unsigned long ul;
+ 	opterr = 0;
+ 	while ((opt = getopt(argc, argv,
+-	    "abc:d:e:f:l:m:no:rst:v:wy:z:")) != EOF) {
++	    "abc:d:e:f:l:m:no:rst:v:wX:y:z:")) != EOF) {
+ 		switch (opt) {
+ 		case 'a':
+ 			/*
+ 			 * use alternate character set
+ 			 */
+ 			if (charset) {
+ 				only_once('a');
+ 				rc = (-1);
+ 			} else {
+ 				charset = 1;
+@@ -874,20 +875,41 @@ get_config(int argc, char **argv) {
+ 					ul = strtoul(optarg, &cp, 10);
+ 					if (*cp || ul > 65 || ul < 8) {
+ 						perr("invalid memory size");
+ 						rc = (-1);
+ 					} else {
+ 						conf_memsize = (int) ul;
+ 					}
+ 				}
+ 			}
+ 			break;
++		case 'X':
++			/*
++			 * set exact TPA size in bytes (or <n>K)
++			 */
++			if (conf_tpa) {
++				only_once('X');
++				rc = (-1);
++			}
++			ul = strtoul(optarg, &cp, 10);
++			if (*cp == 'k' || *cp == 'K') {
++				cp++;
++				if (ul > INT_MAX / 1024) ul = INT_MAX + 1UL;
++				else ul *= 1024;
++			}
++			if (*cp || ul < 1 || ul > INT_MAX) {
++				perr("invalid TPA size");
++				rc = (-1);
++			} else {
++				conf_tpa = (int) ul;
++			}
++			break;
+ 		case '?':
+ 			perr("invalid option -%c", optopt);
+ 			rc = (-1);
+ 			break;
+ 		}
+ 	}
+ 	/*
+ 	 * there must be a command name on the command line; further
+ 	 * parameters are passed to the CP/M emulator as CP/M command
+ 	 * line parameters
+diff --git a/os.c b/os.c
+index 90387e4..72c9437 100644
+--- a/os.c
++++ b/os.c
+@@ -74,20 +74,25 @@
+  */
+ #define MIN_BIOS_SIZE (MEMORY_SIZE - ((DPB - BIOS_VECTOR_COUNT * 3) & 0xff00))
+ #define MIN_BDOS_SIZE (6 + 3 + 4 * 2)
+ #define CCP_STACK_COUNT 8
+ #define MIN_CCP_SIZE (CCP_STACK_COUNT * 2)
+ /*
+  * sizes for stock CP/M 2 BDOS and CCP areas
+  */
+ #define STOCK_BDOS_SIZE 3584
+ #define STOCK_CCP_SIZE 2048
++/*
++ * limits for the -X exact TPA size option
++ */
++#define MIN_TPA (4 * 1024)
++#define MAX_TPA (MEMORY_SIZE - MIN_BIOS_SIZE - MIN_BDOS_SIZE + 6 - TPA_START)
+ 
+ /*
+  * these addresses can be modified by the -m/memory size option
+  */
+ static int bios_start = MEMORY_SIZE - MIN_BIOS_SIZE;
+ static int bdos_start = MEMORY_SIZE - MIN_BIOS_SIZE - MIN_BDOS_SIZE;
+ static int ccp_start =
+     MEMORY_SIZE - MIN_BIOS_SIZE - MIN_BDOS_SIZE - MIN_CCP_SIZE;
+ 
+ #define BDOS_SERIAL bdos_start
+@@ -818,20 +823,34 @@ os_init(void) {
+ 	unsigned char *tpa_p;
+ 	wchar_t buffer[DMA_SIZE], *bp;
+ 	/*
+ 	 * adjust CP/M addresses if requested by the -m/memory size option
+ 	 */
+ 	if (conf_memsize) {
+ 		ccp_start = (conf_memsize - 8) * 1024 + 0x400;
+ 		bdos_start = ccp_start + STOCK_CCP_SIZE;
+ 		bios_start = bdos_start + STOCK_BDOS_SIZE;
+ 	}
++	/*
++	 * -X sets the exact TPA size in bytes; the BDOS entry (read by the
++	 * program at 0x0006) sits 6 bytes above bdos_start, so subtract 6
++	 */
++	if (conf_tpa) {
++		if (conf_tpa < MIN_TPA || conf_tpa > MAX_TPA) {
++			perr("option -X: argument out of range (%dK...%dK)",
++			    MIN_TPA / 1024, MAX_TPA / 1024);
++			rc = (-1);
++			goto premature_exit;
++		}
++		bdos_start = TPA_START + conf_tpa - 6;
++		ccp_start = bdos_start - MIN_CCP_SIZE;
++	}
+ 	/*
+ 	 * reset disk subsystem
+ 	 */
+ 	disk_reset();
+ 	/*
+ 	 * find and load executeable
+ 	 */
+ 	if (strchr(conf_command, '/')) {
+ 		/*
+ 		 * command name contains a slash --- assume Unix path
+diff --git a/readconf.c b/readconf.c
+index a5fedc9..6873708 100644
+--- a/readconf.c
++++ b/readconf.c
+@@ -144,20 +144,24 @@ int conf_save_end = 0;
+ /*
+  * use colors in terminal
+  */
+ int conf_color = (-1);
+ int conf_foreground = (-1);
+ int conf_background = (-1);
+ /*
+  * size of CP/M memory (0 resp. 8..65)
+  */
+ int conf_memsize = (-1);
++/*
++ * exact TPA size in bytes (0: default; set by the -X option)
++ */
++int conf_tpa = 0;
+ 
+ 
+ /*
+  * maximal length of a line in the configuration file
+  */
+ #define L_LINE 1024
+ 
+ 
+ /*
+  * variables for communication between the procedures of the
+diff --git a/tnylpo.h b/tnylpo.h
+index 93f3110..7261dc4 100644
+--- a/tnylpo.h
++++ b/tnylpo.h
+@@ -158,20 +158,21 @@ extern int charset;
+ extern char *conf_log;
+ extern int default_drive;
+ extern int dont_close;
+ extern int reverse_bs_del;
+ extern int delay_count;
+ extern int delay_nanoseconds;
+ extern int conf_color;
+ extern int conf_foreground;
+ extern int conf_background;
+ extern int conf_memsize;
++extern int conf_tpa;
+ 
+ 
+ /*
+  * dump configuration
+  */
+ enum dump {
+ 	DUMP_NONE = 0x01,
+ 	DUMP_STARTUP = 0x02,
+ 	DUMP_EXIT = 0x04,
+ 	DUMP_ERROR = 0x08,

@@ -7,7 +7,7 @@
 ################################################################################
 
 # Final CP/M-80 build check: report, for each shipped lzpack.com, the
-# minimum TPA (in bytes, as set by the tnylpo -m patch) at which the
+# minimum TPA (in bytes, as set by the tnylpo -X patch) at which the
 # streaming compressor reaches a 1K, 2K, 4K, and 8K match window, found by
 # bisection under emulation.  The window a packer gets decides how tightly
 # it packs, so these floors are the real capability of the shipped binaries
@@ -20,7 +20,7 @@
 # a static-footprint regression that would demote real MSX machines to a
 # 4K window breaks the build instead of slipping out.
 #
-# Needs tnylpo with the -m (TPA size) patch; prints a loud warning and
+# Needs tnylpo with the -X (TPA size) patch; prints a loud warning and
 # exits 0 when either is unavailable, so plain builds still succeed.
 
 ################################################################################
@@ -85,7 +85,7 @@ WINTPA_Z80_8K="${WINTPA_Z80_8K:-52978}"
 # design, so only the standard Z80 build is gated; the rest are reported.
 WINTPA_GATE_DIR="${WINTPA_GATE_DIR:-cpm-z80}"
 
-# tnylpo's -m patch accepts 4K..63K.
+# tnylpo's -X patch accepts 4K..63K.
 WINTPA_LO=4096
 WINTPA_HI=64512
 
@@ -168,7 +168,7 @@ probe()
   rm -f "${TMPD:?}/in.pop" "${TMPD:?}/lztmp."* 2> /dev/null || :
   (
     # shellcheck disable=SC2086
-    cd "${TMPD:?}" && ${TGUARD} "${TNYLPO}" -m "${pr_t}" -n lzpack.com in.bin
+    cd "${TMPD:?}" && ${TGUARD} "${TNYLPO}" -X "${pr_t}" -n lzpack.com in.bin
   ) 2> /dev/null \
     | tr -d '\r' \
     | sed -n 's/.* window \([0-9][0-9]*\) bytes.*/\1/p' \
@@ -177,14 +177,14 @@ probe()
 
 ################################################################################
 
-# True when the tnylpo -m (TPA size) patch is present and active: -m 64K is
+# True when the tnylpo -X (TPA size) patch is present and active: -X 64K is
 # just above the largest possible TPA, so a working patch must refuse it at
-# startup; a stock tnylpo rejects -m as an unknown option instead.
+# startup; a stock tnylpo rejects -X as an unknown option instead.
 
 tpa_patch_ok()
 {
   (
-    cd "${TMPD:?}" && "${TNYLPO}" -m 64K -n lzpack.com
+    cd "${TMPD:?}" && "${TNYLPO}" -X 64K -n lzpack.com
   ) 2>&1 | grep -q 'out of range'
 }
 
@@ -248,7 +248,7 @@ for d in "$@"; do
     # shellcheck disable=SC2310
     tpa_patch_ok || {
       printf '\n%s\n' \
-        ">> WARNING: tnylpo -m (TPA) patch missing; SKIPPING window checks!"
+        ">> WARNING: tnylpo -X (TPA) patch missing; SKIPPING window checks!"
       printf '%s\n\n' \
         ">> WARNING: 8K-window-at-${WINTPA_Z80_8K}-byte-TPA floor UNVERIFIED!"
       exit 0

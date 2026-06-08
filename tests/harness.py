@@ -81,7 +81,7 @@ MODES = [[], ["-e"], ["-8"], ["-e", "-8"], ["-Z"]]
 
 def run_tnylpo(workdir, comname, args=None, pre=None):
     """Run a CP/M .COM under tnylpo in workdir; return decoded stdout.
-    pre holds tnylpo's own options (e.g. ["-m", "16K"] to shrink the TPA)."""
+    pre holds tnylpo's own options (e.g. ["-X", "16K"] to shrink the TPA)."""
     cmd = [TNYLPO] + (pre or []) + ["-n", comname] + (args or [])
     p = subprocess.run(
         cmd,
@@ -496,7 +496,7 @@ def test_memtop_over(runner, results):
 # -C (runtime memory check): the packed file grows by exactly the check
 # block (CHK_LEN, parsed from the generated cschk.h), still self-extracts
 # under both stubs, still round-trips through -R, and -- run under a TPA too
-# small for the decompressed image (tnylpo -m; tnylpo runs only) -- refuses
+# small for the decompressed image (tnylpo -X; tnylpo runs only) -- refuses
 # with "No room" before touching memory instead of crashing the machine.
 def _chk_len():
     """CHK_LEN from the generated cschk.h, or None when unavailable."""
@@ -595,25 +595,25 @@ def test_checked_small(runner, results):
             )
             return
         shutil.copy(os.path.join(wd, "b24.pop"), os.path.join(wd, "runb.com"))
-        # Functional probe for the tnylpo -m (TPA size) patch: -m 64K is just
+        # Functional probe for the tnylpo -X (TPA size) patch: -X 64K is just
         # above the largest possible TPA, so a working patch must refuse it at
-        # startup ("argument out of range").  A stock tnylpo rejects -m as an
-        # unknown option, and a stale or half-patched build can ACCEPT -m yet
+        # startup ("argument out of range").  A stock tnylpo rejects -X as an
+        # unknown option, and a stale or half-patched build can ACCEPT -X yet
         # silently run with the full 64K TPA -- the usage text alone cannot
         # tell those apart, and either one would fail the small-TPA leg for
         # reasons that have nothing to do with the -C stub, so SKIP instead.
-        probe = run_tnylpo(wd, "runb.com", pre=["-m", "64K"])
+        probe = run_tnylpo(wd, "runb.com", pre=["-X", "64K"])
         if "out of range" not in probe:
             emit(
                 results,
                 "big24.com -C @16K",
                 "SKIP",
                 "-",
-                "tnylpo -m (TPA size) patch missing or inactive",
+                "tnylpo -X (TPA size) patch missing or inactive",
             )
             return
         full = run_tnylpo(wd, "runb.com")
-        small = run_tnylpo(wd, "runb.com", pre=["-m", "16K"])
+        small = run_tnylpo(wd, "runb.com", pre=["-X", "16K"])
         pos_ok = "BIG24-MARK-E5" in full
         neg_ok = "No room" in small and "BIG24-MARK-E5" not in small
         ok = pos_ok and neg_ok
@@ -633,10 +633,10 @@ def test_checked_small(runner, results):
 
 
 def _tpa_patch_ok(wd, comname):
-    """True when the tnylpo -m (TPA size) patch is present and active: -m 64K
+    """True when the tnylpo -X (TPA size) patch is present and active: -X 64K
     is just above the largest possible TPA, so a working patch must refuse it
     at startup (see the longer rationale in test_checked_small)."""
-    return "out of range" in run_tnylpo(wd, comname, pre=["-m", "64K"])
+    return "out of range" in run_tnylpo(wd, comname, pre=["-X", "64K"])
 
 
 # -F (runtime floor): the floored pack must be the plain -C pack with only
@@ -685,11 +685,11 @@ def test_checked_floor(runner, results):
         shutil.copy(os.path.join(wd, "f.pop"), os.path.join(wd, "runf.com"))
         shutil.copy(os.path.join(wd, "c.pop"), os.path.join(wd, "runc.com"))
         if not _tpa_patch_ok(wd, "runf.com"):
-            emit(results, tag, "SKIP", "-", "tnylpo -m (TPA) patch missing or inactive")
+            emit(results, tag, "SKIP", "-", "tnylpo -X (TPA) patch missing or inactive")
             return
         full = run_tnylpo(wd, "runf.com")
-        small = run_tnylpo(wd, "runf.com", pre=["-m", "32K"])
-        ctrl = run_tnylpo(wd, "runc.com", pre=["-m", "32K"])
+        small = run_tnylpo(wd, "runf.com", pre=["-X", "32K"])
+        ctrl = run_tnylpo(wd, "runc.com", pre=["-X", "32K"])
         pos_ok = "MED-MARK-C3" in full
         neg_ok = "No room" in small and "MED-MARK-C3" not in small
         # control: the same TPA satisfies the plain -C unpack bound, so the
@@ -807,7 +807,7 @@ STACKSZ = int(os.environ.get("STACKSZ", 1024))
 
 
 def _map_floor_tpa(compath):
-    """First safe TPA size (bytes, for tnylpo -m) of a shipped checked tool,
+    """First safe TPA size (bytes, for tnylpo -X) of a shipped checked tool,
     from the .map beside its .com: the build patches DST_LIM = __BSS_END +
     STACKSZ + 128 (chk_floor in .build-cpm.sh), and the BDOS base for a TPA
     of t bytes is 0x100 + t, so the edge TPA is DST_LIM - 0x100."""
@@ -876,14 +876,14 @@ def test_checked_startup(runner, results):
                         tag,
                         "SKIP",
                         "-",
-                        "tnylpo -m (TPA size) patch missing or inactive",
+                        "tnylpo -X (TPA size) patch missing or inactive",
                     )
                     return
                 probed = True
             # mid BSS-wipe zone, top of the wrapped-heap zone, first safe TPA
-            wipe = run_tnylpo(wd, name, args, pre=["-m", str(floor - 1024 - 512)])
-            edge = run_tnylpo(wd, name, args, pre=["-m", str(floor - 1)])
-            atf = run_tnylpo(wd, name, args, pre=["-m", str(floor)])
+            wipe = run_tnylpo(wd, name, args, pre=["-X", str(floor - 1024 - 512)])
+            edge = run_tnylpo(wd, name, args, pre=["-X", str(floor - 1)])
+            atf = run_tnylpo(wd, name, args, pre=["-X", str(floor)])
             wipe_ok = "No room" in wipe and "HALT" not in wipe
             edge_ok = "No room" in edge and "HALT" not in edge
             at_ok = (
