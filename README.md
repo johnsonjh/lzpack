@@ -447,10 +447,10 @@ Most users will only be interested in the native binary build.
 | Make Target | Description                        | Toolchain                                                                                                                   |
 |------------:|:-----------------------------------|:----------------------------------------------------------------------------------------------------------------------------|
 | `all`       | Native&nbsp;binary                 | ANSI&nbsp;C89&nbsp;compiler&nbsp;(*e.g.*,&nbsp;`c89`,&nbsp;`gcc`,&nbsp;`clang`)                                             |
-| `cpm`       | CP/M‑80&nbsp;8080&nbsp;+&nbsp;Z80  | [z88dk](https://z88dk.org/)&nbsp;(**2026‑06‑08+**)&nbsp;+&nbsp;[patched](tnylpo.diff)&nbsp;`tnylpo`                         |
+| `cpm`       | CP/M‑80&nbsp;8080&nbsp;+&nbsp;Z80  | [z88dk](https://z88dk.org/)&nbsp;(**2026‑06‑08+**)&nbsp;&amp;&nbsp;[patched](tnylpo.diff)&nbsp;`tnylpo`                     |
 | `cpm86`     | CP/M‑86&nbsp;8086/8088             | [cross‑Aztec&nbsp;C86&nbsp;v4.2](https://github.com/tsupplis/cpm86-crossdev)&nbsp;([tsupplis](https://github.com/tsupplis)) |
 | `msdos`     | MS‑DOS&nbsp;8086/8088              | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2)                                                 |
-| `djgpp`     | MS‑DOS&nbsp;80386                  | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;+&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/)                        |
+| `djgpp`     | MS‑DOS&nbsp;80386                  | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;&amp;&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/)                    |
 | `elks`      | ELKS&nbsp;8086/8088                | [IA16‑GCC](https://gitlab.com/tkchia/build-ia16)                                                                            |
 | `windows`   | Windows&nbsp;32/64‑bit             | [MinGW‑w64](https://www.mingw-w64.org/)&nbsp;[GCC](https://gcc.gnu.org/)                                                    |
 
