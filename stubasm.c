@@ -413,8 +413,10 @@ regidx (const char *const *tab, const char *t, const char *what)
 
 #ifndef __clang_version__
 # ifndef __SUNPRO_C
+#  ifndef _MSC_VER
   /*NOTREACHED*/ /* unreachable */
   return 0;
+#  endif
 # endif
 #endif
 }
@@ -1710,8 +1712,10 @@ zoff (const char *name)
 
 #ifndef __clang_version__
 # ifndef __SUNPRO_C
+#  ifndef _MSC_VER
   /*NOTREACHED*/ /* unreachable */
   return -1;
+#  endif
 # endif
 #endif
 }
