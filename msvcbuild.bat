@@ -1,5 +1,5 @@
 :: LZPACK - msvcbuild.bat
-:: Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
+:: Copyright (c) 2026 Jeffrey H. Johnson - johnsonjh.dev@gmail.com
 :: SPDX-License-Identifier: MIT-0
 :: vim: set ft=dosbatch cc=80 :
 :: scspell-id: 3e847470-632a-11f1-b7db-80ee73e9b8e7
