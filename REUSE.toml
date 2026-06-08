@@ -8,6 +8,12 @@ SPDX-PackageSupplier = "Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
 SPDX-PackageDownloadLocation = "https://github.com/johnsonjh/lzpack"
 
 [[annotations]]
+path = "tnylpo.diff"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
+SPDX-License-Identifier = "MIT-0"
+
+[[annotations]]
 path = "tests/corpus/*.com"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>"
