@@ -298,7 +298,7 @@ lzopen (const char *fn, int wr)
 
 #if !defined(LZ_ASM_RESTORE) && !defined(LZPACK_COMPRESS_ONLY)
 # if defined(__ELKS__) || (defined(__WATCOMC__) && defined(__I86__)) || \
-     defined(__AZTEC_C_42T__)
+     defined(__AZTEC_C_42T__) && !defined(LZPACK_NO_ASM_RESTORE_86)
 #  define LZ_ASM_RESTORE_86
 # endif
 #endif
