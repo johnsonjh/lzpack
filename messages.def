@@ -23,6 +23,7 @@ MSG_E_MZX	!defined(LZPACK_DECODE_ONLY)	ERROR: %s exceeds MZXFILE=%ld (build cons
 MSG_E_HDRBIG	!defined(LZPACK_DECODE_ONLY)	ERROR: %s is too large for header (max 65535 bytes)\n
 MSG_E_SMALL	!defined(LZPACK_DECODE_ONLY)	ERROR: %s too small\n
 MSG_E_NOFIT	!defined(LZPACK_DECODE_ONLY)	ERROR: %s would not fit in memory\n
+MSG_E_GENCOM	!defined(LZPACK_DECODE_ONLY)	ERROR: %s GENCOM unsupported\n
 MSG_P_WINDOW	defined(LZPACK_STREAM) && !defined(LZPACK_DECODE_ONLY)	  %-12s window %ld bytes (max distance %ld)\n
 MSG_P_SKIPPED	!defined(LZPACK_DECODE_ONLY)	  %-12s -- inefficient (%ld => %ld), skipped\n
 MSG_P_PACKED	!defined(LZPACK_DECODE_ONLY)	  %-12s %6ld => %6ld  (%ld.%ld%%)  [%s%s]  -> %s\n

@@ -395,6 +395,32 @@ def test_memtop_bad(runner, results):
         shutil.rmtree(wd, ignore_errors=True)
 
 
+def test_gencom(runner, results):
+    # CP/M-3 GENCOM/RSX images carry a one-page (256-byte) header whose first
+    # byte is 0C9h (a RET, harmless on CP/M 2.2).  The packer must detect that
+    # marker, refuse the file (no output), and emit the GENCOM diagnostic --
+    # in every mode, since the check precedes stub/arch selection.
+    wd = tempfile.mkdtemp(prefix="lz_")
+    try:
+        name = "gencom.com"
+        # 256-byte page header (RET marker + zero fill) then a trivial body.
+        blob = bytes([0xC9]) + b"\x00" * 255 + b"\xc3\x06\x01" + b"\x00" * 256
+        with open(os.path.join(wd, name), "wb") as f:
+            f.write(blob)
+        for mode in ([], ["-e"], ["-8"], ["-Z"]):
+            data, log = _pack(runner, wd, name, mode, "g.pop")
+            ok = data is None and "GENCOM" in log
+            emit(
+                results,
+                "gencom %s" % (" ".join(mode) if mode else "(plain)"),
+                "PASS" if ok else "FAIL",
+                "-",
+                "refused" if ok else "NOT REFUSED log=" + log.strip()[:60],
+            )
+    finally:
+        shutil.rmtree(wd, ignore_errors=True)
+
+
 def test_memtop_fit(runner, results, fname, top):
     # (2) parses fine but too small for the file: per-file refusal
     wd = _scratch(fname)
@@ -994,6 +1020,7 @@ def main():
                 )
             )
     tasks.append(("-m bad values", test_memtop_bad, (runner, results)))
+    tasks.append(("gencom reject", test_gencom, (runner, results)))
     tasks.append(
         ("med.com -m 0x1FFF", test_memtop_fit, (runner, results, "med.com", "0x1FFF"))
     )

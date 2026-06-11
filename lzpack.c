@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v1.0-rc-1"
+#define LZPACK_VER "v1.0-rc-2"
 
 /******************************************************************************/
 
@@ -2970,6 +2970,19 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
+  /*
+   * CP/M-3 GENCOM RSX-attached images carry a one-page header whose first
+   * byte is 0C9h (RET); refuse them rather than packing the header.
+   */
+
+  if (n > 0 && data[0] == 0xc9)
+    {
+      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      (void)fprintf (stderr, MSG_E_GENCOM, fn);
+
+      return 1;
+    }
+
 #  ifndef LZPACK_COMPRESS_ONLY
   {
     unsigned r_stubv = 0, r_litsrc = 0;
@@ -3855,6 +3868,15 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
           k = (long)lzread (hdr, LITCNT, in);
           (void)lzclose (in);
+
+          /* CP/M-3 GENCOM header record: first byte is 0C9h (RET). */
+          if (k >= 1 && hdr[0] == 0xc9)
+            {
+              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              (void)fprintf (stderr, MSG_E_GENCOM, fn);
+
+              return 1;
+            }
 
           if (k == LITCNT && parse_header (hdr, n, &rsv, &rls, &rol) == 0)
             {

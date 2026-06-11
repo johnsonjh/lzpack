@@ -149,8 +149,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
-  |  **Z80** | `29,314`&nbsp;(`28.6K`) | `32,386`&nbsp;(`31.6K`) | `38,530`&nbsp;(`37.6K`) | `50,818`&nbsp;(`49.6K`) |
-  | **8080** | `30,612`&nbsp;(`29.8K`) | `33,684`&nbsp;(`32.8K`) | `39,828`&nbsp;(`38.8K`) | `52,116`&nbsp;(`50.8K`) |
+  |  **Z80** | `29,394`&nbsp;(`28.7K`) | `32,466`&nbsp;(`31.7K`) | `38,610`&nbsp;(`37.7K`) | `50,898`&nbsp;(`49.7K`) |
+  | **8080** | `30,701`&nbsp;(`29.9K`) | `33,773`&nbsp;(`32.9K`) | `39,917`&nbsp;(`38.9K`) | `52,205`&nbsp;(`50.9K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
@@ -200,9 +200,12 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 
 * This scheme does **not** currently support CP/M‑Plus / CP/M‑3+
   `GENCOM`‑processed executables which use pre-initialization code or have
-  attached RSXs.  You can use the `GENCOM` utility to convert executables to
-  standard CP/M binary images if possible (without the `GENCOM` header,
-  pre-init code, or RSXs) before using **LZPACK**.
+  attached RSXs.  Such images carry a one‑page header whose first byte is
+  `0C9h` (a `RET`, harmless on CP/M&nbsp;2.2); **LZPACK** detects this marker
+  and refuses to pack them with a `GENCOM unsupported` error.  You can use the
+  `GENCOM` utility to convert executables to standard CP/M binary images if
+  possible (without the `GENCOM` header, pre-init code, or RSXs) before using
+  **LZPACK**.
 * Support for some `GENCOM`‑processed CP/M‑Plus executables may be added in
   a future **LZPACK** release.
 
