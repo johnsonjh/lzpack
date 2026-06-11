@@ -276,7 +276,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v1.0-rc-1 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v1.0-rc-2 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
@@ -406,7 +406,7 @@ any packed program can be inspected on the target machine itself.
 |-----------------------------------------------------------------------------------------------:|:------------|:------------------------------------------|
 | [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(8080)                    |
 | [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                     |
-| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)               |
+| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 20&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)               |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)                |
 | [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386&nbsp;DPMI)          |
 | [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 32&nbsp;KiB |**OS/2**&nbsp;(32-bit&nbsp;OS/2&nbsp;2.1+) |
