@@ -198,6 +198,14 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 3. Decompresses in‑place into the TPA, writing output from `0x110` upward, and,
 4. Jumps back to `0x100` to run the unpacked executable image.
 
+* This scheme does **not** currently support CP/M‑Plus / CP/M‑3+
+  `GENCOM`‑processed executables which use pre-initialization code or have
+  attached RSXs.  You can use the `GENCOM` utility to convert executables to
+  standard CP/M binary images if possible (without the `GENCOM` header,
+  pre-init code, or RSXs) before using **LZPACK**.
+* Support for some `GENCOM`‑processed CP/M‑Plus executables may be added in
+  a future **LZPACK** release.
+
 #### Compressors
 
 **LZPACK** compresses using a cost‑optimal shortest‑path parser and includes
