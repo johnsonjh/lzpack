@@ -20,7 +20,7 @@ wide range of CP/M‑80 machines, including systems with Z80, 8080, 8085, and
 V20 processors, and systems with less than 48K&nbsp;TPA.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
-as on MS‑DOS, Windows, Linux, or in any UNIX‑like environment) gives even
+as on MS‑DOS, OS/2, Windows, Linux, or in any UNIX‑like environment) gives even
 better compression results.
 
 [Precompiled binaries for many systems are available for download.](#downloads)
@@ -56,18 +56,18 @@ better compression results.
 
 The *compressor* runs on just about anything with an ANSI C89 compiler.  You
 can pack CP/M‑80 programs on any modern UNIX
-(even [**ELKS**](https://github.com/ghaerr/elks)), Windows, or MS‑DOS
+(even [**ELKS**](https://github.com/ghaerr/elks)), OS/2, Windows, or MS‑DOS
 system without emulation, as well as pack natively on the CP/M‑80 target.
 
 The *decompressor* that is embedded into each packed executable is hand‑written
 and highly optimized 8080 or Z80 assembly.
 
 Pre‑compiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
-**MS‑DOS** (8086/8088 real‑mode and 386 DPMI), **ELKS**, and **Windows** (both
-32‑ and 64‑bit versions).
+**MS‑DOS** (16‑bit 8086/8088 real‑mode and 32‑bit 386&nbsp;DPMI), **ELKS**,
+**OS/2** (32‑bit), and **Windows** (both 32‑ and 64‑bit versions).
 
-The CP/M‑80 builds also run on **MSX‑DOS** (and so do the packed executables
-they generate).
+The CP/M‑80 builds also run on **MSX‑DOS** (as do the packed executables
+**LZPACK** generates).
 
 ## Details
 
@@ -149,8 +149,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
-  |  **Z80** | `29,316`&nbsp;(`28.6K`) | `32,388`&nbsp;(`31.6K`) | `38,532`&nbsp;(`37.6K`) | `50,820`&nbsp;(`49.6K`) |
-  | **8080** | `30,614`&nbsp;(`29.8K`) | `33,686`&nbsp;(`32.8K`) | `39,830`&nbsp;(`38.8K`) | `52,118`&nbsp;(`50.8K`) |
+  |  **Z80** | `29,314`&nbsp;(`28.6K`) | `32,386`&nbsp;(`31.6K`) | `38,530`&nbsp;(`37.6K`) | `50,818`&nbsp;(`49.6K`) |
+  | **8080** | `30,612`&nbsp;(`29.8K`) | `33,684`&nbsp;(`32.8K`) | `39,828`&nbsp;(`38.8K`) | `52,116`&nbsp;(`50.8K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
@@ -213,7 +213,7 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 
 1. The **in‑memory** implementation loads the entire file into RAM and finds
    matches with a hash‑chain over the entire file.  It is used by native,
-   Windows, and DOS 386 DPMI builds.
+   32‑bit and 64‑bit Windows, 32‑bit OS/2, and 386 DPMI MS-DOS builds.
 
 2. The **streaming** implementation reads the input through a sliding window
    and writes the output to a temporary file, so its working memory is
@@ -399,16 +399,17 @@ any packed program can be inspected on the target machine itself.
 
 ## Downloads
 
-|                                                                                          File  | Size        | Platform                             |
-|-----------------------------------------------------------------------------------------------:|:------------|:-------------------------------------|
-| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(8080)               |
-| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                |
-| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)          |
-| [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)           |
-| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386 DPMI)          |
-| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 40&nbsp;KiB |**Windows**&nbsp;(32-bit&nbsp;MSVCRT) |
-| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit&nbsp;UCRT)   |
-| [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB |**ELKS**&nbsp;(8086/8088)             |
+|                                                                                          File  | Size        | Platform                                  |
+|-----------------------------------------------------------------------------------------------:|:------------|:------------------------------------------|
+| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(8080)                    |
+| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB |**CP/M‑80**&nbsp;(Z80)                     |
+| [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 16&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)               |
+| [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)                |
+| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386&nbsp;DPMI)          |
+| [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 32&nbsp;KiB |**OS/2**&nbsp;(32-bit&nbsp;OS/2&nbsp;2.1+) |
+| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 40&nbsp;KiB |**Windows**&nbsp;(32-bit&nbsp;MSVCRT)      |
+| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit&nbsp;UCRT)        |
+| [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB |**ELKS**&nbsp;(8086/8088)                  |
 
 > If you need a CP/M ARC utility, `UNARC` is available for
 [8080](.utils/unarca.com) and [Z80](.utils/unarcz.com) CP/M‑80, and

@@ -13,6 +13,11 @@ XCFLAGS=-O
 
 ################################################################################
 
+# Open Watcom V2 root (for some cross targets)
+WATCOM=/opt/watcom
+
+################################################################################
+
 # Builds the native LZPACK binary.
 
 all: lzpack
@@ -164,6 +169,7 @@ distclean reallyclean: clean
 	rm -f -r ./msdos 2> /dev/null
 	rm -f -r ./djgpp 2> /dev/null
 	rm -f -r ./elks 2> /dev/null
+	rm -f -r ./os2 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
@@ -248,15 +254,18 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx owcc wasm)
 	@mkdir -p ./msdos/
-	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
+	(cd msdos && env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/h \
+		owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DMAXSYM=96 -DMAXREF=96 \
 		-DMAXCODE=768 -s -I.. -fm=stubasm.map -o ./stubasm.com \
 		-DNDEBUG ../stubasm.c)
 	(upx -q -9 --8086 ./msdos/stubasm.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	sh ./.lz86gen.sh watcom ./lz86body.asm > ./msdos/lz86.asm
-	(cd msdos && wasm -q -0 -mt -fo=lz86.obj lz86.asm)
-	(cd msdos && owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
+	(cd msdos && env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/h \
+		wasm -q -0 -mt -fo=lz86.obj lz86.asm)
+	(cd msdos && env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/h \
+		owcc -v -bcom -march=i86 -mcmodel=t -frerun-optimizer \
 		-Os -fno-stack-check -DLZPACK_STREAM=1 -DHSZ=1024 \
 		-DMZXFILE=65535L -DLZPACK_PACKED_MSGS -s -I.. \
 		-fm=lzpack.map -o ./lzpack.com \
@@ -266,8 +275,30 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 
 ################################################################################
 
+# 32-bit protected-mode OS/2 2.x builds using Open Watcom V2.0's "owcc" driver.
+# https://github.com/open-watcom/open-watcom-v2
+
+OS2OLD=This is an OS/2 32-bit executable
+OS2NEW=This LZPACK requires 32-bit OS/2.
+
+os2: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
+	lz86body.asm .lz86gen.sh
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command owcc sed)
+	@mkdir -p ./os2/
+	(cd os2 && env WATCOM="$(WATCOM)" INCLUDE="$(WATCOM)/h" \
+		LIBPATH="$(WATCOM)/binp/dll:$${LIBPATH:-}" \
+		owcc -v -bos2v2 -march=i386 -mcmodel=f -frerun-optimizer \
+		-Os -fno-stack-check -s -I.. -fm=lzpack.map -o ./lzpack.exe \
+		-DNDEBUG ../lzpack.c)
+	(cd os2 && sed 's|$(OS2OLD)|$(OS2NEW)|' lzpack.exe > lzpack.out)
+	(cd os2 && mv -f lzpack.out lzpack.exe)
+
+################################################################################
+
 # Protected-mode (386+) MS-DOS build using DJGPP and embedded CWSDPMI.
-# https://www.delorie.com/djgpp/
+# https://www.delorie.com/djgpp/ and https://sandmann.dotster.com/cwsdpmi/
 
 djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	@mkdir -p ./djgpp/
@@ -371,7 +402,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 		find_command arc compress "$${GIT_CMD:-git}" \
 		"$${MAKE:-make}" zip)
 	"$${MAKE:-make}" distclean
-	"$${MAKE:-make}" all cpm cpm86 msdos djgpp elks windows
+	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows
 	mkdir -p ./bindist/
 	# CP/M-80 8080 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-8080/lzpack.com
@@ -417,6 +448,11 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	zip -0 -X -D -j ./windows/lzpack64.exe.zip ./windows/lzpack64.exe
 	chmod a-x ./windows/lzpack64.exe.zip
 	mv -f ./windows/lzpack64.exe.zip ./bindist/LZPCKW64.ZIP
+	# OS/2 (32-bit)
+	test -f ./os2/lzpack.exe
+	zip -0 -X -D -j ./os2/lzpack.exe.zip ./os2/lzpack.exe
+	chmod a-x ./os2/lzpack.exe.zip
+	mv -f ./os2/lzpack.exe.zip ./bindist/LZPCKOS2.ZIP
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
 	./.updatedocs.sh
@@ -486,7 +522,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
-	scspell-fix dos pcdos everything-lint megalint
+	scspell-fix dos pcdos everything-lint megalint os2
 
 ################################################################################
 
