@@ -71,6 +71,14 @@ static int cur_pass;
 
 /******************************************************************************/
 
+static void
+xstrcpy (char *d, const char *s)
+{
+  (void)memcpy (d, s, strlen (s) + 1);
+}
+
+/******************************************************************************/
+
 static long
 xstrtol (const char *nptr, const char **endptr, int base)
 {
@@ -231,7 +239,7 @@ sym_set (const char *n, long v, int islabel)
         die ("symbol too long");
 
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-      (void)strcpy (sym_name[i], n);
+      (void)xstrcpy (sym_name[i], n);
     }
   else if (cur_pass == 2 && islabel && sym_islabel[i] && sym_val[i] != v)
     die ("phase error");
@@ -516,7 +524,7 @@ rec (const char *tok, int width)
             die ("reference name too long");
 
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          (void)strcpy (refs[nref].name, tok);
+          (void)xstrcpy (refs[nref].name, tok);
         }
 
       refs[nref].width = width;
@@ -1268,7 +1276,7 @@ assemble (const char *path, int z80)
             }
 
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          (void)strcpy (opU, op);
+          (void)xstrcpy (opU, op);
 
           upcase (opU);
           loc = (have_org ? org : 0) + clen;
@@ -1643,7 +1651,7 @@ collect (const char *const *patch)
             die ("patch name too long");
 
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          (void)strcpy (sl_name[nsl], refs[j].name);
+          (void)xstrcpy (sl_name[nsl], refs[j].name);
 
           sl_off[nsl] = refs[j].off;
 
@@ -1963,7 +1971,7 @@ main (int argc, char **argv)
   for (i = 0; i < nsl; i++)
     {
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-      (void)strcpy (s_sl_name[i], sl_name[i]);
+      (void)xstrcpy (s_sl_name[i], sl_name[i]);
 
       s_sl_off[i] = sl_off[i];
     }

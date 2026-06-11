@@ -156,6 +156,33 @@ static int opt_lrbc_isx = 0;
 
 /******************************************************************************/
 
+#ifndef LZPACK_WILDCARD
+# if defined(__AZTEC_C_42T__) && !defined(LZPACK_NO_WILDCARD)
+#  define LZPACK_WILDCARD 1
+# else
+#  define LZPACK_WILDCARD 0
+# endif
+#endif
+
+#if LZPACK_WILDCARD && (!defined(LZ_CPM) || defined(LZPACK_NO_WILDCARD))
+# undef LZPACK_WILDCARD
+# define LZPACK_WILDCARD 0 /* off: needs CP/M BDOS or NO_WILDCARD */
+#endif
+
+#if defined(_WIN32) && !defined(LZPACK_NO_WILDCARD)
+# define LZ_WIN_WILDCARD 1
+#else
+# define LZ_WIN_WILDCARD 0
+#endif
+
+#if (defined(LZ_CPM) && LZPACK_WILDCARD) || LZ_WIN_WILDCARD
+# define LZ_INT_WILDCARD 1
+#else
+# define LZ_INT_WILDCARD 0
+#endif
+
+/******************************************************************************/
+
 #ifdef LZ_BDOS_IO
 
 # define LZ_NFILES 2
@@ -1636,7 +1663,11 @@ extern int bdos ();
 /******************************************************************************/
 
 #ifdef __AZTEC_C_42T__
-# define LZ_STACK_RESERVE 2048
+# if LZPACK_WILDCARD
+#  define LZ_STACK_RESERVE 1792
+# else
+#  define LZ_STACK_RESERVE 2048
+# endif
 extern void rsvstk ();
 # define LZ_GUARD_STACK() rsvstk (LZ_STACK_RESERVE)
 #else
@@ -4946,6 +4977,120 @@ version (void)
 
 /******************************************************************************/
 
+#if LZ_INT_WILDCARD
+# ifndef LZPACK_DECODE_ONLY
+#  ifdef LZPACK_STREAM
+#   define LZ_RUN_COMPRESS(FN) \
+     do_compress_stream ((FN), oname, 1, use8080, auto_stub, optimal)
+#  else
+#   define LZ_RUN_COMPRESS(FN) \
+     do_compress ((FN), oname, 1, use8080, auto_stub, optimal)
+#  endif
+# endif
+
+/******************************************************************************/
+
+# ifdef LZPACK_COMPRESS_ONLY
+/* Flawfinder: ignore */ /* False positive CWE-134 */
+#  define LZ_RUN_RESTORE(FN) ((void)fprintf (stderr, MSG_E_NOREST), 1)
+# else
+#  define LZ_RUN_RESTORE(FN) do_restore ((FN), oname, 1)
+# endif
+
+/******************************************************************************/
+
+# ifndef LZPACK_DECODE_ONLY
+#  define LZ_RUN_ONE(FN) \
+     ((mode == 0) ? LZ_RUN_COMPRESS (FN) \
+      : (mode == 1) ? LZ_RUN_RESTORE (FN) : do_list (FN))
+# else
+#  define LZ_RUN_ONE(FN) ((mode == 1) ? LZ_RUN_RESTORE (FN) : do_list (FN))
+# endif
+#endif
+
+/******************************************************************************/
+
+#if LZ_INT_WILDCARD
+
+static int
+is_wildcard (const char *s)
+{
+  int c;
+
+  while ((c = *s++) != '\0')
+    if (c == '*' || c == '?')
+      return 1;
+
+  return 0;
+}
+#endif
+
+/******************************************************************************/
+
+#if defined(LZ_CPM) && LZPACK_WILDCARD
+
+static unsigned char g_dma[128];
+static char g_wname[13];
+
+/******************************************************************************/
+
+static char *
+fcb_to_name (const unsigned char *e)
+{
+  char *d = g_wname;
+  int i;
+
+  for (i = 1; i <= 11; i++)
+    {
+      int c = e[i] & 0x7f;
+
+      if (i == 9 && (e[9] & 0x7f) != ' ')
+        *d++ = '.';
+
+      if (c != ' ')
+        *d++ = (char)c;
+    }
+
+  *d = '\0';
+
+  return g_wname;
+}
+#endif
+
+/******************************************************************************/
+
+#if LZ_WIN_WILDCARD
+
+# define LZ_FILE_ATTR_DIRECTORY 0x10
+# define LZ_INVALID_HANDLE ((void *)-1) /* INVALID_HANDLE_VALUE */
+
+/******************************************************************************/
+
+/* cppcheck-suppress-begin unusedStructMember */
+typedef struct
+{
+  unsigned long dwFileAttributes;
+  unsigned long ftCreation[2];
+  unsigned long ftLastAccess[2];
+  unsigned long ftLastWrite[2];
+  unsigned long nFileSizeHigh;
+  unsigned long nFileSizeLow;
+  unsigned long dwReserved0;
+  unsigned long dwReserved1;
+  char cFileName[260];
+  char cAlternateFileName[14];
+} LZ_FINDDATA;
+/* cppcheck-suppress-end unusedStructMember */
+
+/******************************************************************************/
+
+extern void *__stdcall FindFirstFileA (const char *, LZ_FINDDATA *);
+extern int __stdcall FindNextFileA (void *, LZ_FINDDATA *);
+extern int __stdcall FindClose (void *);
+#endif
+
+/******************************************************************************/
+
 int
 main (int argc, char **argv)
 {
@@ -5125,30 +5270,119 @@ main (int argc, char **argv)
           continue;
         }
 
-#ifndef LZPACK_DECODE_ONLY
+#if LZ_INT_WILDCARD
+      if (is_wildcard (argv[i]))
+        {
+          int found = 0;
+
+# if defined(LZ_CPM) && LZPACK_WILDCARD
+          unsigned char fcb[36];
+          int k, j, hit = 0;
+
+          cpm_setfcb (fcb, argv[i]);
+          fcb[0] = 0; /* current drive only, ignores drive prefix */
+
+          for (k = 1; k <= 11; k++)
+            {
+              if (k == 9)
+                hit = 0;
+              if (fcb[k] == '*')
+                hit = 1;
+              if (hit)
+                fcb[k] = '?';
+            }
+
+          for (k = 0;; k++)
+            {
+              int r;
+
+              (void)bdos (26, BDOS_FCB (g_dma));
+              r = bdos (17, BDOS_FCB (fcb)) & 0xff;
+
+              for (j = 0; j < k && r != 0xff; j++)
+                r = bdos (18, BDOS_FCB (fcb)) & 0xff;
+
+              if (r == 0xff)
+                break;
+
+              found = 1;
+              rc |= LZ_RUN_ONE (fcb_to_name (g_dma + (r & 3) * 32));
+            }
+# elif LZ_WIN_WILDCARD
+          LZ_FINDDATA fd;
+          void *h = FindFirstFileA (argv[i], &fd);
+
+          if (h != LZ_INVALID_HANDLE)
+            {
+              const char *s, *sep = 0;
+              char wbuf[600];
+              size_t plen;
+
+              for (s = argv[i]; *s; s++)
+                if (*s == '\\' || *s == '/' || *s == ':')
+                  sep = s;
+              plen = sep ? (size_t)(sep - argv[i] + 1) : 0;
+
+              if (plen < sizeof (wbuf))
+                {
+                  (void)memcpy (wbuf, argv[i], plen);
+
+                  do
+                    {
+                      size_t fn = strlen (fd.cFileName);
+
+                      if (!(fd.dwFileAttributes & LZ_FILE_ATTR_DIRECTORY)
+                          && plen + fn < sizeof (wbuf))
+                        {
+                          found = 1;
+                          (void)memcpy (wbuf + plen, fd.cFileName, fn + 1);
+                          rc |= LZ_RUN_ONE (wbuf);
+                        }
+                    }
+                  while (FindNextFileA (h, &fd));
+                }
+
+              (void)FindClose (h);
+            }
+# endif
+
+          if (!found)
+            {
+              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              (void)fprintf (stderr, MSG_E_READ, argv[i]);
+              rc |= 1;
+            }
+
+          continue;
+        }
+
+      rc |= LZ_RUN_ONE (argv[i]);
+#else
+# ifndef LZPACK_DECODE_ONLY
       if (mode == 0)
         {
-# ifdef LZPACK_STREAM
+#  ifdef LZPACK_STREAM
           rc |= do_compress_stream (argv[i], oname, 1, use8080, auto_stub,
                                     optimal);
-# else
+#  else
           rc |= do_compress (argv[i], oname, 1, use8080, auto_stub, optimal);
-# endif
+#  endif
         }
       else
-#endif
+# endif
       if (mode == 1)
         {
-#ifdef LZPACK_COMPRESS_ONLY
+# ifdef LZPACK_COMPRESS_ONLY
           /* Flawfinder: ignore */ /* False positive CWE-134 */
           (void)fprintf (stderr, MSG_E_NOREST);
           rc |= 1;
-#else
+# else
           rc |= do_restore (argv[i], oname, 1);
-#endif
+# endif
         }
       else
         rc |= do_list (argv[i]);
+#endif
     }
 
   (void)use8080;

@@ -418,6 +418,18 @@ any packed program can be inspected on the target machine itself.
 [8080](.utils/unarca.com) and [Z80](.utils/unarcz.com) CP/M‑80, and
 `ARCCPM` for [CP/M‑86](.utils/arccpm.cmd).
 
+## Platform notes
+
+The CP/M‑86 version of **LZPACK** supports wildcard expansion, checking
+against the current drive's directory.  Any drive letter specific in the
+pattern is ignored and the current drive is always searched.
+
+To keep CP/M‑80 versions as small as possible, wildcard expansion is disabled
+by default, but can be enabled in custom builds using `-DLZPACK_WILDCARD=1`.
+
+The 386&nbsp;DPMI&nbsp;MS‑DOS and Windows versions also support wildcard
+expansion.  The real‑mode MS‑DOS version does not expand wildcards.
+
 ## Building from source
 
 **LZPACK** needs **only an ANSI C89 compiler** to build on any
