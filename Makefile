@@ -455,6 +455,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	mv -f ./os2/lzpack.exe.zip ./bindist/LZPCKOS2.ZIP
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
+	markdown-toc -i README.md 2> /dev/null || :
 	./.updatedocs.sh
 	"$${MAKE:-make}" distclean
 	"$${GIT_CMD:-git}" status || :
