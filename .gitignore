@@ -70,6 +70,8 @@ strpack
 /*.t
 /tags
 /TAGS
+.t.c
+.test.c
 *.tmp
 *.TMP
 *.unittest
