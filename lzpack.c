@@ -4751,8 +4751,11 @@ herald (FILE *f)
 static unsigned
 parse_memtop (const char *s)
 {
-  /* function static direct addressing is far smaller than IX-relative
-   * stack locals under sccz80, and a CLI parser needs no reentrancy */
+  /*
+   * function static direct addressing is far smaller than IX-relative
+   * stack locals under sccz80, and a CLI parser needs no reentrancy
+   */
+
   static unsigned v;
 
   v = 0;
