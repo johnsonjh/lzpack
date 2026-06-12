@@ -673,13 +673,22 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
   if (!strcmp (op, "EX"))
     {
       if (a1 && !strcmp (a0, "DE") && !strcmp (a1, "HL"))
-        { emit (0xEB); return; }
+        {
+          emit (0xEB);
+          return;
+        }
 
       if (a1 && !strcmp (a0, "AF") && !strcmp (a1, "AF'"))
-        { emit (0x08); return; }
+        {
+          emit (0x08);
+          return;
+        }
 
       if (a1 && !strcmp (a0, "(SP)") && !strcmp (a1, "HL"))
-        { emit (0xE3); return; }
+        {
+          emit (0xE3);
+          return;
+        }
 
       die ("bad EX");
     }

@@ -483,9 +483,7 @@ prune_book (void)
           now = dp_all () + book_cost ();
 
           if (now <= base)
-            {
-              again = 1;
-            }
+            again = 1;
           else
             {
               for (j = sp_nbook; j > i; j--)
@@ -541,9 +539,7 @@ emit_one (const unsigned char *s, long n, unsigned char *out)
           i += sp_blen[hit];
         }
       else
-        {
-          out[o++] = s[i++];
-        }
+        out[o++] = s[i++];
     }
 
   out[o] = 0;
