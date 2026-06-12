@@ -410,7 +410,7 @@ any packed program can be inspected on the target machine itself.
 | [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 20&nbsp;KiB |**CP/M‑86**&nbsp;(8086/8088)               |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB |**MS‑DOS**&nbsp;(8086/8088)                |
 | [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB |**MS‑DOS**&nbsp;(80386&nbsp;DPMI)          |
-| [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 32&nbsp;KiB |**OS/2**&nbsp;(32-bit&nbsp;OS/2&nbsp;2.1﹢) |
+| [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 32&nbsp;KiB |**OS/2**&nbsp;(32-bit&nbsp;2.1+) |
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 40&nbsp;KiB |**Windows**&nbsp;(32-bit&nbsp;MSVCRT)      |
 | [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB |**Windows**&nbsp;(64-bit&nbsp;UCRT)        |
 | [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB |**ELKS**&nbsp;(8086/8088)                  |
