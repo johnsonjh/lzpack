@@ -42,6 +42,7 @@ better compression results.
   * [Runtime memory check (`-C`)](#runtime-memory-check--c)
   * [Runtime memory floor (`-F`)](#runtime-memory-floor--f)
 - [Downloads](#downloads)
+- [Platform notes](#platform-notes)
 - [Building from source](#building-from-source)
   * [Build targets](#build-targets)
   * [Developer notes](#developer-notes)
