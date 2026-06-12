@@ -53,6 +53,16 @@ static int nsym;
 
 /******************************************************************************/
 
+#ifndef MAXPRE
+# define MAXPRE 4
+#endif
+
+static char pre_name[MAXPRE][NAMELEN];
+static long pre_val[MAXPRE];
+static int npre;
+
+/******************************************************************************/
+
 typedef struct
 {
   int off;
@@ -246,6 +256,23 @@ sym_set (const char *n, long v, int islabel)
 
   sym_val[i] = v;
   sym_islabel[i] = islabel;
+}
+
+/******************************************************************************/
+
+static void
+predefine (const char *n, long v)
+{
+  if (npre >= MAXPRE)
+    die ("too many predefined symbols");
+
+  if (strlen (n) >= (size_t)NAMELEN)
+    die ("predefined symbol too long");
+
+  /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+  (void)xstrcpy (pre_name[npre], n);
+  pre_val[npre] = v;
+  npre++;
 }
 
 /******************************************************************************/
@@ -1107,6 +1134,13 @@ assemble (const char *path, int z80)
 
   nsym = 0;
 
+  {
+    int pi;
+
+    for (pi = 0; pi < npre; pi++)
+      sym_set (pre_name[pi], pre_val[pi], 0);
+  }
+
   for (pass = 1; pass <= 2; pass++)
     {
       FILE *f;
@@ -1746,7 +1780,10 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 {
   int slen, dlen, total;
   int o_lit, o_ssrc, o_sdst, o_psrc, o_pdst, o_plen, o_run;
-  int o_chi, o_clo, o_loop;
+  int o_chi, o_clo;
+
+  assemble (decomp_path, 1);
+  predefine ("DCMP_LEN", (long)clen);
 
   assemble (setup_path, 1);
   slen = clen;
@@ -1766,7 +1803,6 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 
   o_chi  = zoff ("OUT_END_HI") + slen;
   o_clo  = zoff ("OUT_END_LO") + slen;
-  o_loop = zoff ("LOOP") + slen;
 
   total = slen + dlen;
 
@@ -1786,22 +1822,15 @@ emit_z80 (const char *setup_path, const char *decomp_path)
   (void)printf ("# define P_JP_RELOC 0x%02x\n", (unsigned int)o_run);
   (void)printf ("# define P_CP_HI 0x%02x\n", (unsigned int)o_chi);
   (void)printf ("# define P_CP_LO 0x%02x\n", (unsigned int)o_clo);
-  (void)printf ("# define P_JP_LOOP 0x%02x\n", (unsigned int)o_loop);
 
-  /* GETBIT is a CALLed subroutine; its operand is absolute, so every call site
-   * needs per-file relocation.  Emit GETBIT's decomp-relative offset and the
-   * stub offset of every CALL GETBIT operand. */
   {
     int gj, ng = 0, kg = sym_find ("GETBIT"), ks = sym_find ("START");
-    int kl = sym_find ("LOOP");
 
-    if (kg < 0 || ks < 0 || kl < 0)
-      die ("GETBIT/START/LOOP label missing from decompressor");
+    if (kg < 0 || ks < 0)
+      die ("GETBIT/START label missing from decompressor");
 
     (void)printf ("# define Z80_GETBIT_OFF 0x%02x\n",
                   (unsigned int)(sym_val[kg] - sym_val[ks]));
-    (void)printf ("# define Z80_LOOP_OFF 0x%02x\n",
-                  (unsigned int)(sym_val[kl] - sym_val[ks]));
     (void)printf ("static const unsigned short z80_getbit_fix[] = {");
 
     for (gj = 0; gj < nref; gj++)

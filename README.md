@@ -180,13 +180,13 @@ compares the **LZPACK** decompression stubs against those from the
 
 |      CPU |         PopCom! | LZPACK          |
 |---------:|----------------:|:----------------|
-| **Z80**  | **`230` bytes** | **`187` bytes** |
-| **8080** | (*Unsupported*) | **`256` bytes** |
+| **Z80**  | **`230` bytes** | **`180` bytes** |
+| **8080** | (*Unsupported*) | **`238` bytes** |
 
-* **LZPACK**'s Z80 code is just **187 bytes** (including setup code) versus
-  *PopCom!*'s **230 bytes**, nearly **20% smaller**.
+* **LZPACK**'s Z80 code is just **180 bytes** (including setup code) versus
+  *PopCom!*'s **230 bytes**, over **21% smaller**.
 * *PopCom!* has no 8080 support at all, while **LZPACK**'s pure 8080
-  decompressor weighs in at only **\~11%** larger than the *PopCom!* Z80 code.
+  decompressor weighs in at only **\~3%** larger than the *PopCom!* Z80 code.
 
 ### Operation
 
@@ -332,7 +332,7 @@ than the one running the packer, or it might have a resident driver that
 lowers the BDOS pointer at `0x0006`, which could be silently overwritten
 during decompression.  The `-C` option enhances the stub with a small
 (48‑byte) runtime check.  It verifies that the highest address the unpacker
-will write to lies below the BDOS base and that at least 16 bytes are clear
+will write to lies below the BDOS base and that at least 24 bytes are clear
 of the live inherited stack.  If the program does not fit, it prints `No room`
 and aborts.
 

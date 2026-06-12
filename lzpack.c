@@ -338,7 +338,7 @@ lzopen (const char *fn, int wr)
 
 #include "cschk.h"
 
-#define CHK_SP_SLACK 16
+#define CHK_SP_SLACK 24
 
 /******************************************************************************/
 
@@ -2882,9 +2882,6 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
 
-  put16 (stub + P_JP_LOOP,
-    (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
-
   {
     /* GETBIT is CALLed; retarget call operands to the relocated routine */
     long getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
@@ -3734,9 +3731,6 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
   stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
   stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
 
-  put16 (stub + P_JP_LOOP,
-    (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_LOOP_OFF));
-
   {
     /* GETBIT is CALLed; retarget call operands to the relocated routine */
     lzpos getbit_v = stub_dst_top - (Z80_DCMP_LEN - 1) + Z80_GETBIT_OFF;
@@ -4435,7 +4429,7 @@ do_restore (const char *fn, const char *oname, int verbose)
         rcore[LZ_RCORE_FIX[i][0] + 1] = (unsigned char)((t >> 8) & 0xff);
       }
 
-    sv = (unsigned)(buf + srcoff);
+    sv = (unsigned)(buf + srcoff) - 1;
     dv = (unsigned)(buf + LITCNT);
     oe = (unsigned)(buf + outlen);
 

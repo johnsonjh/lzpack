@@ -9,11 +9,12 @@
 ; instead of launching.
 ;
 ; lzpack copies this block to a writable scratch buffer, relocates its absolute
-; operands by +base (decomprz80_fix[]: the JP LOOP back-edge and the five CALL
-; GETBIT sites -- everything else is PC-relative JR/DJNZ and needs no fix-up),
-; patches the four per-call slots below, then calls it like an ordinary near
-; subroutine; it RETs once the output pointer reaches out_end.  The four slots:
-;   SRCV_INIT  = compressed source pointer (payload bottom in the buffer)
+; operands by +base (decomprz80_fix[]: the five CALL GETBIT sites -- everything
+; else is PC-relative JR/DJNZ and needs no fix-up), patches the four per-call
+; slots below, then calls it like an ordinary near subroutine; it RETs once the
+; output pointer reaches out_end.  The four slots:
+;   SRCV_INIT  = compressed source pointer MINUS ONE (the stream pointer is
+;                pre-increment: it always points at the last byte consumed)
 ;   DSTV_INIT  = output pointer (buffer + 16 restored literal bytes)
 ;   OUT_END_HI/LO = the output address at which decoding stops
 ;
@@ -25,12 +26,11 @@
 ;   bank M (main, active at entry / LOOP / RET)  HL = DST (output pointer)
 ;                          DE = match offset (D = high, E = low) during a match
 ;                          A  = scratch / current length value 'a' ; B = 0
-;   bank P (after EXX)     HL'= SRC (compressed stream pointer)
-;                          E' = bit reservoir  (see GETBIT)
-;                          D' = current stream byte being shifted out
+;   bank P (after EXX)     HL'= SRC (compressed stream pointer, pre-increment)
+;                          D' = bit reservoir  (see GETBIT)
 ;                          C' = 'c' length base / FORM2 high accumulator
 
-SRCV_INIT  EQU 0         ; patch: compressed source pointer
+SRCV_INIT  EQU 0         ; patch: compressed source pointer - 1
 DSTV_INIT  EQU 0         ; patch: output pointer (buffer + 16)
 OUT_END_HI EQU 0         ; patch: (out_end>>8)
 OUT_END_LO EQU 0         ; patch: (out_end&0ffh)
@@ -40,8 +40,8 @@ START:
         LD   HL,DSTV_INIT    ; bank M: DST = output pointer (patched per call)
         LD   B,0             ; bank M: B = 0 (offset-high source / count high)
         EXX                  ; -> bank P
-        LD   HL,SRCV_INIT    ; bank P: SRC = compressed pointer (patched per call)
-        LD   E,080h          ; reservoir seeded empty (forces refill on 1st bit)
+        LD   HL,SRCV_INIT    ; bank P: SRC = compressed pointer - 1 (patched)
+        LD   D,080h          ; reservoir = bare marker (forces refill on 1st bit)
         EXX                  ; -> bank M (active for LOOP)
 
 LOOP:                        ; main token loop, bank M (HL = DST)
@@ -50,13 +50,12 @@ LOOP:                        ; main token loop, bank M (HL = DST)
         JR   NZ,TOK
         LD   A,L
         CP   OUT_END_LO
-        JR   NZ,TOK
-        RET                  ; DST == out_end -> return to caller
+        RET  Z               ; DST == out_end -> return to caller; else fall
 
 TOK:    EXX                  ; -> bank P (SRC/reservoir)
         CALL GETBIT          ; CY = control bit
-        LD   A,(HL)          ; GETRAW: A = next stream byte
-        INC  HL
+        INC  HL              ; GETRAW: A = next stream byte
+        LD   A,(HL)
         JR   C,ISMTCH        ; control bit 1 -> match
         EXX                  ; literal: -> bank M
         LD   (HL),A
@@ -104,7 +103,7 @@ COPY:   EXX                  ; -> bank M (HL = DST, DE = offset)
         INC  BC              ; BC = a + 1 = byte count
         LDIR
         EX   DE,HL           ; HL = DST advanced past the copy
-        JP   LOOP            ; absolute back-edge (relocated by +base)
+        JR   LOOP
 
 NOTF1:  BIT  6,A
         JR   NZ,FORM3
@@ -133,8 +132,8 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         EXX
         LD   D,A             ;   bank M: offset high = (first&3f)>>1
         EXX
-        LD   A,(HL)          ; GETRAW second byte
-        INC  HL
+        INC  HL              ; GETRAW second byte
+        LD   A,(HL)
         RRA                  ; A = (savedbit<<7)|(byte>>1); CY = byte&1 = b0
         EXX
         LD   E,A             ;   bank M: offset low
@@ -145,12 +144,15 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         JR   ULOOP           ; (a already = 2)
 
 ; ---- GETBIT: next stream bit -> CY (bank P).  Clobbers D' (and HL' on refill).
-; The reservoir marker E' rotates; when it wraps (CY set) D' is refilled from
-; *SRC++.  Rotating D' then yields the next data bit (MSB first) in CY.  CALL is
-; absolute, so lzpack relocates each call operand per file (decomprz80_fix[]).
-GETBIT: RLC  E               ; rotate marker; CY set on wrap (reservoir empty)
-        JR   NC,GBROT        ; still bits buffered -> just rotate D'
-        LD   D,(HL)          ; refill: D' = *SRC++
-        INC  HL
-GBROT:  RLC  D               ; CY = next data bit
+; The reservoir D' holds the remaining data bits MSB-first, followed by a 1
+; marker bit and zero fill.  SLA shifts the next bit into CY; when the byte
+; goes zero the bit just shifted out was the marker (always 1), so D' is
+; refilled from *++SRC and RL re-inserts that 1 as the new marker while
+; yielding the first data bit.  CALL is absolute, so lzpack relocates each
+; call operand per file (decomprz80_fix[]).
+GETBIT: SLA  D               ; CY = next bit; Z = reservoir now empty
+        RET  NZ              ; data bits remain
+        INC  HL              ; refill: D' = *++SRC
+        LD   D,(HL)
+        RL   D               ; insert marker (CY = 1); CY = first data bit
         RET

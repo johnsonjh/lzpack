@@ -13,21 +13,26 @@
 ;   bank M (working set)   HL = DST  (output pointer)
 ;                          DE = match offset (D = high, E = low) during a match
 ;                          A  = scratch / current length value 'a'
-;   bank P (after EXX)     HL'= SRC  (compressed stream pointer)
-;                          E' = bit reservoir  (see GETBIT)
-;                          D' = current stream byte being shifted out
+;   bank P (after EXX)     HL'= SRC  (compressed stream pointer, pre-increment:
+;                                     always points at the last byte consumed)
+;                          D' = bit reservoir (see GETBIT)
 ;                          C' = 'c' length base / FORM2 high accumulator
 
 ; GETBIT (runs in bank P) is a subroutine at the end of this block (see there).
-;   E' is seeded with 80h so the very first GETBIT triggers a refill; the marker
-;   bit then walks 01h,02h,..,80h and wraps every 8 bits, refilling D' again.
+;   D' is seeded with 80h (a bare marker) so the very first GETBIT empties the
+;   reservoir and refills it from the stream.
 
-; Control flow inside this block is PC-relative (JR/DJNZ) except the absolute
-; "JP LOOP" back-edge and the five "CALL GETBIT" sites.  Those operands, plus the
-; two CP out_end immediates, are the per-file patch slots: P_JP_LOOP, P_CP_HI,
-; P_CP_LO, and z80_getbit_fix[] (all CALL GETBIT operands, retargeted to the
-; relocated GETBIT at run_base + Z80_GETBIT_OFF).  ORG 016B2h is the placeholder
-; address baked into the verbatim blob; lzpack relocates these per file.
+; The setup block parks two words on the stack: 0110h (the initial DST, popped
+; at START) under 0100h (the exit address, consumed by the RET Z in LOOP).
+; Bank M's B is zero on entry (the setup block's literal-restore LDIR ran in
+; that bank), and stays zero (DJNZ loops and LDIR end at zero).
+
+; Control flow inside this block is PC-relative (JR/DJNZ) except the five
+; "CALL GETBIT" sites.  Those operands, plus the two CP out_end immediates,
+; are the per-file patch slots: P_CP_HI, P_CP_LO, and z80_getbit_fix[] (all
+; CALL GETBIT operands, retargeted to the relocated GETBIT at run_base +
+; Z80_GETBIT_OFF).  ORG 016B2h is the placeholder address baked into the
+; verbatim blob; lzpack relocates these per file.
 
 OUT_END_HI EQU 016h      ; patch: (out_end>>8)
 OUT_END_LO EQU 080h      ; patch: (out_end&0ffh)
@@ -36,12 +41,11 @@ OUT_END_LO EQU 080h      ; patch: (out_end&0ffh)
 START:
         LDDR                 ; finish payload relocation (HL/DE/BC from setup)
                              ; BC is now 0 (Bank P)
-        EX   DE,HL           ; DE held dst-1; put it in HL
-        INC  HL              ; HL = payload bottom = compressed SRC pointer
-        LD   E,080h          ; reservoir seeded empty (forces refill on 1st bit)
-        EXX                  ; park SRC/reservoir in bank P (BC' is now 0)
-        LD   B,0             ; bank M: ensure B=0
-        LD   HL,0110h        ; bank M: DST = 0110h (TPA + restored 16 bytes)
+        EX   DE,HL           ; DE held dst-1 = payload bottom - 1: that is
+                             ; exactly the pre-increment SRC pointer
+        LD   D,080h          ; reservoir = bare marker (forces refill on 1st bit)
+        EXX                  ; park SRC/reservoir in bank P
+        POP  HL              ; bank M: DST = 0110h (pushed by the setup block)
 
 LOOP:                        ; main token loop, bank M (HL = DST)
         LD   A,H
@@ -49,12 +53,13 @@ LOOP:                        ; main token loop, bank M (HL = DST)
         JR   NZ,TOK
         LD   A,L
         CP   OUT_END_LO
-        JP   Z,0100h         ; DST == out_end -> run decompressed program; else fall
+        RET  Z               ; DST == out_end -> pop 0100h (pushed by setup)
+                             ; and run the decompressed program; else fall
 
 TOK:    EXX                  ; -> bank P (SRC/reservoir)
         CALL GETBIT          ; CY = control bit
-        LD   A,(HL)          ; GETRAW: A = next stream byte
-        INC  HL
+        INC  HL              ; GETRAW: A = next stream byte
+        LD   A,(HL)
         JR   C,ISMTCH        ; control bit 1 -> match
         EXX                  ; literal: -> bank M
         LD   (HL),A
@@ -102,7 +107,7 @@ COPY:   EXX                  ; -> bank M (HL = DST, DE = offset)
         INC  BC              ; BC = a + 1 = byte count
         LDIR
         EX   DE,HL           ; HL = DST advanced past the copy
-        JP   LOOP
+        JR   LOOP
 
 NOTF1:  BIT  6,A
         JR   NZ,FORM3
@@ -131,8 +136,8 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         EXX
         LD   D,A             ;   bank M: offset high = (first&3f)>>1
         EXX
-        LD   A,(HL)          ; GETRAW second byte
-        INC  HL
+        INC  HL              ; GETRAW second byte
+        LD   A,(HL)
         RRA                  ; A = (savedbit<<7)|(byte>>1); CY = byte&1 = b0
         EXX
         LD   E,A             ;   bank M: offset low
@@ -143,12 +148,15 @@ FORM3:                       ; 13-bit offset from 6 low bits + 1 streamed byte
         JR   ULOOP           ; (a already = 2)
 
 ; ---- GETBIT: next stream bit -> CY (bank P).  Clobbers D' (and HL' on refill).
-; The reservoir marker E' rotates; when it wraps (CY set) D' is refilled from
-; *SRC++.  Rotating D' then yields the next data bit (MSB first) in CY.  CALL is
-; absolute, so lzpack relocates each call operand per file (z80_getbit_fix[]).
-GETBIT: RLC  E               ; rotate marker; CY set on wrap (reservoir empty)
-        JR   NC,GBROT        ; still bits buffered -> just rotate D'
-        LD   D,(HL)          ; refill: D' = *SRC++
-        INC  HL
-GBROT:  RLC  D               ; CY = next data bit
+; The reservoir D' holds the remaining data bits MSB-first, followed by a 1
+; marker bit and zero fill.  SLA shifts the next bit into CY; when the byte
+; goes zero the bit just shifted out was the marker (always 1), so D' is
+; refilled from *++SRC and RL re-inserts that 1 as the new marker while
+; yielding the first data bit.  CALL is absolute, so lzpack relocates each
+; call operand per file (z80_getbit_fix[]).
+GETBIT: SLA  D               ; CY = next bit; Z = reservoir now empty
+        RET  NZ              ; data bits remain
+        INC  HL              ; refill: D' = *++SRC
+        LD   D,(HL)
+        RL   D               ; insert marker (CY = 1); CY = first data bit
         RET
