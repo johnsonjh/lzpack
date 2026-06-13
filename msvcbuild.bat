@@ -24,3 +24,10 @@ cl /Ob3 /GS- /Oi /O2 /W4 /wd4996 /Festrpack.exe strpack.c
 
 REM === Compile LZPACK ===
 cl /Ob3 /GS- /Oi /O2 /W4 /wd4996 /Felzpack.exe lzpack.c
+
+:: Local Variables:
+:: mode: bat-mode
+:: fill-column: 80
+:: eval: (setq-local display-fill-column-indicator-column 80)
+:: eval: (display-fill-column-indicator-mode 1)
+:: End:
