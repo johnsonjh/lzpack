@@ -497,6 +497,9 @@ standard build and setting `CPM_BACKEND=docker` forces the Docker‑ized build.
 If the `CPM_BACKEND` environment variable is unset, a proper **z88dk**
 invocation will be automatically determined by the build system.
 
+Other build targets may be available; review the [`Makefile`](Makefile) for
+complete details.
+
 NOTE: The *complete* CP/M‑80 build (which automatically sets and verifies the
 `-M` and `-F` values) requires a [patched](tnylpo.diff) version of
 *Georg Brein*'s [`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator
