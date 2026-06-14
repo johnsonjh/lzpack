@@ -65,7 +65,8 @@ and highly optimized 8080 or Z80 assembly.
 
 Pre‑compiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
 **MS‑DOS** (16‑bit 8086/8088 real‑mode and 32‑bit 386&nbsp;DPMI), **ELKS**,
-**OS/2** (32‑bit), and **Windows** (both 32‑ and 64‑bit versions).
+**OS/2** (32‑bit), **Linux** (32‑bit i386 and 64‑bit x86‑64) and **Windows**
+(both 32‑ and 64‑bit versions).
 
 The CP/M‑80 builds also run on **MSX‑DOS** (as do the packed executables
 **LZPACK** generates).
