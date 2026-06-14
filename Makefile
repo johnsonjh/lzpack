@@ -157,7 +157,7 @@ clean:
 distclean reallyclean: clean
 	rm -f cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h
 	rm -f ./*.h.tmp
-	rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map
+	rm -f ./*.o ./*.obj ./*.cmd ./*.com ./*.exe ./*.map ./.test.o ./.t.o
 	rm -f compile_commands.json compile_commands.events.json log.pvs
 	rm -f ./*.pop ./*.unp ./*.t a.out a.exe core core-*
 	rm -f tags cscope.out GPATH GRTAGS GTAGS TAGS
