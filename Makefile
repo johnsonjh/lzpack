@@ -44,6 +44,61 @@ lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h \
 
 ################################################################################
 
+# Builds a static 64-bit binary when run on Linux using the musl-gcc wrapper.
+
+# Make *must* be GNU Make and strip *must* be GNU strip!  This target exists
+# mostly for maintainer bindist usage, and uses quirks of the build system
+# that are subject to change at any time in the future.
+
+linux64-static linux64-musl: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h \
+		cschk.h csmsg.h lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command env rm mv mkdir "$${MAKE:-make}" upx musl-gcc \
+		strip)
+	@mkdir -p ./linux64/
+	@rm -f linux64/lzpack > /dev/null 2>&1 || :
+	"$${MAKE:-make}" clean
+	env LDFLAGS="-m64 -s -static" "$${MAKE:-make}" \
+		CC="musl-gcc -march=x86-64 -mtune=generic"
+	strip --strip-all lzpack
+	strip -R .note.gnu.\* -R .comment -R .gnu.build.\* -R .annobin.\* \
+		lzpack || :
+	sstrip -z lzpack 2> /dev/null || :
+	mv -f lzpack ./linux64/lzpack
+	(upx -q -9 ./linux64/lzpack 2> /dev/null | \
+		grep ' \-> ' 2> /dev/null) || :
+
+################################################################################
+
+# Builds a static 32-bit binary when run on 64-bit Linux using Open Watcom V2.
+
+# Make *must* be GNU Make and strip *must* be GNU strip!  This target exists
+# mostly for maintainer bindist usage, and uses quirks of the build system
+# that are subject to change at any time in the future.
+
+linux32-owcc linux32-static: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h \
+		cschk.h csmsg.h lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command env rm mv mkdir "$${MAKE:-make}" \
+		"$(WATCOM)/binl64/owcc" strip)
+	@mkdir -p ./linux32/
+	@rm -f linux32/lzpack > /dev/null 2>&1 || :
+	"$${MAKE:-make}" clean
+	env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/lh:/usr/include \
+		PATH="$(WATCOM)/binl64:$${PATH:-}" "$${MAKE:-make}" \
+		CC="$(WATCOM)/binl64/owcc" \
+		CFLAGS="-std=c89 -march=i386 -g0 -O3 -frerun-optimizer" \
+		LDFLAGS="-s -blinux"
+	strip --strip-all lzpack
+	strip -R .note.gnu.\* -R .comment -R .gnu.build.\* -R .annobin.\* \
+		lzpack || :
+	sstrip -z lzpack 2> /dev/null || :
+	mv -f lzpack ./linux32/lzpack
+
+################################################################################
+
 # Builds the 8080 decompression stub from source code using the stub assembler.
 
 cs8080.h: s8080s.asm s8080d.asm stubasm
@@ -170,6 +225,8 @@ distclean reallyclean: clean
 	rm -f -r ./djgpp 2> /dev/null
 	rm -f -r ./elks 2> /dev/null
 	rm -f -r ./os2 2> /dev/null
+	rm -f -r ./linux64 2> /dev/null
+	rm -f -r ./linux32 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
@@ -400,9 +457,10 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command arc compress "$${GIT_CMD:-git}" \
-		"$${MAKE:-make}" zip)
+		"$${MAKE:-make}" pigz zip)
 	"$${MAKE:-make}" distclean
-	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows
+	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows \
+		linux64-static linux32-static
 	mkdir -p ./bindist/
 	# CP/M-80 8080 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-8080/lzpack.com
@@ -453,6 +511,16 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	zip -0 -X -D -j ./os2/lzpack.exe.zip ./os2/lzpack.exe
 	chmod a-x ./os2/lzpack.exe.zip
 	mv -f ./os2/lzpack.exe.zip ./bindist/LZPCKOS2.ZIP
+	# Linux / 64-bit static
+	test -f ./linux64/lzpack
+	(cd linux64 && pigz -11 -f -k lzpack)
+	chmod a-x ./linux64/lzpack.gz
+	mv -f ./linux64/lzpack.gz ./bindist/LZPCKL64.gz
+	# Linux / 32-bit static
+	test -f ./linux32/lzpack
+	(cd linux32 && pigz -11 -f -k lzpack)
+	chmod a-x ./linux32/lzpack.gz
+	mv -f ./linux32/lzpack.gz ./bindist/LZPCKL32.gz
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
 	markdown-toc -i README.md 2> /dev/null || :
@@ -523,7 +591,8 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
-	scspell-fix dos pcdos everything-lint megalint os2
+	scspell-fix dos pcdos everything-lint megalint os2 linux64-static \
+	linux64-musl linux32-owcc linux32-static
 
 ################################################################################
 
