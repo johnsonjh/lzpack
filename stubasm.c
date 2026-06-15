@@ -1730,6 +1730,8 @@ emit_fixes (const char *name, const char *uname, const int *off,
   (void)printf ("};\n\n# define %s_FIX_N %d\n", uname, n);
 }
 
+/******************************************************************************/
+
 /* ... and the named patch-slot offsets. */
 
 static void

@@ -279,6 +279,8 @@ cand_known (const unsigned char *p, int len)
   return 0;
 }
 
+/******************************************************************************/
+
 static int
 cand_seen (const unsigned char *p, int len)
 {
