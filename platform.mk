@@ -115,7 +115,7 @@ endif
 ################################################################################
 
 # Extra CFLAGS for GCC or Clang
-EXTRA_CFLAGS?=-Wall -Wextra -Wpedantic
+EXTRA_CFLAGS?=-Wall
 ifeq ($(GCC_CLANG),1)
  CFLAGS+=$(EXTRA_CFLAGS)
 endif
