@@ -20,8 +20,8 @@ wide range of CP/M‑80 machines, including systems with Z80, 8080, 8085, and
 V20 processors, and systems with less than 48K&nbsp;TPA.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
-as on MS‑DOS, OS/2, Windows, Linux, or in any UNIX‑like environment) gives even
-better compression results.
+as on MS‑DOS, OS/2, Windows, Linux, or in any UNIX‑like environment) gives
+even better compression results.
 
 [Precompiled binaries for many systems are available for download.](#downloads)
 
@@ -60,8 +60,8 @@ can pack CP/M‑80 programs on any modern UNIX
 (even [**ELKS**](https://github.com/ghaerr/elks)), OS/2, Windows, or MS‑DOS
 system without emulation, as well as pack natively on the CP/M‑80 target.
 
-The *decompressor* that is embedded into each packed executable is hand‑written
-and highly optimized 8080 or Z80 assembly.
+The *decompressor* that is embedded into each packed executable is
+hand‑written and highly optimized 8080 or Z80 assembly.
 
 Precompiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
 **MS‑DOS** (16‑bit 8086/8088 real‑mode and 32‑bit 386&nbsp;DPMI), **ELKS**,
@@ -141,11 +141,11 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   host, it parses the whole file at once and usually beats the standard
   mode by at least a few bytes (**/N+`-E`** vs. **/N**).
 
-* The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).  On
-  CP/M‑80 (or any other memory‑constrained system), the window sizes and
+* The **/C** figures were measured under `tnylpo` (with a \~**63K** TPA).
+  On CP/M‑80 (or any other memory‑constrained system), the window sizes and
   compression ratio scale with the available memory: a small TPA means a
   small compression window and somewhat larger output.  Currently any Z80
-  system with **49.6K**&nbsp;TPA or any 8080 system with **50.8K**&nbsp;TPA
+  system with **49.7K**&nbsp;TPA or any 8080 system with **50.9K**&nbsp;TPA
   is able to run the *"full strength"* (8K window) compressor.  See the
   following table for compression window size vs. available TPA:
 
@@ -197,7 +197,7 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 1. Restores the 16 original header bytes the packer has saved,
 2. Relocates the compressed payload and the decompression stub into the high
    end of the TPA, so the stub can run without overwriting itself,
-3. Decompresses in‑place into the TPA, writing output from `0x110` upward, and,
+3. Decompresses in‑place into the TPA, writing output from `0x110` upward, and
 4. Jumps back to `0x100` to run the unpacked executable image.
 
 * This scheme does **not** currently support CP/M‑Plus / CP/M‑3+
@@ -293,7 +293,7 @@ Usage:
 ```
 
 The **CP/M‑80** version of **LZPACK** is split into two utilities:
-  * `LZPACK.COM` for compression only, and,
+  * `LZPACK.COM` for compression only, and
   * `LZUNPACK.COM` for decompression and listing.
 
 On all other platforms, a single `lzpack` tool is provided, as shown above.
@@ -512,12 +512,12 @@ available in your `PATH`.
   prerequisites as well as any optional tools when you invoke `make lint`.
 
 * `make test` requires `python3`, several emulators, and many cross‑toolchains
-  installed if you want to run *all* the tests (of which there are about 400).
-  At a minimum, you need a [patched](tnylpo.diff) version of *Georg Brein*'s
-  [`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator and *Joe Hallen*'s
-  [`cpm`](https://github.com/jhallen/cpm) emulator installed.  You should
-  build these with full optimizations enabled, as the test suite is extensive
-  with a lengthy runtime.
+  installed if you want to run *all* the tests (of which there are several
+  hundred).  At a minimum, you need a [patched](tnylpo.diff) version of
+  *Georg Brein*'s [`tnylpo`](https://gitlab.com/gbrein/tnylpo) emulator and
+  *Joe Hallen*'s [`cpm`](https://github.com/jhallen/cpm) emulator installed.
+  You should build these with full optimizations enabled, as the test suite
+  is extensive with a lengthy runtime.
 
 * If you would like to contribute to **LZPACK** development, it is *extremely*
   *important* that you have ***all*** of the optional linters, static analysis
