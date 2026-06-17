@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v1.0-rc-4"
+#define LZPACK_VER "v1.0"
 
 /******************************************************************************/
 
@@ -4788,6 +4788,7 @@ parse_memtop (const char *s)
 # if UINT_MAX > 0xFFFFU
       /* On 16-bit ints 65536..65539 wrap to 0..3 and the KB-form floor
        * rejects them below; wider ints must reject the range explicitly. */
+      /* cppcheck-suppress compareValueOutOfTypeRangeError */
       if (v > 0xFFFFU)
         return 0;
 # endif
