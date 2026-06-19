@@ -66,7 +66,7 @@ linux64-static linux64-musl: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h \
 		lzpack || :
 	sstrip -z lzpack 2> /dev/null || :
 	mv -f lzpack ./linux64/lzpack
-	(upx -q -9 ./linux64/lzpack 2> /dev/null | \
+	(upx -q --best ./linux64/lzpack 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -285,7 +285,7 @@ cpm86 cpm-86: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 	aztec42_link -t -o ./cpm-86/stubasm.cmd \
 		./cpm-86/stubasm.o -lc86
 	@pcdev_cmdinfo ./cpm-86/stubasm.cmd
-	(upx -q -9 --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
+	(upx -q --best --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	sh ./.lz86gen.sh aztec ./lz86body.asm > ./cpm-86/lz86.c
 	aztec42_cc -B "+CA" -D__AZTEC_C_42T__=1 ./cpm-86/lz86.c \
@@ -299,7 +299,7 @@ cpm86 cpm-86: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 	aztec42_link -V +D 12288 -t -o ./cpm-86/lzpack.cmd \
 		./cpm-86/lzpack.o ./cpm-86/lz86.o -lc86
 	@pcdev_cmdinfo ./cpm-86/lzpack.cmd
-	(upx -q -9 --8086 ./cpm-86/lzpack.cmd 2> /dev/null | \
+	(upx -q --best --8086 ./cpm-86/lzpack.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -318,7 +318,7 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 		-Os -fno-stack-check -DMAXSYM=96 -DMAXREF=96 \
 		-DMAXCODE=768 -s -I.. -fm=stubasm.map -o ./stubasm.com \
 		-DNDEBUG ../stubasm.c)
-	(upx -q -9 --8086 ./msdos/stubasm.com 2> /dev/null | \
+	(upx -q --best --8086 ./msdos/stubasm.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	sh ./.lz86gen.sh watcom ./lz86body.asm > ./msdos/lz86.asm
 	(cd msdos && env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/h \
@@ -329,7 +329,7 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 		-DMZXFILE=65535L -DLZPACK_PACKED_MSGS -s -I.. \
 		-fm=lzpack.map -o ./lzpack.com \
 		-DNDEBUG ../lzpack.c ./lz86.obj)
-	(upx -q -9 --8086 ./msdos/lzpack.com 2> /dev/null | \
+	(upx -q --best --8086 ./msdos/lzpack.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -377,7 +377,7 @@ djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 		./djgpp/stubasm.exe
 	cat "$${CWSDSTUB:-/opt/cwspdmi/cwsdstub.exe}" ./djgpp/stubasm \
 		> ./djgpp/stubasm.exe
-	(upx -q -9 ./djgpp/stubasm.exe 2> /dev/null | \
+	(upx -q --best ./djgpp/stubasm.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	"$${DJGPP_GCC:-/opt/djgpp/bin/i586-pc-msdosdjgpp-gcc}" -s \
 		-march=i386 -O3 -o ./djgpp/lzpack.exe ./lzpack.c
@@ -387,7 +387,7 @@ djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 		./djgpp/lzpack.exe
 	cat "$${CWSDSTUB:-/opt/cwspdmi/cwsdstub.exe}" ./djgpp/lzpack \
 		> ./djgpp/lzpack.exe
-	(upx -q -9 ./djgpp/lzpack.exe 2> /dev/null | \
+	(upx -q --best ./djgpp/lzpack.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -421,11 +421,11 @@ windows: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	@mkdir -p ./windows/
 	"$${MINGW64_GCC:-x86_64-w64-mingw32ucrt-gcc}" -O3 -s \
 		-o ./windows/lzpack64.exe ./lzpack.c
-	(upx -q -9 windows/lzpack64.exe 2> /dev/null | \
+	(upx -q --best windows/lzpack64.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 	"$${MINGW32_GCC:-i686-w64-mingw32-gcc}" -O3 -s \
 		-o ./windows/lzpack32.exe ./lzpack.c
-	(upx -q -9 windows/lzpack32.exe 2> /dev/null | \
+	(upx -q --best windows/lzpack32.exe 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
 
 ################################################################################
@@ -448,7 +448,7 @@ docker-armv5-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	rm -f lzpack
 	mv -f lzpack.out lzpack
 	sstrip -z lzpack 2> /dev/null || :
-	(upx -q -9 lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
+	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
 	mv -f lzpack ./linuxarm32/
 
 ################################################################################
@@ -471,7 +471,7 @@ docker-arm64-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	rm -f lzpack
 	mv -f lzpack.out lzpack
 	sstrip -z lzpack 2> /dev/null || :
-	(upx -q -9 lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
+	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
 	mv -f lzpack ./linuxarm64/
 
 ################################################################################
