@@ -544,7 +544,7 @@ available in your `PATH`.
 ## License
 
 This software is distributed under the terms of the permissive
-[MIT No Attribution (MIT‑0)](LICENSE) license.
+[**MIT&nbsp;No&nbsp;Attribution&nbsp;(MIT‑0) License**](LICENSE).
 
 <!--
 Local Variables:
