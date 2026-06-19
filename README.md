@@ -411,10 +411,10 @@ any packed program can be inspected on the target machine itself.
 | [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB | **CP/M‑80**&nbsp;(Z80)                |
 | [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 20&nbsp;KiB | **CP/M‑86**&nbsp;(8086/8088)          |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB | **MS‑DOS**&nbsp;(8086/8088)           |
-| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 84&nbsp;KiB | **MS‑DOS**&nbsp;(80386&nbsp;DPMI)     |
-| [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 32&nbsp;KiB | **OS/2**&nbsp;(32‑bit&nbsp;i386)      |
-| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 40&nbsp;KiB | **Windows**&nbsp;(32‑bit&nbsp;MSVCRT) |
-| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
+| [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 76&nbsp;KiB | **MS‑DOS**&nbsp;(80386&nbsp;DPMI)     |
+| [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 20&nbsp;KiB | **OS/2**&nbsp;(32‑bit&nbsp;i386)      |
+| [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB | **Windows**&nbsp;(32‑bit&nbsp;MSVCRT) |
+| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 20&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
 | [LZPCKA32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA32.gz)   | 32&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;ARMv5)    |
 | [LZPCKA64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA64.gz)   | 36&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;ARMv8)    |
 | [LZPCKL32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL32.gz)   | 16&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;i386)     |

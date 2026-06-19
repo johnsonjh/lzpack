@@ -505,7 +505,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command arc compress "$${GIT_CMD:-git}" \
-		"$${MAKE:-make}" pigz zip)
+		"$${MAKE:-make}" pigz zip advzip)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows \
 		linux64-static linux32-static docker-arm64-musl \
@@ -583,6 +583,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
 	markdown-toc -i README.md 2> /dev/null || :
+	(cd ./bindist/ && advzip -z4 *.ZIP 2> /dev/null) || :
 	./.updatedocs.sh
 	"$${MAKE:-make}" distclean
 	"$${GIT_CMD:-git}" status || :
