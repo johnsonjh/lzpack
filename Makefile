@@ -225,6 +225,8 @@ distclean reallyclean: clean
 	rm -f -r ./djgpp 2> /dev/null
 	rm -f -r ./elks 2> /dev/null
 	rm -f -r ./os2 2> /dev/null
+	rm -f -r ./linuxarm64 2> /dev/null
+	rm -f -r ./linuxarm32 2> /dev/null
 	rm -f -r ./linux64 2> /dev/null
 	rm -f -r ./linux32 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
@@ -428,6 +430,52 @@ windows: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 
 ################################################################################
 
+# Linux ARMv5 32-bit static musl builds using Docker
+
+CCV51=/usr/xcc/armv5-unknown-linux-musleabi/bin
+CCV52=armv5-unknown-linux-musleabi
+
+docker-armv5-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command cp grep rm docker upx)
+	@mkdir -p ./linuxarm32/
+	docker run --rm -v "$$(pwd -P)":/src -w /src \
+		dockcross/linux-armv5-musl sh -xc \
+		'make CC="$(CCV51)/$(CCV52)-gcc" LDFLAGS="-s -static" && \
+		$(CCV51)/$(CCV52)-strip --strip-all lzpack'
+	cp -f lzpack lzpack.out
+	rm -f lzpack
+	mv -f lzpack.out lzpack
+	sstrip -z lzpack 2> /dev/null || :
+	(upx -q -9 lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
+	mv -f lzpack ./linuxarm32/
+
+################################################################################
+
+# Linux ARM64 64-bit static musl builds using Docker
+
+CCV61=/usr/xcc/aarch64-linux-musl-cross/bin
+CCV62=aarch64-linux-musl
+
+docker-arm64-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command cp grep rm docker upx)
+	@mkdir -p ./linuxarm64/
+	docker run --rm -v "$$(pwd -P)":/src -w /src \
+		dockcross/linux-arm64-musl sh -xc \
+		'make CC="$(CCV61)/$(CCV62)-gcc" LDFLAGS="-s -static" && \
+		$(CCV61)/$(CCV62)-strip --strip-all lzpack'
+	cp -f lzpack lzpack.out
+	rm -f lzpack
+	mv -f lzpack.out lzpack
+	sstrip -z lzpack 2> /dev/null || :
+	(upx -q -9 lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
+	mv -f lzpack ./linuxarm64/
+
+################################################################################
+
 # Runs extensive end-to-end tests on the CP/M-80, CP/M-86, and native binaries.
 
 test: lzpack tests/run.sh .common.sh
@@ -460,7 +508,8 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 		"$${MAKE:-make}" pigz zip)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows \
-		linux64-static linux32-static
+		linux64-static linux32-static docker-arm64-musl \
+		docker-armv5-musl
 	mkdir -p ./bindist/
 	# CP/M-80 8080 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-8080/lzpack.com
@@ -521,6 +570,16 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	(cd linux32 && pigz -11 -f -k lzpack)
 	chmod a-x ./linux32/lzpack.gz
 	mv -f ./linux32/lzpack.gz ./bindist/LZPCKL32.gz
+	# Linux / 32-bit ARMv5 static
+	test -f ./linuxarm32/lzpack
+	(cd linuxarm32 && pigz -11 -f -k lzpack)
+	chmod a-x ./linuxarm32/lzpack.gz
+	mv -f ./linuxarm32/lzpack.gz ./bindist/LZPCKA32.gz
+	# Linux / 64-bit ARM64 static
+	test -f ./linuxarm64/lzpack
+	(cd linuxarm64 && pigz -11 -f -k lzpack)
+	chmod a-x ./linuxarm64/lzpack.gz
+	mv -f ./linuxarm64/lzpack.gz ./bindist/LZPCKA64.gz
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
 	markdown-toc -i README.md 2> /dev/null || :
@@ -592,7 +651,8 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
 	scspell-fix dos pcdos everything-lint megalint os2 linux64-static \
-	linux64-musl linux32-owcc linux32-static
+	linux64-musl linux32-owcc linux32-static docker-arm64-musl \
+	docker-armv5-musl
 
 ################################################################################
 

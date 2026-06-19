@@ -39,6 +39,10 @@ csmsg.h
 /GPATH
 /GRTAGS
 /GTAGS
+/linux32/
+/linux64/
+/linuxarm32/
+/linuxarm64/
 log.pvs
 /lzpack
 /LZPACK

@@ -63,10 +63,11 @@ system without emulation, as well as pack natively on the CP/M‑80 target.
 The *decompressor* that is embedded into each packed executable is
 hand‑written and highly optimized 8080 or Z80 assembly.
 
-Precompiled binaries are provided for **CP/M‑80** (8080 and Z80), **CP/M‑86**,
-**MS‑DOS** (16‑bit 8086/8088 real‑mode and 32‑bit 386&nbsp;DPMI), **ELKS**,
-**OS/2** (32‑bit), **Linux** (32‑bit i386 and 64‑bit x86‑64), and **Windows**
-(both 32‑ and 64‑bit versions).
+Precompiled binaries are provided for **CP/M‑80** (8080 and Z80),
+**CP/M‑86** (8086/8088), **MS‑DOS** (16‑bit 8086/8088 real‑mode and 32‑bit
+386&nbsp;DPMI), **ELKS** (8086/8088), **OS/2** (32‑bit), **Linux** (32‑bit
+i386, 32‑bit ARMv5, 64‑bit x86‑64, and 64‑bit ARMv8), and **Windows** (both
+32‑ and 64‑bit versions).
 
 The CP/M‑80 builds also run on **MSX‑DOS** (as do the packed executables
 **LZPACK** generates).
@@ -414,6 +415,8 @@ any packed program can be inspected on the target machine itself.
 | [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 32&nbsp;KiB | **OS/2**&nbsp;(32‑bit&nbsp;i386)      |
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 40&nbsp;KiB | **Windows**&nbsp;(32‑bit&nbsp;MSVCRT) |
 | [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
+| [LZPCKA32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA32.gz)   | 32&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;ARMv5)    |
+| [LZPCKA64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA64.gz)   | 36&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;ARMv8)    |
 | [LZPCKL32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL32.gz)   | 16&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;i386)     |
 | [LZPCKL64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL64.gz)   | 36&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;x86‑64)   |
 | [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB | **ELKS**&nbsp;(8086/8088)             |
@@ -497,7 +500,7 @@ standard build and setting `CPM_BACKEND=docker` forces the Docker‑ized build.
 If the `CPM_BACKEND` environment variable is unset, a proper **z88dk**
 invocation will be automatically determined by the build system.
 
-Other build targets may be available; review the [`Makefile`](Makefile) for
+Other build targets are available; review the [`Makefile`](Makefile) for
 complete details.
 
 NOTE: The *complete* CP/M‑80 build (which automatically sets and verifies the
