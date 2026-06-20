@@ -229,6 +229,7 @@ distclean reallyclean: clean
 	rm -f -r ./linuxarm32 2> /dev/null
 	rm -f -r ./linux64 2> /dev/null
 	rm -f -r ./linux32 2> /dev/null
+	rm -f -r ./atarist 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
@@ -476,6 +477,27 @@ docker-arm64-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 
 ################################################################################
 
+CROSSMINT="$${HOME:?}/crossmint"
+CROSSMINT_ARCH="$(CROSSMINT)/usr/m68k-atari-mintelf"
+CROSSMINT_GCC="$(CROSSMINT)/usr/bin/m68k-atari-mintelf-gcc"
+
+crossmint-atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command cp grep rm "$(CROSSMINT_GCC)" upx)
+	@mkdir -p ./atarist/
+	env PATH="$(CROSSMINT)/usr/bin:$(CROSSMINT_ARCH)/bin:$${PATH:-}" \
+		"$${MAKE:-make}" CC="$(CROSSMINT_GCC)" \
+		CFLAGS="-DLZPACK_STREAM=1 -DLZPACK_OPT=1 -DHSZ=8192 \
+		-DMZXFILE=65535L -O3 -std=gnu89 -Wall -flto=auto" \
+		LDFLAGS="-s -O3 -flto=auto"
+	"$(CROSSMINT_ARCH)/bin/strip" --strip-all lzpack
+	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
+	mv -f lzpack lzpack.ttp
+	mv -f lzpack.ttp ./atarist/
+
+################################################################################
+
 # Runs extensive end-to-end tests on the CP/M-80, CP/M-86, and native binaries.
 
 test: lzpack tests/run.sh .common.sh
@@ -505,11 +527,11 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command arc compress "$${GIT_CMD:-git}" \
-		"$${MAKE:-make}" pigz zip advzip)
+		"$${MAKE:-make}" lha pigz zip advzip)
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows \
 		linux64-static linux32-static docker-arm64-musl \
-		docker-armv5-musl
+		docker-armv5-musl crossmint-atari
 	mkdir -p ./bindist/
 	# CP/M-80 8080 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-8080/lzpack.com
@@ -580,6 +602,11 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	(cd linuxarm64 && pigz -11 -f -k lzpack)
 	chmod a-x ./linuxarm64/lzpack.gz
 	mv -f ./linuxarm64/lzpack.gz ./bindist/LZPCKA64.gz
+	# Atari ST / TOS
+	test -f ./atarist/lzpack.ttp
+	chmod a-x ./atarist/lzpack.ttp
+	(cd atarist && lha -c -z -0 LZPACKST.LZH lzpack.ttp)
+	mv -f ./atarist/LZPACKST.LZH ./bindist/LZPACKST.LZH
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
 	markdown-toc -i README.md 2> /dev/null || :
@@ -653,7 +680,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
 	scspell-fix dos pcdos everything-lint megalint os2 linux64-static \
 	linux64-musl linux32-owcc linux32-static docker-arm64-musl \
-	docker-armv5-musl
+	docker-armv5-musl crossmint-atari
 
 ################################################################################
 

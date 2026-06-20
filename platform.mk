@@ -114,6 +114,14 @@ endif
 
 ################################################################################
 
+# Crossmint builds use gem.h which needs gnu89/gnu90
+ifneq "$(findstring m68k-atari-mintelf,$(CC))" ""
+ CFLAGS := $(patsubst -std=c89,-std=gnu89,$(CFLAGS))
+ CFLAGS := $(patsubst -std=c90,-std=gnu90,$(CFLAGS))
+endif
+
+################################################################################
+
 # Extra CFLAGS for GCC or Clang
 EXTRA_CFLAGS?=-Wall
 ifeq ($(GCC_CLANG),1)
