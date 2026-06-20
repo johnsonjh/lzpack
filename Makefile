@@ -288,7 +288,7 @@ cpm86 cpm-86: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 	@pcdev_cmdinfo ./cpm-86/stubasm.cmd
 	(upx -q --best --8086 ./cpm-86/stubasm.cmd 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
-	sh ./.lz86gen.sh aztec ./lz86body.asm > ./cpm-86/lz86.c
+	./.lz86gen.sh aztec ./lz86body.asm > ./cpm-86/lz86.c
 	aztec42_cc -B "+CA" -D__AZTEC_C_42T__=1 ./cpm-86/lz86.c \
 		-o ./cpm-86/lz86.o
 	aztec42_cc -I. -B "+CA" -D__AZTEC_C_42T__=1 \
@@ -321,7 +321,7 @@ msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 		-DNDEBUG ../stubasm.c)
 	(upx -q --best --8086 ./msdos/stubasm.com 2> /dev/null | \
 		grep ' \-> ' 2> /dev/null) || :
-	sh ./.lz86gen.sh watcom ./lz86body.asm > ./msdos/lz86.asm
+	./.lz86gen.sh watcom ./lz86body.asm > ./msdos/lz86.asm
 	(cd msdos && env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/h \
 		wasm -q -0 -mt -fo=lz86.obj lz86.asm)
 	(cd msdos && env WATCOM=$(WATCOM) INCLUDE=$(WATCOM)/h \
@@ -402,7 +402,7 @@ elks: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c lz86body.asm \
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command "$${IA16_ELF_GCC:-ia16-elf-gcc}")
-	sh ./.lz86gen.sh ia16 ./lz86body.asm > ./elks/lz86.s
+	./.lz86gen.sh ia16 ./lz86body.asm > ./elks/lz86.s
 	"$${IA16_ELF_GCC:-ia16-elf-gcc}" -march=i8086 -mtune=i8086 -melks \
 		-mregparmcall -Os -s -DLZPACK_STREAM=1 -DLZPACK_OPT=1 \
 		-DHSZ=1024 -DMZXFILE=65535L -DLZPACK_PACKED_MSGS \
