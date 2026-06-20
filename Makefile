@@ -487,16 +487,16 @@ crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 		find_command cp grep rm "$(CROSSMINT_GCC)" upx)
 	@mkdir -p ./atarist/
 	env PATH="$(CROSSMINT)/usr/bin:$(CROSSMINT_ARCH)/bin:$${PATH:-}" \
-		"$${MAKE:-make}" CC="$(CROSSMINT_GCC)" \
+		"$${MAKE:-make}" CC="$(CROSSMINT_GCC) -mfastcall" \
 		CFLAGS="-DLZPACK_STREAM=1 -DLZPACK_OPT=1 -DHSZ=8192 \
-		-DMZXFILE=65535L -O2 -std=gnu90 -Wall -flto=auto" \
-		LDFLAGS="-O2 -flto=auto"
+		-DMZXFILE=65535L -O2 -std=gnu90 -Wall -flto=auto -mfastcall" \
+		LDFLAGS="-O2 -flto=auto -mfastcall"
 	"$(CROSSMINT_ARCH)/bin/strip" --strip-all lzpack
 	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
 	mv -f lzpack lzpackjr.ttp
 	mv -f lzpackjr.ttp ./atarist/
 	env PATH="$(CROSSMINT)/usr/bin:$(CROSSMINT_ARCH)/bin:$${PATH:-}" \
-		"$${MAKE:-make}" CC="$(CROSSMINT_GCC)"
+		"$${MAKE:-make}" CC="$(CROSSMINT_GCC) -mfastcall"
 	"$(CROSSMINT_ARCH)/bin/strip" --strip-all lzpack
 	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
 	mv -f lzpack lzpack.ttp
