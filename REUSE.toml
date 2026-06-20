@@ -42,3 +42,9 @@ path = ".utils/unarc*.com"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "1987 Robert A. Freed"
 SPDX-License-Identifier = "LicenseRef-UNARC"
+
+[[annotations]]
+path = ".utils/lharc.ttp"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Yoshizaki, 1988-1989, Grunenberg, Mandel, 1994, Haun, 1996/97"
+SPDX-License-Identifier = "LicenseRef-LHA"

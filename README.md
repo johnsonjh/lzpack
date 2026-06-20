@@ -426,6 +426,9 @@ any packed program can be inspected on the target machine itself.
 [8080](.utils/unarca.com) and [Z80](.utils/unarcz.com) CP/M‑80, and
 `ARCCPM` for [CP/M‑86](.utils/arccpm.cmd).
 
+> If you need an Atari&nbsp;ST LHA/LZH utility, `LHarc` is available for
+[TOS/MINT](.utils/lharc.ttp).
+
 ## Platform notes
 
 The CP/M‑86 version of **LZPACK** supports wildcard expansion, checking
