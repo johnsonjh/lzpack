@@ -48,6 +48,7 @@ log.pvs
 /LZPACK
 *.map
 *.MAP
+massif.out*
 /mkstub
 /msdos
 /msdos/
