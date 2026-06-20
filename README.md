@@ -167,8 +167,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   packed.  On CP/M&nbsp;2.2 systems, all bytes in the final record are packed.
   *PopCom!* does not support sizing via the LRBC and compresses all records.
 
-* Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) (and
-  [`cpm`](https://github.com/jhallen/cpm)) emulators used for testing do *not*
+* Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) and
+  [`cpm`](https://github.com/jhallen/cpm) emulators used for testing do *not*
   emulate CP/M‑Plus (and thus do not provide LRBC metadata), any file not
   ending at an exact record boundary would be automatically padded to the size
   of the next full record.
