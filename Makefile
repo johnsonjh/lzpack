@@ -481,7 +481,7 @@ CROSSMINT="$${HOME:?}/crossmint"
 CROSSMINT_ARCH="$(CROSSMINT)/usr/m68k-atari-mintelf"
 CROSSMINT_GCC="$(CROSSMINT)/usr/bin/m68k-atari-mintelf-gcc"
 
-crossmint-atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command cp grep rm "$(CROSSMINT_GCC)" upx)
@@ -680,7 +680,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
 	scspell-fix dos pcdos everything-lint megalint os2 linux64-static \
 	linux64-musl linux32-owcc linux32-static docker-arm64-musl \
-	docker-armv5-musl crossmint-atari
+	docker-armv5-musl crossmint-atari atari
 
 ################################################################################
 
