@@ -489,8 +489,14 @@ crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	env PATH="$(CROSSMINT)/usr/bin:$(CROSSMINT_ARCH)/bin:$${PATH:-}" \
 		"$${MAKE:-make}" CC="$(CROSSMINT_GCC)" \
 		CFLAGS="-DLZPACK_STREAM=1 -DLZPACK_OPT=1 -DHSZ=8192 \
-		-DMZXFILE=65535L -O3 -std=gnu89 -Wall -flto=auto" \
-		LDFLAGS="-s -O3 -flto=auto"
+		-DMZXFILE=65535L -O2 -std=gnu90 -Wall -flto=auto" \
+		LDFLAGS="-O2 -flto=auto"
+	"$(CROSSMINT_ARCH)/bin/strip" --strip-all lzpack
+	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
+	mv -f lzpack lzpackjr.ttp
+	mv -f lzpackjr.ttp ./atarist/
+	env PATH="$(CROSSMINT)/usr/bin:$(CROSSMINT_ARCH)/bin:$${PATH:-}" \
+		"$${MAKE:-make}" CC="$(CROSSMINT_GCC)"
 	"$(CROSSMINT_ARCH)/bin/strip" --strip-all lzpack
 	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
 	mv -f lzpack lzpack.ttp
@@ -604,8 +610,10 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	mv -f ./linuxarm64/lzpack.gz ./bindist/LZPCKA64.gz
 	# Atari ST / TOS
 	test -f ./atarist/lzpack.ttp
+	test -f ./atarist/lzpackjr.ttp
 	chmod a-x ./atarist/lzpack.ttp
-	(cd atarist && lha -c -z -0 LZPACKST.LZH lzpack.ttp)
+	chmod a-x ./atarist/lzpackjr.ttp
+	(cd atarist && lha -c -z -0 LZPACKST.LZH lzpack.ttp lzpackjr.ttp)
 	mv -f ./atarist/LZPACKST.LZH ./bindist/LZPACKST.LZH
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
