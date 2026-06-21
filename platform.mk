@@ -14,6 +14,9 @@
 ################################################################################
 
 # Skip flag detection? (begin)
+ifdef ($(PVS))
+ SKIP_DETECTION:=1
+endif
 ifeq ($(MAKECMDGOALS),clean)
  SKIP_DETECTION:=1
 endif

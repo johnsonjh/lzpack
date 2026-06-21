@@ -824,7 +824,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" > /dev/null
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 > /dev/null
       )
       (
         set -x
@@ -855,7 +855,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_NO_OPT" > /dev/null
       )
       (
@@ -888,7 +888,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_NO_PROGRESS" > /dev/null
       )
       (
@@ -1049,7 +1049,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_STREAM" > /dev/null
       )
       (
@@ -1082,7 +1082,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_STREAM -DLZPACK_OPT" > /dev/null
       )
       (
@@ -1115,7 +1115,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_NO_PROGRESS" \
           > /dev/null
       )
@@ -1148,7 +1148,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_PACKED_MSGS" > /dev/null
       )
       (
@@ -1181,7 +1181,7 @@ command -v "${BEAR_CMD:-bear}" > /dev/null 2>&1 && {
       "${MAKE:-make}" distclean > /dev/null 2>&1 || :
       (
         set -x
-        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" \
+        "${BEAR_CMD:-bear}" -- "${MAKE:-make}" PVS=1 \
           CFLAGS="-O3 -DLZPACK_STREAM -DLZPACK_OPT -DLZPACK_PACKED_MSGS" \
           > /dev/null
       )
