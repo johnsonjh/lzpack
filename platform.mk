@@ -13,6 +13,65 @@
 
 ################################################################################
 
+# Skip flag detection? (begin)
+ifeq ($(MAKECMDGOALS),clean)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),distclean)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),reallyclean)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),dmd)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),strip)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),tags)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),etags)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),ctags)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),gtags)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),TAGS)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),GPATH)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),GRTAGS)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),GTAGS)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),cscope)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),cscope.out)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),tag)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),scspell)
+ SKIP_DETECTION:=1
+endif
+ifeq ($(MAKECMDGOALS),scspell-fix)
+ SKIP_DETECTION:=1
+endif
+ifneq ($(SKIP_DETECTION),1)
+
+################################################################################
+
 # Detect OS with `uname`
 UNAME_S:=$(shell uname -s 2> /dev/null)
 ifneq "$(findstring AIX,$(UNAME_S))" ""
@@ -218,6 +277,11 @@ endif
 # Display report
 $(info [MAKE] CFLAGS   = $(CFLAGS))
 $(info [MAKE] LDFLAGS  = $(LDFLAGS))
+
+################################################################################
+
+# Skip flag detection? (end)
+endif
 
 ################################################################################
 
