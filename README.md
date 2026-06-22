@@ -416,11 +416,11 @@ any packed program can be inspected on the target machine itself.
 | [LZPACKST.LZH](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPACKST.LZH) | 136&nbsp;KiB | **Atari&nbsp;ST**&nbsp;(TOS/MINT)     |
 | [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 20&nbsp;KiB | **OS/2**&nbsp;(32‑bit&nbsp;i386)      |
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB | **Windows**&nbsp;(32‑bit&nbsp;MSVCRT) |
-| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 20&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
+| [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
 | [LZPCKA32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA32.gz)   | 32&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;ARMv5)    |
 | [LZPCKA64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA64.gz)   | 36&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;ARMv8)    |
 | [LZPCKL32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL32.gz)   | 16&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;i386)     |
-| [LZPCKL64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL64.gz)   | 36&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;x86‑64)   |
+| [LZPCKL64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL64.gz)   | 40&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;x86‑64)   |
 
 > If you need a CP/M ARC utility, `UNARC` is available for
 [8080](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/..utils/unarca.com)
