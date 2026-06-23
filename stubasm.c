@@ -248,13 +248,22 @@ sym_set (const char *n, long v, int islabel)
       if (strlen (n) >= (size_t)NAMELEN)
         die ("symbol too long");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6385 )
+#endif
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
       (void)xstrcpy (sym_name[i], n);
     }
   else if (cur_pass == 2 && islabel && sym_islabel[i] && sym_val[i] != v)
     die ("phase error");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6386 )
+#endif
   sym_val[i] = v;
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6386 )
+#endif
   sym_islabel[i] = islabel;
 }
 
@@ -269,8 +278,14 @@ predefine (const char *n, long v)
   if (strlen (n) >= (size_t)NAMELEN)
     die ("predefined symbol too long");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6385 6386 )
+#endif
   /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
   (void)xstrcpy (pre_name[npre], n);
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6386 )
+#endif
   pre_val[npre] = v;
   npre++;
 }
@@ -494,6 +509,9 @@ emit (int b)
   if (clen >= MAXCODE)
     die ("code overflow");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6386 )
+#endif
   code[clen++] = (unsigned char)(b & 0xff);
 }
 
@@ -543,6 +561,9 @@ rec (const char *tok, int width)
       if (nref >= MAXREF)
         die ("too many refs");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6386 )
+#endif
       refs[nref].off = clen + 1;
 
       if (tok)
@@ -550,6 +571,9 @@ rec (const char *tok, int width)
           if (strlen (tok) >= (size_t)NAMELEN)
             die ("reference name too long");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6385 )
+#endif
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
           (void)xstrcpy (refs[nref].name, tok);
         }
@@ -1174,8 +1198,12 @@ assemble (const char *path, int z80)
 
           {
             int q = 0;
-            char *p;
-            for (p = line; *p; p++)
+            char *p = line;
+
+#if defined(_MSC_VER)
+# pragma warning( suppress : 28199 )
+#endif
+            for (; *p; p++)
               {
                 if (*p == '\'' || *p == '"')
                   {
@@ -1831,6 +1859,9 @@ emit_z80 (const char *setup_path, const char *decomp_path)
     if (kg < 0 || ks < 0)
       die ("GETBIT/START label missing from decompressor");
 
+#if defined(_MSC_VER)
+# pragma warning( suppress : 6385 )
+#endif
     (void)printf ("# define Z80_GETBIT_OFF 0x%02x\n",
                   (unsigned int)(sym_val[kg] - sym_val[ks]));
     (void)printf ("static const unsigned short z80_getbit_fix[] = {");
