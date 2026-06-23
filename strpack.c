@@ -779,9 +779,12 @@ read_input (FILE *f)
         return -1;
 
       {
-        const char *q;
+        const char *q = line;
 
-        for (q = line; *q; q++)
+#if defined(_MSC_VER)
+# pragma warning( suppress : 28199 )
+#endif
+        for (; *q; q++)
           if (('A' > *q || 'Z' < *q) && ('a' > *q || 'z' < *q)
               && '_' != *q && (line == q || '0' > *q || '9' < *q))
             return -1;
