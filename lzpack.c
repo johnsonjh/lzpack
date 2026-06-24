@@ -1445,7 +1445,9 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
   unsigned ml;
   long k;
 
+#  ifndef __VBCC__
   (void)pl_len;
+#  endif
 
   while (produced < outlen)
     {
@@ -1631,7 +1633,9 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         produced++;
     }
 
+#  ifndef __VBCC__
   (void)bit;
+#  endif
 
   return ming;
 }
@@ -5098,7 +5102,9 @@ main (int argc, char **argv)
   int use8080 = DEFAULT_USE8080, auto_stub = 1, optimal = 0;
   int showver = 0;
 
+#ifndef __VBCC__
   LZ_GUARD_STACK (); /* before the first allocation; see LZ_STACK_RESERVE */
+#endif
 
 #ifndef LZPACK_DECODE_ONLY
   memtop = MEMTOP;
@@ -5383,9 +5389,11 @@ main (int argc, char **argv)
 #endif
     }
 
+#ifndef __VBCC__
   (void)use8080;
   (void)auto_stub;
   (void)optimal;
+#endif
 
   return (rc ? 1 : 0);
 }
