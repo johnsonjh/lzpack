@@ -2713,7 +2713,9 @@ min_gap_stream (LZF *f, long pl_len, long outlen, int litcnt, long pl_dst_top)
         produced++;
     }
 
+# ifndef __VBCC__
   (void)bit;
+# endif
 
   return ming;
 }
