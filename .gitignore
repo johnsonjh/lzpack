@@ -48,6 +48,7 @@ csmsg.h
 log.pvs
 /lzpack
 /LZPACK
+/lzpack.asm
 *.map
 *.MAP
 massif.out*
@@ -72,6 +73,7 @@ pvsreport
 *.PVS-Studio.i
 __pycache__/
 /README.wip
+/shim.c
 strpack
 /stubasm
 /*.t
@@ -79,11 +81,13 @@ strpack
 /TAGS
 .t.c
 .test.c
+/timer.ttp
 *.tmp
 *.TMP
 *.unittest
 *.unp
 *.UNP
+/vbcc.sh
 /windows/
 
 ################################################################################
