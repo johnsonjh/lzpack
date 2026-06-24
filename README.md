@@ -153,7 +153,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
   |  **Z80** | `29,394`&nbsp;(`28.7K`) | `32,466`&nbsp;(`31.7K`) | `38,610`&nbsp;(`37.7K`) | `50,898`&nbsp;(`49.7K`) |
-  | **8080** | `30,701`&nbsp;(`29.9K`) | `33,773`&nbsp;(`32.9K`) | `39,917`&nbsp;(`38.9K`) | `52,205`&nbsp;(`50.9K`) |
+  | **8080** | `30,702`&nbsp;(`29.9K`) | `33,774`&nbsp;(`32.9K`) | `39,918`&nbsp;(`38.9K`) | `52,206`&nbsp;(`50.9K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
@@ -279,7 +279,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v1.0 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v1.01 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:

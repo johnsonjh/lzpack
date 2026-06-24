@@ -426,7 +426,7 @@ def test_memtop_fit(runner, results, fname, top):
     wd = _scratch(fname)
     try:
         data, log = _pack(runner, wd, fname, ["-m", top], "t.pop")
-        ok = data is None and "would not fit" in log
+        ok = data is None and "unable to fit" in log
         emit(
             results,
             "%s -m %s" % (fname, top),
@@ -742,7 +742,7 @@ def test_checked_floor(runner, results):
 # prologue: it must match a forced -Z/-8 stub, and must be omitted --
 # never guessed, never a crash -- when the setup bytes are not an exact
 # known prologue (a future or hand-altered stub).  A foreign (never
-# packed) file must list as not-PopCom with no check/floor line or tag at
+# packed) file must list as not-LZPACK with no check/floor line or tag at
 # all -- and, above all, must never crash the lister.  On the CP/M-80
 # split pair the -L legs route to lzunpack.com, so this also proves the
 # shipped lister's report.
@@ -769,7 +769,7 @@ def test_list_floor(runner, results):
             and "(-F)" not in lc
         )
         x_ok = (
-            "not a PopCom" in lx
+            "not an LZPACK file" in lx
             and "check" not in lx
             and "[Z80]" not in lx
             and "[8080]" not in lx

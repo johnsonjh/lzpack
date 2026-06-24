@@ -8,7 +8,7 @@ MSG_E_WRITE	-	ERROR: cannot write %s\n
 MSG_E_OARG	-	ERROR: -O requires an argument\n
 MSG_E_UNKNOWN	-	ERROR: unknown option %s\n
 MSG_E_OMULTI	-	ERROR: -O cannot be used with multiple files\n
-MSG_P_LNOTPOP	-	  %-16s (not a PopCom! or LZPACK file)\n
+MSG_P_LNOTPOP	-	  %-16s (not an LZPACK file)\n
 MSG_P_LSIZES	defined(LZPACK_COMPRESS_ONLY)	  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)\n
 MSG_P_LSIZES	!defined(LZPACK_COMPRESS_ONLY)	  %-16s compressed %6ld   original %6ld   (%ld.%ld%%)%s\n
 MSG_P_LFLOOR0	!defined(LZPACK_COMPRESS_ONLY)	  %-16s -C check; floor 0x%04X\n
@@ -19,10 +19,10 @@ MSG_V_HOME	-	The LZPACK canonical homepage is https://github.com/johnsonjh/lzpac
 MSG_U_HDR	-	\nUsage:\n
 MSG_NONE	-	
 MSG_E_PACKED	defined(LZPACK_STREAM) && !defined(LZPACK_DECODE_ONLY)	ERROR: %s is already packed; restore it first\n
-MSG_E_MZX	!defined(LZPACK_DECODE_ONLY)	ERROR: %s exceeds MZXFILE=%ld (build constraint)\n
-MSG_E_HDRBIG	!defined(LZPACK_DECODE_ONLY)	ERROR: %s is too large for header (max 65535 bytes)\n
+MSG_E_MZX	!defined(LZPACK_DECODE_ONLY)	ERROR: %s exceeds %ld max file size\n
+MSG_E_HDRBIG	!defined(LZPACK_DECODE_ONLY)	ERROR: %s is too large for CP/M (max 65535 bytes)\n
 MSG_E_SMALL	!defined(LZPACK_DECODE_ONLY)	ERROR: %s too small\n
-MSG_E_NOFIT	!defined(LZPACK_DECODE_ONLY)	ERROR: %s would not fit in memory\n
+MSG_E_NOFIT	!defined(LZPACK_DECODE_ONLY)	ERROR: %s unable to fit in ~%ldK (%ld bytes) memory; try -M %ld\n
 MSG_E_GENCOM	!defined(LZPACK_DECODE_ONLY)	ERROR: %s GENCOM unsupported\n
 MSG_P_WINDOW	defined(LZPACK_STREAM) && !defined(LZPACK_DECODE_ONLY)	  %-12s window %ld bytes (max distance %ld)\n
 MSG_P_SKIPPED	!defined(LZPACK_DECODE_ONLY)	  %-12s -- inefficient (%ld => %ld), skipped\n
@@ -32,8 +32,8 @@ MSG_E_TMPMAKE	defined(LZPACK_STREAM) && !defined(LZPACK_DECODE_ONLY)	ERROR: cann
 MSG_E_TMPOPEN	defined(LZPACK_STREAM) && !defined(LZPACK_DECODE_ONLY)	ERROR: cannot reopen temp file %s\n
 MSG_E_WINMEM	defined(LZPACK_STREAM) && !defined(LZPACK_DECODE_ONLY)	ERROR: out of memory for compression window\n
 MSG_E_RESTBIG	~!defined(LZPACK_STREAM) && !defined(LZPACK_COMPRESS_ONLY)	ERROR: %s is too large to restore in this build\n
-MSG_E_NOTPOP	!defined(LZPACK_COMPRESS_ONLY)	ERROR: %s is not a PopCom! or LZPACK file\n
-MSG_E_EXPMZX	!defined(LZPACK_COMPRESS_ONLY)	ERROR: %s expands beyond MZXFILE=%ld\n
+MSG_E_NOTPOP	!defined(LZPACK_COMPRESS_ONLY)	ERROR: %s is not an LZPACK file\n
+MSG_E_EXPMZX	!defined(LZPACK_COMPRESS_ONLY)	ERROR: %s expands beyond max of %ld\n
 MSG_E_BADHDR	!defined(LZPACK_COMPRESS_ONLY)	ERROR: %s has invalid header data\n
 MSG_E_RESTOOM	defined(LZPACK_STREAM) && !defined(LZPACK_COMPRESS_ONLY)	ERROR: %s too large to restore (out of memory)\n
 MSG_P_RESTORED	!defined(LZPACK_COMPRESS_ONLY)	  %-12s %6ld => %6ld  -> %s\n
@@ -61,7 +61,7 @@ MSG_E_IREQ	defined(LZ_CPM)	ERROR: -I requires CP/M with LRBC support\n
 MSG_E_NOREST	defined(LZPACK_COMPRESS_ONLY)	ERROR: this build cannot restore\n
 MSG_U_FLINE	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY)	  lzpack -F <floor>           require memory top >= floor (implies -C)\n
 MSG_E_BADF	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY)	ERROR: bad -f value\n
-MSG_E_OOM	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_STREAM)	ERROR: Out of memory!\n
+MSG_E_OOM	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_STREAM)	ERROR: out of memory!\n
 MSG_E_EOD	~!defined(LZPACK_COMPRESS_ONLY) && !defined(LZ_ASM_RESTORE) && !defined(LZ_ASM_RESTORE_86)	ERROR: unexpected end of data\n
 MSG_E_UNDERFLOW	~!defined(LZPACK_COMPRESS_ONLY) && !defined(LZ_ASM_RESTORE) && !defined(LZ_ASM_RESTORE_86)	ERROR: invalid compressed data (underflow)\n
 MSG_P_REPACK	~!defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY) && !defined(LZPACK_STREAM)	  %-12s already packed; recompressing original\n

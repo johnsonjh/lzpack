@@ -218,7 +218,7 @@ make(d + "/big46.com", 46848, "BIG46-MARK-F6", "text")
 # should be 'inefficient, skipped'
 make(d + "/incomp.com", 4096, "INCOMP-MARK-G7", "rand")
 
-# expected: too big / would not fit
+# expected: too big / memtop refusal (needs -M larger than default)
 make(d + "/over.com", 52000, "OVER-MARK-H8", "text")
 
 # genuine Z80 program (uses LDIR) -> must autodetect as Z80 and self-extract

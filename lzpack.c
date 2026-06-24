@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v1.0"
+#define LZPACK_VER "v1.01"
 
 /******************************************************************************/
 
@@ -2862,9 +2862,6 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   unsigned char *stub;
   long chk;
 
-  if (stub_dst_top > (long)memtop)
-    return -1;
-
   put_header (outf, data, stub_v, outlen);
 
   (void)memcpy (outf + LITCNT, pl, (size_t)pllen);
@@ -2914,9 +2911,6 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   unsigned char *su, *de;
   long chk;
   int i;
-
-  if (dcmp_dsttop > (long)memtop)
-    return -1;
 
   put_header (outf, data, stub_v, outlen);
 
@@ -2992,6 +2986,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 {
   unsigned char *data = g_a, *pl = g_b, *outf = g_c;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
+  long stub_dst_top, dcmp_dsttop;
   char nb[1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
@@ -3044,8 +3039,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n > MZXFILE)
     {
       /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)fprintf (stderr, MSG_E_MZX,
-                     fn, (long)MZXFILE);
+      (void)fprintf (stderr, MSG_E_MZX, fn, (long)MZXFILE);
 
       return 1;
     }
@@ -3053,8 +3047,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (n > 65535L)
     {
       /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)fprintf (stderr, MSG_E_HDRBIG,
-                     fn);
+      (void)fprintf (stderr, MSG_E_HDRBIG, fn);
 
       return 1;
     }
@@ -3096,16 +3089,21 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (ming < 1)
     pl_dst_top += (1 - ming);
 
-  body = (use8080 ? build_8080 (outf, data, pllen, pl, outlen, pl_dst_top)
-                  : build_z80 (outf, data, pllen, pl, outlen, pl_dst_top));
+  stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
+  dcmp_dsttop = (pl_dst_top + 51) + S8_DLEN - 1;
 
-  if (body < 0)
+  if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
     {
       /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)fprintf (stderr, MSG_E_NOFIT, fn);
+      (void)fprintf (stderr, MSG_E_NOFIT,
+                     fn, ((long)memtop + 513L) / 1024L, (long)memtop,
+                     (use8080 ? dcmp_dsttop : stub_dst_top));
 
       return 1;
     }
+
+  body = (use8080 ? build_8080 (outf, data, pllen, pl, outlen, pl_dst_top)
+                  : build_z80 (outf, data, pllen, pl, outlen, pl_dst_top));
 
   total = body;
 
@@ -3923,8 +3921,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (n > MZXFILE)
     {
       /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)fprintf (stderr, MSG_E_MZX,
-                     fn, (long)MZXFILE);
+      (void)fprintf (stderr, MSG_E_MZX, fn, (long)MZXFILE);
 
       return 1;
     }
@@ -3932,8 +3929,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (n > 65535L)
     {
       /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)fprintf (stderr, MSG_E_HDRBIG,
-                     fn);
+      (void)fprintf (stderr, MSG_E_HDRBIG, fn);
 
       return 1;
     }
@@ -4074,7 +4070,9 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     {
       lzunlink (LZTMP);
       /* Flawfinder: ignore */ /* False positive CWE-134 */
-      (void)fprintf (stderr, MSG_E_NOFIT, fn);
+      (void)fprintf (stderr, MSG_E_NOFIT,
+                     fn, ((long)memtop + 513L) / 1024L, (long)memtop,
+                     (use8080 ? dcmp_dsttop : stub_dst_top));
 
       return 1;
     }
