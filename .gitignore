@@ -7,6 +7,7 @@
 *~
 /#*#
 *.$$$
+/amiga/
 a.out
 A.OUT
 /atarist/
@@ -61,6 +62,7 @@ massif.out*
 *.O
 *.obj
 *.OBJ
+/oldshim.c
 /os2/
 *.out
 *.pak
@@ -84,9 +86,11 @@ strpack
 /timer.ttp
 *.tmp
 *.TMP
+*.uaem
 *.unittest
 *.unp
 *.UNP
+*.vbcc
 /vbcc.sh
 /windows/
 
