@@ -230,6 +230,7 @@ distclean reallyclean: clean
 	rm -f -r ./linux64 2> /dev/null
 	rm -f -r ./linux32 2> /dev/null
 	rm -f -r ./atarist 2> /dev/null
+	rm -f -r ./amiga 2> /dev/null
 	test -d ./.git 2> /dev/null && git clean -ndx 2> /dev/null || :
 
 ################################################################################
@@ -496,11 +497,40 @@ crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	mv -f lzpack lzpackjr.ttp
 	mv -f lzpackjr.ttp ./atarist/
 	env PATH="$(CROSSMINT)/usr/bin:$(CROSSMINT_ARCH)/bin:$${PATH:-}" \
-		"$${MAKE:-make}" CC="$(CROSSMINT_GCC) -mfastcall"
+		"$${MAKE:-make}" CC="$(CROSSMINT_GCC) -mfastcall" \
+		CFLAGS="-DMZXFILE=65535L"
 	"$(CROSSMINT_ARCH)/bin/strip" --strip-all lzpack
 	(upx -q --best lzpack 2> /dev/null | grep ' \-> ' 2> /dev/null) || :
 	mv -f lzpack lzpack.ttp
 	mv -f lzpack.ttp ./atarist/
+
+################################################################################
+
+VBCC=/opt/vbcc
+
+amiga: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+	@(export CPE1704TKS=1 && . ./.common.sh && \
+		export FIND_COMMAND_FATAL=1 && \
+		find_command cp grep rm "$${VBCC:-$(VBCC)}/bin/vc" cranker)
+	@mkdir -p ./amiga/
+	env VBCC="$${VBCC:-$(VBCC)}" PATH="$${VBCC:-$(VBCC)}/bin:$${PATH:-}" \
+		"$${MAKE:-make}" CC="$${VBCC:-$(VBCC)}/bin/vc" \
+		CFLAGS="+aos68k -cpu=68000 -c89 -no-trigraphs -speed -O4 \
+		-maxoptpasses=1000 -unroll-all -short-push -DMZXFILE=65535L" \
+		LDFLAGS="-final"
+	cranker -f lzpack -d minimal -o lzpack.out
+	mv -f lzpack.out ./amiga/lzpack
+	rm -f lzpack
+	env VBCC="$${VBCC:-$(VBCC)}" PATH="$${VBCC:-$(VBCC)}/bin:$${PATH:-}" \
+		"$${MAKE:-make}" CC="$${VBCC:-$(VBCC)}/bin/vc" \
+		CFLAGS="+aos68k -cpu=68000 -c89 -no-trigraphs -speed -O4 \
+		-maxoptpasses=1000 -unroll-all -short-push -DLZPACK_STREAM=1 \
+		-DLZPACK_OPT=1 -DHSZ=8192 -DMZXFILE=65535L" \
+		LDFLAGS="-final"
+	mv -f lzpack lzpackjr
+	cranker -f lzpackjr -d minimal -o lzpackjr.out
+	mv -f lzpackjr.out ./amiga/lzpackjr
+	rm -f lzpackjr
 
 ################################################################################
 
@@ -537,7 +567,7 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all cpm cpm86 os2 msdos djgpp elks windows \
 		linux64-static linux32-static docker-arm64-musl \
-		docker-armv5-musl crossmint-atari
+		docker-armv5-musl crossmint-atari amiga
 	mkdir -p ./bindist/
 	# CP/M-80 8080 (split: LZPACK.COM compresses, LZUNPACK.COM restores)
 	test -f ./cpm-8080/lzpack.com
@@ -615,6 +645,13 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 	chmod a-x ./atarist/lzpackjr.ttp
 	(cd atarist && lha -c -z -0 LZPACKST.LZH lzpack.ttp lzpackjr.ttp)
 	mv -f ./atarist/LZPACKST.LZH ./bindist/LZPACKST.LZH
+	# AmigaOS 68K
+	test -f ./amiga/lzpack
+	test -f ./amiga/lzpackjr
+	chmod a-x ./amiga/lzpack
+	chmod a-x ./amiga/lzpackjr
+	(cd amiga && lha -c -z -0 LZPACKAM.LHA lzpack lzpackjr)
+	mv -f ./amiga/LZPACKAM.LHA ./bindist/LZPACKAM.LHA
 	"$${MAKE:-make}" distclean
 	"$${MAKE:-make}" all
 	markdown-toc -i README.md 2> /dev/null || :
@@ -688,7 +725,7 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
 	scspell-fix dos pcdos everything-lint megalint os2 linux64-static \
 	linux64-musl linux32-owcc linux32-static docker-arm64-musl \
-	docker-armv5-musl crossmint-atari atari
+	docker-armv5-musl crossmint-atari atari amiga
 
 ################################################################################
 

@@ -50,6 +50,7 @@ log.pvs
 /lzpack
 /LZPACK
 /lzpack.asm
+/lzpackjr
 *.map
 *.MAP
 massif.out*

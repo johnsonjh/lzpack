@@ -68,7 +68,7 @@ Precompiled binaries are provided for **CP/M‑80** (8080 and Z80),
 **CP/M‑86** (8086/8088), **MS‑DOS** (16‑bit 8086/8088 real‑mode and 32‑bit
 386&nbsp;DPMI), **ELKS** (8086/8088), **OS/2** (32‑bit), **Linux** (32‑bit
 i386, 32‑bit ARMv5, 64‑bit x86‑64, and 64‑bit ARMv8), **Atari&nbsp;ST**
-(TOS/MINT), and **Windows** (both 32‑ and 64‑bit versions).
+(TOS/MINT), **AmigaOS** (68K), and **Windows** (both 32‑ and 64‑bit versions).
 
 The CP/M‑80 builds also run on **MSX‑DOS** (as do the packed executables
 **LZPACK** generates).
@@ -414,7 +414,8 @@ any packed program can be inspected on the target machine itself.
 | [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB | **ELKS**&nbsp;(8086/8088)             |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB | **MS‑DOS**&nbsp;(8086/8088)           |
 | [LZPCK86P.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86P.ZIP) | 76&nbsp;KiB | **MS‑DOS**&nbsp;(80386&nbsp;DPMI)     |
-| [LZPACKST.LZH](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPACKST.LZH) | 136&nbsp;KiB | **Atari&nbsp;ST**&nbsp;(TOS/MINT)     |
+| [LZPACKST.LZH](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPACKST.LZH) | 132&nbsp;KiB | **Atari&nbsp;ST**&nbsp;(TOS/MINT)    |
+| [LZPACKAM.LHA](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPACKAM.LHA) | 44&nbsp;KiB | **AmigaOS**&nbsp;(68K)                |
 | [LZPCKOS2.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKOS2.ZIP) | 20&nbsp;KiB | **OS/2**&nbsp;(32‑bit&nbsp;i386)      |
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB | **Windows**&nbsp;(32‑bit&nbsp;MSVCRT) |
 | [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
@@ -492,6 +493,7 @@ Most users will only be interested in the native binary build.
 | `djgpp`     | MS‑DOS&nbsp;80386                  | [DJGPP](https://www.delorie.com/djgpp/)&nbsp;and&nbsp;[CWSDPMI](https://sandmann.dotster.com/cwsdpmi/)                      |
 | `elks`      | ELKS&nbsp;8086/8088                | [IA16‑GCC](https://gitlab.com/tkchia/build-ia16)                                                                            |
 | `atari`     | Atari&nbsp;ST&nbsp;TOS/MINT        | [Crossmint](https://tho-otto.de/crossmint.php)                                                                              |
+| `amiga`     | AmigaOS&nbsp;68K                   | [Vbcc](http://www.compilers.de/vbcc.html)                                                                                   |
 | `windows`   | Windows&nbsp;32/64‑bit             | [MinGW‑w64](https://www.mingw-w64.org/)&nbsp;[GCC](https://gcc.gnu.org/)                                                    |
 
 The following targets will likely only be of interest to developers:
