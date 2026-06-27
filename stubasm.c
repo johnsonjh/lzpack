@@ -252,7 +252,7 @@ sym_set (const char *n, long v, int islabel)
 # pragma warning( suppress : 6385 )
 #endif
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-      (void)xstrcpy (sym_name[i], n);
+      xstrcpy (sym_name[i], n);
     }
   else if (cur_pass == 2 && islabel && sym_islabel[i] && sym_val[i] != v)
     die ("phase error");
@@ -282,7 +282,7 @@ predefine (const char *n, long v)
 # pragma warning( suppress : 6385 6386 )
 #endif
   /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-  (void)xstrcpy (pre_name[npre], n);
+  xstrcpy (pre_name[npre], n);
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
 #endif
@@ -575,7 +575,7 @@ rec (const char *tok, int width)
 # pragma warning( suppress : 6385 )
 #endif
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          (void)xstrcpy (refs[nref].name, tok);
+          xstrcpy (refs[nref].name, tok);
         }
 
       refs[nref].width = width;
@@ -1347,7 +1347,7 @@ assemble (const char *path, int z80)
             }
 
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          (void)xstrcpy (opU, op);
+          xstrcpy (opU, op);
 
           upcase (opU);
           loc = (have_org ? org : 0) + clen;
@@ -1722,7 +1722,7 @@ collect (const char *const *patch)
             die ("patch name too long");
 
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          (void)xstrcpy (sl_name[nsl], refs[j].name);
+          xstrcpy (sl_name[nsl], refs[j].name);
 
           sl_off[nsl] = refs[j].off;
 
@@ -2042,7 +2042,7 @@ main (int argc, char **argv)
   for (i = 0; i < nsl; i++)
     {
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-      (void)xstrcpy (s_sl_name[i], sl_name[i]);
+      xstrcpy (s_sl_name[i], sl_name[i]);
 
       s_sl_off[i] = sl_off[i];
     }

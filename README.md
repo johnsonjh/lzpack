@@ -147,13 +147,13 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   On CP/M‑80 (or any other memory‑constrained system), the window sizes and
   compression ratio scale with the available memory: a small TPA means a
   small compression window and somewhat larger output.  Currently any Z80
-  system with **49.7K**&nbsp;TPA or any 8080 system with **50.9K**&nbsp;TPA
+  system with **48.4K**&nbsp;TPA or any 8080 system with **50.9K**&nbsp;TPA
   is able to run the *"full strength"* (8K window) compressor.  See the
   following table for compression window size vs. available TPA:
 
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
-  |  **Z80** | `29,394`&nbsp;(`28.7K`) | `32,466`&nbsp;(`31.7K`) | `38,610`&nbsp;(`37.7K`) | `50,898`&nbsp;(`49.7K`) |
+  |  **Z80** | `28,070`&nbsp;(`27.4K`) | `31,142`&nbsp;(`30.4K`) | `37,286`&nbsp;(`36.4K`) | `49,574`&nbsp;(`48.4K`) |
   | **8080** | `30,702`&nbsp;(`29.9K`) | `33,774`&nbsp;(`32.9K`) | `39,918`&nbsp;(`38.9K`) | `52,206`&nbsp;(`50.9K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
@@ -280,7 +280,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v1.01 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v1.02 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
@@ -409,7 +409,7 @@ any packed program can be inspected on the target machine itself.
 |                                                                                          File  | Size        | Platform                              |
 |-----------------------------------------------------------------------------------------------:|------------:|:--------------------------------------|
 | [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB | **CP/M‑80**&nbsp;(8080)               |
-| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 20&nbsp;KiB | **CP/M‑80**&nbsp;(Z80)                |
+| [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 24&nbsp;KiB | **CP/M‑80**&nbsp;(Z80)                |
 | [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 20&nbsp;KiB | **CP/M‑86**&nbsp;(8086/8088)          |
 | [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB | **ELKS**&nbsp;(8086/8088)             |
 | [LZPCK86R.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86R.ZIP) | 20&nbsp;KiB | **MS‑DOS**&nbsp;(8086/8088)           |
