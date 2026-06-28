@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v1.02"
+#define LZPACK_VER "v1.03"
 
 /******************************************************************************/
 
