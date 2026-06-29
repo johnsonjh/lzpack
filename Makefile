@@ -516,7 +516,7 @@ amiga: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	env VBCC="$${VBCC:-$(VBCC)}" PATH="$${VBCC:-$(VBCC)}/bin:$${PATH:-}" \
 		"$${MAKE:-make}" CC="$${VBCC:-$(VBCC)}/bin/vc" \
 		CFLAGS="+aos68k -cpu=68000 -c89 -no-trigraphs -speed -O4 \
-		-maxoptpasses=1000 -unroll-all -short-push -DMZXFILE=65535L" \
+		-maxoptpasses=1000 -short-push -DMZXFILE=65535L" \
 		LDFLAGS="-final"
 	cranker -f lzpack -d minimal -o lzpack.out
 	mv -f lzpack.out ./amiga/lzpack
@@ -524,7 +524,7 @@ amiga: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 	env VBCC="$${VBCC:-$(VBCC)}" PATH="$${VBCC:-$(VBCC)}/bin:$${PATH:-}" \
 		"$${MAKE:-make}" CC="$${VBCC:-$(VBCC)}/bin/vc" \
 		CFLAGS="+aos68k -cpu=68000 -c89 -no-trigraphs -speed -O4 \
-		-maxoptpasses=1000 -unroll-all -short-push -DLZPACK_STREAM=1 \
+		-maxoptpasses=1000 -short-push -DLZPACK_STREAM=1 \
 		-DLZPACK_OPT=1 -DHSZ=8192 -DMZXFILE=65535L" \
 		LDFLAGS="-final"
 	mv -f lzpack lzpackjr
