@@ -48,6 +48,7 @@ even better compression results.
   * [Developer notes](#developer-notes)
 - [Security](#security)
 - [SAST and linters](#sast-and-linters)
+- [Code statistics](#code-statistics)
 - [License](#license)
 
 <!-- tocstop -->
