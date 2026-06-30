@@ -719,13 +719,33 @@ scspell-fix: ./.scspell/basedict.txt ./.scspell/dictionary.txt
 
 ################################################################################
 
+scc: README.md
+	"$${MAKE:-$(MAKE)}" distclean
+	awk '/<!-- scc-start -->/ { \
+		print; system("scc \
+			--remap-all \"LZPACK message\":\"Message Catalog\" \
+			--exclude-file LICENSE,README.md,README.awk,log.pvs \
+			--exclude-file log.pvs,compile_commands.json \
+			--exclude-file REUSE.toml \
+			--exclude-dir LICENSES,.git,pvsreport,bindist \
+			--no-cocomo -u --no-size -s lines -f html-table; \
+			printf \"\n%s\n\" \"<!-- scc-end -->\""); \
+			skip=1; next } \
+		skip && /<!-- scc-end -->/ { skip=0; next } \
+		!skip' README.md > README.awk && \
+	mv -f README.awk README.md && \
+	expand README.md > README.out && \
+	mv -f README.out README.md
+
+################################################################################
+
 .PHONY: all build clean distclean reallyclean stub stubs strip cpm cpm80 \
 	cpm80-auto cpm-auto cpm-local cpm80-local cpm-docker cpm80-docker \
 	lint test cpm86 cpm-86 msdos djgpp elks windows bindist tags etags \
 	ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag scspell \
 	scspell-fix dos pcdos everything-lint megalint os2 linux64-static \
 	linux64-musl linux32-owcc linux32-static docker-arm64-musl \
-	docker-armv5-musl crossmint-atari atari amiga
+	docker-armv5-musl crossmint-atari atari amiga scc
 
 ################################################################################
 

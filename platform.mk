@@ -20,6 +20,9 @@ endif
 ifeq ($(MAKECMDGOALS),clean)
  SKIP_DETECTION:=1
 endif
+ifeq ($(MAKECMDGOALS),scc)
+ SKIP_DETECTION:=1
+endif
 ifeq ($(MAKECMDGOALS),distclean)
  SKIP_DETECTION:=1
 endif
