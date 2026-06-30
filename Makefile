@@ -723,7 +723,7 @@ scc: README.md
 	"$${MAKE:-$(MAKE)}" distclean
 	awk '/<!-- scc-start -->/ { \
 		print; system("scc \
-			--remap-all \"LZPACK message\":\"Message Catalog\" \
+			--remap-all \"LZPACK message\":\"Messages\" \
 			--exclude-file LICENSE,README.md,README.awk,log.pvs \
 			--exclude-file log.pvs,compile_commands.json \
 			--exclude-file REUSE.toml \
