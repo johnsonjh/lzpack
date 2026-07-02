@@ -87,6 +87,9 @@ decompression stub.
 
 Users can also specify `-8` to explicitly use the 8080 stub, or `-Z` to force
 the Z80 stub, in case the automatic detection gets it wrong (which can happen).
+For example, the CP/M‑80 **LZPACK** program itself (when built for 8080) is
+misdetected as a Z80 binary due to the Z80 opcode scanning code embedded in
+the executable.
 
 While packed 8080 programs using the 8080 stub will run on any 8080 (or 8085)
 system, they can sometimes be packed smaller by using the Z80 stub, at the
@@ -309,7 +312,7 @@ sitting above it.  At packing time, **LZPACK** verifies that everything fits
 below a memory ceiling (*MEMTOP*), and will refuse to produce an output file
 otherwise.  The default is at `0xBDFF`, so all packed programs are guaranteed
 to run on any **48K&nbsp;TPA** system, but the `-M` option can be used to
-override this; for example:
+override this:
 
 * Use `-M 64` to pack programs too large for **48K&nbsp;TPA**, but the result
   *requires* a correspondingly larger TPA at run time.
@@ -576,7 +579,7 @@ automatically via the [`make lint`](.lint.sh) target):
 | [GNU&nbsp;Cppi](https://www.gnu.org/software/cppi/)                                                                | C preprocessor directive linting, indenting, and regularization                    |
 | [IBM&nbsp;AIX&nbsp;lint](https://www.ibm.com/docs/en/aix/7.3.0?topic=l-lint-command)                               | Checks C and C++ language programs for potential problems                          |
 | [NetBSD&nbsp;lint(1)](https://man.netbsd.org/lint.1)                                                               | A C (C90/C99/C11/C17/C23) program verifier                                         |
-| [Oracle&nbsp;Developer&nbsp;Studio](https://www.oracle.com/application-development/developerstudio/)               | Performance, security, and thread analysis tools for C, C++, and Fortran           |
+| [Oracle&nbsp;Developer&nbsp;Studio](https://www.oracle.com/application-development/developerstudio/)               | Performance, security, and thread analysis tools for C, C++, and FORTRAN           |
 | [PurifyPlus](https://www.teamblue.unicomsi.com/products/purifyplus/)                                               | Run‑time analysis tools for application reliability and performance                |
 | [REUSE](https://reuse.software/)                                                                                   | Verifies compliance with the REUSE software licensing guidelines                   |
 | [Semgrep](https://semgrep.dev/)                                                                                    | A fast, open-source, static analysis engine for many languages                     |
