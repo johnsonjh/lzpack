@@ -1,13 +1,13 @@
 diff --git a/main.c b/main.c
-index 37f5eb3..fbc1ae7 100644
+index d97e929..eae242f 100644
 --- a/main.c
 +++ b/main.c
-@@ -185,20 +185,21 @@ usage(void) {
- 	perr("    -l (<n>|@)       number of full screen mode lines *");
+@@ -186,20 +186,21 @@ usage(void) {
  	perr("    -m (<n>|@)       set CP/M memory size in kilobytes");
  	perr("    -n               never actually close files");
  	perr("    -o (n|y|[y,]<fg>,<bg>)");
  	perr("                     use colors *");
+ 	perr("    -p               be pedantic about buggy applications");
  	perr("    -r               reverse backspace and delete keys *");
  	perr("    -s               use full screen mode console");
  	perr("    -t (<n>|@)       delay before exiting full screen mode *");
@@ -24,7 +24,7 @@ index 37f5eb3..fbc1ae7 100644
  /*
   * print error message if a command line option has been defined more than once
   */
-@@ -573,21 +574,21 @@ premature_exit:
+@@ -574,21 +575,21 @@ premature_exit:
   */
  static int
  get_config(int argc, char **argv) {
@@ -35,8 +35,8 @@ index 37f5eb3..fbc1ae7 100644
  	unsigned long ul;
  	opterr = 0;
  	while ((opt = getopt(argc, argv,
--	    "abc:d:e:f:l:m:no:rst:v:wy:z:")) != EOF) {
-+	    "abc:d:e:f:l:m:no:rst:v:wX:y:z:")) != EOF) {
+-	    "abc:d:e:f:l:m:no:prst:v:wy:z:")) != EOF) {
++	    "abc:d:e:f:l:m:no:prst:v:wX:y:z:")) != EOF) {
  		switch (opt) {
  		case 'a':
  			/*
@@ -47,38 +47,39 @@ index 37f5eb3..fbc1ae7 100644
  				rc = (-1);
  			} else {
  				charset = 1;
-@@ -874,20 +875,41 @@ get_config(int argc, char **argv) {
- 					ul = strtoul(optarg, &cp, 10);
- 					if (*cp || ul > 65 || ul < 8) {
- 						perr("invalid memory size");
- 						rc = (-1);
- 					} else {
- 						conf_memsize = (int) ul;
- 					}
- 				}
+@@ -885,21 +886,41 @@ get_config(int argc, char **argv) {
+ 		case 'p':
+ 			/*
+ 			 * be pedantic about buggy applications
+ 			 */
+ 			if (be_pedantic != (-1)) {
+ 				only_once('p');
+ 				rc = (-1);
  			}
+ 			be_pedantic = 1;
  			break;
-+		case 'X':
-+			/*
-+			 * set exact TPA size in bytes (or <n>K)
-+			 */
-+			if (conf_tpa) {
-+				only_once('X');
-+				rc = (-1);
-+			}
-+			ul = strtoul(optarg, &cp, 10);
-+			if (*cp == 'k' || *cp == 'K') {
-+				cp++;
-+				if (ul > INT_MAX / 1024) ul = INT_MAX + 1UL;
-+				else ul *= 1024;
-+			}
-+			if (*cp || ul < 1 || ul > INT_MAX) {
-+				perr("invalid TPA size");
-+				rc = (-1);
-+			} else {
-+				conf_tpa = (int) ul;
-+			}
-+			break;
+-
++                case 'X':
++                        /*
++                         * set exact TPA size in bytes (or <n>K)
++                         */
++                        if (conf_tpa) {
++                                only_once('X');
++                                rc = (-1);
++                        }
++                        ul = strtoul(optarg, &cp, 10);
++                        if (*cp == 'k' || *cp == 'K') {
++                                cp++;
++                                if (ul > INT_MAX / 1024) ul = INT_MAX + 1UL;
++                                else ul *= 1024;
++                        }
++                        if (*cp || ul < 1 || ul > INT_MAX) {
++                                perr("invalid TPA size");
++                                rc = (-1);
++                        } else {
++                                conf_tpa = (int) ul;
++                        }
++                        break;
  		case '?':
  			perr("invalid option -%c", optopt);
  			rc = (-1);
@@ -90,7 +91,7 @@ index 37f5eb3..fbc1ae7 100644
  	 * parameters are passed to the CP/M emulator as CP/M command
  	 * line parameters
 diff --git a/os.c b/os.c
-index 90387e4..72c9437 100644
+index 9ff666a..0142a16 100644
 --- a/os.c
 +++ b/os.c
 @@ -74,20 +74,25 @@
@@ -119,7 +120,7 @@ index 90387e4..72c9437 100644
      MEMORY_SIZE - MIN_BIOS_SIZE - MIN_BDOS_SIZE - MIN_CCP_SIZE;
  
  #define BDOS_SERIAL bdos_start
-@@ -818,20 +823,34 @@ os_init(void) {
+@@ -822,20 +827,34 @@ os_init(void) {
  	unsigned char *tpa_p;
  	wchar_t buffer[DMA_SIZE], *bp;
  	/*
@@ -155,7 +156,7 @@ index 90387e4..72c9437 100644
  		/*
  		 * command name contains a slash --- assume Unix path
 diff --git a/readconf.c b/readconf.c
-index a5fedc9..6873708 100644
+index afe7181..8946bfd 100644
 --- a/readconf.c
 +++ b/readconf.c
 @@ -144,20 +144,24 @@ int conf_save_end = 0;
@@ -173,18 +174,18 @@ index a5fedc9..6873708 100644
 + * exact TPA size in bytes (0: default; set by the -X option)
 + */
 +int conf_tpa = 0;
- 
+ /*
+  * be pedantic about buggy applications
+  */
+ int be_pedantic = (-1);
  
  /*
   * maximal length of a line in the configuration file
   */
  #define L_LINE 1024
  
- 
- /*
-  * variables for communication between the procedures of the
 diff --git a/tnylpo.h b/tnylpo.h
-index 93f3110..7261dc4 100644
+index a768da7..5bde2fe 100644
 --- a/tnylpo.h
 +++ b/tnylpo.h
 @@ -158,20 +158,21 @@ extern int charset;
@@ -199,6 +200,7 @@ index 93f3110..7261dc4 100644
  extern int conf_background;
  extern int conf_memsize;
 +extern int conf_tpa;
+ extern int be_pedantic;
  
  
  /*
@@ -208,4 +210,3 @@ index 93f3110..7261dc4 100644
  	DUMP_NONE = 0x01,
  	DUMP_STARTUP = 0x02,
  	DUMP_EXIT = 0x04,
- 	DUMP_ERROR = 0x08,
