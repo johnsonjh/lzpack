@@ -19,7 +19,7 @@
 # undef LZPACK_VER
 #endif
 
-#define LZPACK_VER "v1.04"
+#define LZPACK_VER "v1.05"
 
 /******************************************************************************/
 
@@ -1769,11 +1769,13 @@ cpm_file_size (const char *fn)
   cpm_setfcb (fcb, fn);
   fcb[12] = (unsigned char)(last_ext & 0x1f);
   fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
+  fcb[32] = 0xff;
 
   if ((bdos (15, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
     return -1;
 
-  lrbc = fcb[13] & 0xff;
+  lrbc = fcb[32] & 0xff;
+  fcb[32] = 0x00;
   (void)bdos (16, BDOS_FCB (fcb));
 
   if (lrbc <= 0 || lrbc >= 128)
@@ -1811,12 +1813,13 @@ cpm_set_byte_count (const char *fn, long nbytes)
   cpm_setfcb (fcb, fn);
   fcb[12] = (unsigned char)(last_ext & 0x1f);
   fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
+  fcb[32] = (unsigned char)(lrbc & 0x7f);
+  fcb[6] |= 0x80;
 
-  if ((bdos (15, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
+  if ((bdos (30, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
     return -1;
 
-  fcb[13] = (unsigned char)(lrbc & 0x7f);
-  (void)bdos (16, BDOS_FCB (fcb));
+  fcb[6] &= 0x7f;
 
   return 0;
 }
