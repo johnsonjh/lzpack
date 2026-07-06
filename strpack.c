@@ -1,5 +1,5 @@
 /*
- * strpack - LZPACK build-time message-string compressor
+ * strpack - LZPACK message database string compressor
  * Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
  * SPDX-License-Identifier: MIT-0
  * scspell-id: ae4ee402-60aa-11f1-9faf-80ee73e9b8e7
@@ -17,33 +17,49 @@
 # define SP_MAXSTR 128
 #endif
 
+/******************************************************************************/
+
 #ifndef SP_MAXTXT
 # define SP_MAXTXT 8192
 #endif
+
+/******************************************************************************/
 
 #ifndef SP_MAXBOOK
 # define SP_MAXBOOK 126
 #endif
 
+/******************************************************************************/
+
 #ifndef SP_MAXENT
 # define SP_MAXENT 32
 #endif
+
+/******************************************************************************/
 
 #ifndef SP_MINENT
 # define SP_MINENT 2
 #endif
 
+/******************************************************************************/
+
 #ifndef SP_TOPK
 # define SP_TOPK 96
 #endif
+
+/******************************************************************************/
 
 #ifndef SP_MAXNAME
 # define SP_MAXNAME 32
 #endif
 
+/******************************************************************************/
+
 #if 128 < SP_MAXBOOK
 # error "SP_MAXBOOK must not exceed 128 (book refs are 0x80 + index)"
 #endif
+
+/******************************************************************************/
 
 #if 1 > SP_MINENT
 # error "SP_MINENT must be at least 1"
@@ -531,6 +547,7 @@ emit_one (const unsigned char *s, long n, unsigned char *out)
               && sp_cost[i] == 1 + sp_cost[i + el])
             {
               hit = b;
+
               break;
             }
         }
