@@ -67,22 +67,22 @@
 
 /******************************************************************************/
 
-static unsigned char sp_text[SP_MAXTXT];
-static long sp_off[SP_MAXSTR];
-static long sp_len[SP_MAXSTR];
-static char sp_name[SP_MAXSTR][SP_MAXNAME + 1];
-static char sp_guard[SP_MAXSTR][120];
-static int sp_train[SP_MAXSTR];
+static unsigned char sp_text [SP_MAXTXT];
+static long sp_off [SP_MAXSTR];
+static long sp_len [SP_MAXSTR];
+static char sp_name [SP_MAXSTR] [SP_MAXNAME + 1];
+static char sp_guard [SP_MAXSTR] [120];
+static int sp_train [SP_MAXSTR];
 static int sp_nstr = 0;
 static long sp_total = 0;
-static unsigned char sp_book[SP_MAXBOOK][SP_MAXENT + 1];
-static int sp_blen[SP_MAXBOOK];
+static unsigned char sp_book [SP_MAXBOOK] [SP_MAXENT + 1];
+static int sp_blen [SP_MAXBOOK];
 static int sp_nbook = 0;
-static long sp_cost[SP_MAXTXT + 1];
+static long sp_cost [SP_MAXTXT + 1];
 
 /******************************************************************************/
 
-static const char *const sp_def_yes[] = {
+static const char *const sp_def_yes [] = {
   "LZPACK_STREAM", "LZPACK_COMPRESS_ONLY", "LZ_CPM",
   "LZPACK_NO_OPT", "LZ_ASM_RESTORE",       "LZ_BDOS_IO",
   "LZ_MSG_PACKED", "__SCCZ80",             NULL
@@ -90,7 +90,7 @@ static const char *const sp_def_yes[] = {
 
 /******************************************************************************/
 
-static const char *const sp_def_no[] = {
+static const char *const sp_def_no [] = {
   "LZPACK_DECODE_ONLY", "LZPACK_NO_AUTOARCH", "LZPACK_NO_PROGRESS",
   "LZ_ASM_RESTORE_86",  "LZPACK_PACKED_MSGS", "LZPACK_OPT",
   NULL
@@ -103,8 +103,8 @@ name_in (const char *const *list, const char *p, size_t n)
 {
   int i;
 
-  for (i = 0; NULL != list[i]; i++)
-    if (n == strlen (list[i]) && 0 == memcmp (list[i], p, n))
+  for (i = 0; NULL != list [i]; i++)
+    if (n == strlen (list [i]) && 0 == memcmp (list [i], p, n))
       return 1;
 
   return 0;
@@ -140,10 +140,10 @@ eval_guard (const char *g)
       g += 8;
       nl = 0;
 
-      while (0 != g[nl] && ')' != g[nl])
+      while (0 != g [nl] && ')' != g [nl])
         nl++;
 
-      if (')' != g[nl])
+      if (')' != g [nl])
         return -1;
 
       if (name_in (sp_def_yes, g, nl))
@@ -183,29 +183,29 @@ dp_one (const unsigned char *s, long n)
   long i;
   int b;
 
-  sp_cost[n] = 0;
+  sp_cost [n] = 0;
 
   for (i = n - 1; 0 <= i; i--)
     {
-      long best = 1 + sp_cost[i + 1];
+      long best = 1 + sp_cost [i + 1];
 
       for (b = 0; b < sp_nbook; b++)
         {
-          long el = (long)sp_blen[b];
+          long el = (long)sp_blen [b];
 
-          if (el <= n - i && 0 == memcmp (sp_book[b], s + i, (size_t)el))
+          if (el <= n - i && 0 == memcmp (sp_book [b], s + i, (size_t)el))
             {
-              long c = 1 + sp_cost[i + el];
+              long c = 1 + sp_cost [i + el];
 
               if (c < best)
                 best = c;
             }
         }
 
-      sp_cost[i] = best;
+      sp_cost [i] = best;
     }
 
-  return sp_cost[0];
+  return sp_cost [0];
 }
 
 /******************************************************************************/
@@ -217,8 +217,8 @@ dp_all (void)
   int i;
 
   for (i = 0; i < sp_nstr; i++)
-    if (sp_train[i])
-      t += dp_one (sp_text + sp_off[i], sp_len[i]);
+    if (sp_train [i])
+      t += dp_one (sp_text + sp_off [i], sp_len [i]);
 
   return t;
 }
@@ -232,7 +232,7 @@ book_cost (void)
   int i;
 
   for (i = 0; i < sp_nbook; i++)
-    t += (long)sp_blen[i];
+    t += (long)sp_blen [i];
 
   return t;
 }
@@ -246,10 +246,10 @@ typedef struct sp_cand
   int len;
 } sp_cand;
 
-static sp_cand sp_top[SP_TOPK];
+static sp_cand sp_top [SP_TOPK];
 static int sp_ntop;
 
-static unsigned char sp_resid[SP_MAXTXT];
+static unsigned char sp_resid [SP_MAXTXT];
 
 static void
 make_resid (void)
@@ -261,16 +261,16 @@ make_resid (void)
   for (b = 0; b < sp_nbook; b++)
     for (s = 0; s < sp_nstr; s++)
       {
-        unsigned char *t = sp_resid + sp_off[s];
-        long left = sp_len[s];
+        unsigned char *t = sp_resid + sp_off [s];
+        long left = sp_len [s];
 
-        while ((long)sp_blen[b] <= left)
+        while ((long)sp_blen [b] <= left)
           {
-            if (0 == memcmp (t, sp_book[b], (size_t)sp_blen[b]))
+            if (0 == memcmp (t, sp_book [b], (size_t)sp_blen [b]))
               {
-                (void)memset (t, 0, (size_t)sp_blen[b]);
-                t += sp_blen[b];
-                left -= sp_blen[b];
+                (void)memset (t, 0, (size_t)sp_blen [b]);
+                t += sp_blen [b];
+                left -= sp_blen [b];
               }
             else
               {
@@ -289,7 +289,7 @@ cand_known (const unsigned char *p, int len)
   int i;
 
   for (i = 0; i < sp_nbook; i++)
-    if (sp_blen[i] == len && 0 == memcmp (sp_book[i], p, (size_t)len))
+    if (sp_blen [i] == len && 0 == memcmp (sp_book [i], p, (size_t)len))
       return 1;
 
   return 0;
@@ -303,8 +303,8 @@ cand_seen (const unsigned char *p, int len)
   int i;
 
   for (i = 0; i < sp_ntop; i++)
-    if (sp_top[i].len == len
-        && 0 == memcmp (sp_text + sp_top[i].pos, p, (size_t)len))
+    if (sp_top [i].len == len
+        && 0 == memcmp (sp_text + sp_top [i].pos, p, (size_t)len))
       return 1;
 
   return 0;
@@ -320,10 +320,10 @@ cand_occur (const unsigned char *p, int len)
 
   for (s = 0; s < sp_nstr; s++)
     {
-      const unsigned char *t = sp_resid + sp_off[s];
-      long left = sp_len[s];
+      const unsigned char *t = sp_resid + sp_off [s];
+      long left = sp_len [s];
 
-      if (!sp_train[s])
+      if (!sp_train [s])
         continue;
 
       while ((long)len <= left)
@@ -353,7 +353,7 @@ top_insert (long est, long pos, int len)
   int i, j;
 
   for (i = 0; i < sp_ntop; i++)
-    if (sp_top[i].est < est)
+    if (sp_top [i].est < est)
       break;
 
   if (SP_TOPK <= i)
@@ -363,11 +363,11 @@ top_insert (long est, long pos, int len)
     sp_ntop++;
 
   for (j = sp_ntop - 1; j > i; j--)
-    sp_top[j] = sp_top[(long)j - 1]; /* //-V557 */
+    sp_top [j] = sp_top [(long)j - 1]; /* //-V557 */
 
-  sp_top[i].est = est;
-  sp_top[i].pos = pos;
-  sp_top[i].len = len;
+  sp_top [i].est = est;
+  sp_top [i].pos = pos;
+  sp_top [i].len = len;
 }
 
 /******************************************************************************/
@@ -384,14 +384,14 @@ harvest (void)
     {
       long i;
 
-      if (!sp_train[s])
+      if (!sp_train [s])
         continue;
 
-      for (i = 0; i < sp_len[s]; i++)
+      for (i = 0; i < sp_len [s]; i++)
         {
-          const unsigned char *p = sp_resid + sp_off[s] + i;
+          const unsigned char *p = sp_resid + sp_off [s] + i;
 
-          for (len = SP_MINENT; SP_MAXENT >= len && i + len <= sp_len[s];
+          for (len = SP_MINENT; SP_MAXENT >= len && i + len <= sp_len [s];
                len++)
             {
               long occ, est;
@@ -410,7 +410,7 @@ harvest (void)
               est = occ * (long)(len - 1) - (long)(len + 1);
 
               if (0 < est)
-                top_insert (est, sp_off[s] + i, len);
+                top_insert (est, sp_off [s] + i, len);
             }
         }
     }
@@ -439,9 +439,9 @@ build_book (void)
         {
           long now, gain;
 
-          (void)memcpy (sp_book[sp_nbook], sp_text + sp_top[c].pos,
-                        (size_t)sp_top[c].len);
-          sp_blen[sp_nbook] = sp_top[c].len;
+          (void)memcpy (sp_book [sp_nbook], sp_text + sp_top [c].pos,
+                        (size_t)sp_top [c].len);
+          sp_blen [sp_nbook] = sp_top [c].len;
           sp_nbook++;
 
           now = dp_all () + book_cost ();
@@ -459,9 +459,9 @@ build_book (void)
       if (0 > bestc)
         return;
 
-      (void)memcpy (sp_book[sp_nbook], sp_text + sp_top[bestc].pos,
-                    (size_t)sp_top[bestc].len);
-      sp_blen[sp_nbook] = sp_top[bestc].len;
+      (void)memcpy (sp_book [sp_nbook], sp_text + sp_top [bestc].pos,
+                    (size_t)sp_top [bestc].len);
+      sp_blen [sp_nbook] = sp_top [bestc].len;
       sp_nbook++;
     }
 }
@@ -481,20 +481,20 @@ prune_book (void)
 
       for (i = 0; i < sp_nbook; i++)
         {
-          unsigned char keep[SP_MAXENT + 1];
+          unsigned char keep [SP_MAXENT + 1];
           long base, now;
           int klen, j;
 
           base = dp_all () + book_cost ();
 
-          (void)memcpy (keep, sp_book[i], sizeof (keep));
-          klen = sp_blen[i];
+          (void)memcpy (keep, sp_book [i], sizeof (keep));
+          klen = sp_blen [i];
 
           for (j = i; j < sp_nbook - 1; j++)
             {
-              (void)memcpy (sp_book[j], sp_book[(long)j + 1],
-                            sizeof (sp_book[j]));
-              sp_blen[j] = sp_blen[(long)j + 1];
+              (void)memcpy (sp_book [j], sp_book [(long)j + 1],
+                            sizeof (sp_book [j]));
+              sp_blen [j] = sp_blen [(long)j + 1];
             }
 
           sp_nbook--;
@@ -506,13 +506,13 @@ prune_book (void)
             {
               for (j = sp_nbook; j > i; j--)
                 {
-                  (void)memcpy (sp_book[j], sp_book[(long)j - 1],
-                                sizeof (sp_book[j]));
-                  sp_blen[j] = sp_blen[(long)j - 1];
+                  (void)memcpy (sp_book [j], sp_book [(long)j - 1],
+                                sizeof (sp_book [j]));
+                  sp_blen [j] = sp_blen [(long)j - 1];
                 }
 
-              (void)memcpy (sp_book[i], keep, sizeof (keep));
-              sp_blen[i] = klen;
+              (void)memcpy (sp_book [i], keep, sizeof (keep));
+              sp_blen [i] = klen;
               sp_nbook++;
             }
         }
@@ -528,7 +528,7 @@ emit_one (const unsigned char *s, long n, unsigned char *out)
 
   if (0 > n || SP_MAXTXT < n)
     {
-      out[0] = 0;
+      out [0] = 0;
 
       return 0;
     }
@@ -541,10 +541,10 @@ emit_one (const unsigned char *s, long n, unsigned char *out)
 
       for (b = 0; b < sp_nbook; b++)
         {
-          long el = (long)sp_blen[b];
+          long el = (long)sp_blen [b];
 
-          if (el <= n - i && 0 == memcmp (sp_book[b], s + i, (size_t)el)
-              && sp_cost[i] == 1 + sp_cost[i + el])
+          if (el <= n - i && 0 == memcmp (sp_book [b], s + i, (size_t)el)
+              && sp_cost [i] == 1 + sp_cost [i + el])
             {
               hit = b;
 
@@ -554,21 +554,21 @@ emit_one (const unsigned char *s, long n, unsigned char *out)
 
       if (0 <= hit)
         {
-          out[o++] = (unsigned char)(0x80 + hit);
-          i += sp_blen[hit];
+          out [o++] = (unsigned char)(0x80 + hit);
+          i += sp_blen [hit];
         }
       else
-        out[o++] = s[i++];
+        out [o++] = s [i++];
     }
 
-  out[o] = 0;
+  out [o] = 0;
 
   return o;
 }
 
 /******************************************************************************/
 
-static unsigned char sp_blob[SP_MAXBOOK * SP_MAXENT + 1];
+static unsigned char sp_blob [SP_MAXBOOK * SP_MAXENT + 1];
 static long sp_blobn;
 
 static void
@@ -579,12 +579,12 @@ make_blob (void)
   sp_blobn = 0;
 
   for (i = 0; i < sp_nbook; i++)
-    for (j = 0; j < sp_blen[i]; j++)
-      sp_blob[sp_blobn++] =
-        (unsigned char)(sp_book[i][j]
-                        | ((j == sp_blen[i] - 1) ? 0x80 : 0x00));
+    for (j = 0; j < sp_blen [i]; j++)
+      sp_blob [sp_blobn++] =
+        (unsigned char)(sp_book [i] [j]
+                        | ((j == sp_blen [i] - 1) ? 0x80 : 0x00));
 
-  sp_blob[sp_blobn] = 0;
+  sp_blob [sp_blobn] = 0;
 }
 
 /******************************************************************************/
@@ -601,7 +601,7 @@ blob_verify (const unsigned char *coded, const unsigned char *plain,
 
       if (0x80 > c)
         {
-          if (o >= plen || plain[o] != (unsigned char)c)
+          if (o >= plen || plain [o] != (unsigned char)c)
             return -1;
 
           o++;
@@ -627,7 +627,7 @@ blob_verify (const unsigned char *coded, const unsigned char *plain,
             {
               int last = (0 != (0x80 & *e));
 
-              if (o >= plen || plain[o] != (unsigned char)(0x7f & *e))
+              if (o >= plen || plain [o] != (unsigned char)(0x7f & *e))
                 return -1;
 
               o++;
@@ -656,7 +656,7 @@ verify_one (const unsigned char *coded, const unsigned char *plain,
 
       if (0x80 > c)
         {
-          if (o >= plen || plain[o] != (unsigned char)c)
+          if (o >= plen || plain [o] != (unsigned char)c)
             return -1;
 
           o++;
@@ -668,12 +668,12 @@ verify_one (const unsigned char *coded, const unsigned char *plain,
           if (idx >= sp_nbook)
             return -1;
 
-          if (o + sp_blen[idx] > plen
-              || 0 != memcmp (plain + o, sp_book[idx],
-                              (size_t)sp_blen[idx]))
+          if (o + sp_blen [idx] > plen
+              || 0 != memcmp (plain + o, sp_book [idx],
+                              (size_t)sp_blen [idx]))
             return -1;
 
-          o += sp_blen[idx];
+          o += sp_blen [idx];
         }
     }
 
@@ -700,7 +700,7 @@ put_esc (FILE *f, int c)
 static long
 parse_text (const char *p)
 {
-  long base = sp_off[sp_nstr];
+  long base = sp_off [sp_nstr];
   long n = 0;
 
   if (0 > base || SP_MAXTXT <= base)
@@ -755,10 +755,10 @@ parse_text (const char *p)
       if (SP_MAXTXT - 1 <= base + n)
         return -1;
 
-      sp_text[base + n++] = (unsigned char)c;
+      sp_text [base + n++] = (unsigned char)c;
     }
 
-  sp_text[base + n] = 0;
+  sp_text [base + n] = 0;
 
   return n;
 }
@@ -768,7 +768,7 @@ parse_text (const char *p)
 static int
 read_input (FILE *f)
 {
-  static char line[1024];
+  static char line [1024];
 
   while (fgets (line, (int)sizeof (line), f))
     {
@@ -781,7 +781,7 @@ read_input (FILE *f)
       if (NULL != nl)
         *nl = 0;
 
-      if (0 == line[0] || '#' == line[0])
+      if (0 == line [0] || '#' == line [0])
         continue;
 
       tab = strchr (line, '\t');
@@ -807,7 +807,7 @@ read_input (FILE *f)
             return -1;
       }
 
-      (void)memcpy (sp_name[sp_nstr], line, nlen + 1);
+      (void)memcpy (sp_name [sp_nstr], line, nlen + 1);
 
       {
         char *g = tab + 1;
@@ -828,10 +828,10 @@ read_input (FILE *f)
         *tab = 0;
         glen = strlen (g);
 
-        if (0 == glen || (sizeof (sp_guard[0]) - 1) < glen)
+        if (0 == glen || (sizeof (sp_guard [0]) - 1) < glen)
           return -1;
 
-        (void)memcpy (sp_guard[sp_nstr], g, glen + 1);
+        (void)memcpy (sp_guard [sp_nstr], g, glen + 1);
 
         {
           int carried = ((0 == strcmp (g, "-")) ? 1 : eval_guard (g));
@@ -839,19 +839,19 @@ read_input (FILE *f)
           if (0 > carried)
             return -1;
 
-          sp_train[sp_nstr] = ((0 == notrain && 0 < carried) ? 1 : 0);
+          sp_train [sp_nstr] = ((0 == notrain && 0 < carried) ? 1 : 0);
         }
       }
-      sp_off[sp_nstr] = ((0 == sp_nstr)
+      sp_off [sp_nstr] = ((0 == sp_nstr)
                            ? 0
-                           : (sp_off[(long)sp_nstr - 1]
-                              + sp_len[(long)sp_nstr - 1] + 1));
+                           : (sp_off [(long)sp_nstr - 1]
+                              + sp_len [(long)sp_nstr - 1] + 1));
       n = parse_text (tab + 1);
 
       if (0 > n)
         return -1;
 
-      sp_len[sp_nstr] = n;
+      sp_len [sp_nstr] = n;
       sp_total += n;
       sp_nstr++;
     }
@@ -867,7 +867,7 @@ read_input (FILE *f)
 static void
 write_header (FILE *f)
 {
-  static unsigned char coded[SP_MAXTXT];
+  static unsigned char coded [SP_MAXTXT];
   long enc_total = 0, blob;
   int i;
   long k;
@@ -876,7 +876,7 @@ write_header (FILE *f)
 
   (void)fprintf (f, "/*  Generated by strpack - DO NOT EDIT. */\n\n");
   (void)fprintf (f, "#ifdef LZ_MSG_PACKED\n\n");
-  (void)fprintf (f, "static const unsigned char lz_msgbook[] = {\n");
+  (void)fprintf (f, "static const unsigned char lz_msgbook [] = {\n");
 
   for (i = 0; i < sp_nbook; i++)
     {
@@ -884,15 +884,15 @@ write_header (FILE *f)
 
       (void)fprintf (f, "  /* codespell:ignore */ /* \"");
 
-      for (j = 0; j < sp_blen[i]; j++)
-        put_esc (f, sp_book[i][j]);
+      for (j = 0; j < sp_blen [i]; j++)
+        put_esc (f, sp_book [i] [j]);
 
       (void)fprintf (f, "\" */\n  ");
 
-      for (j = 0; j < sp_blen[i]; j++)
+      for (j = 0; j < sp_blen [i]; j++)
         (void)fprintf (f, "0x%02x,",
-                       (unsigned)(sp_book[i][j]
-                                  | ((j == sp_blen[i] - 1) ? 0x80 : 0x00)));
+                       (unsigned)(sp_book [i] [j]
+                                  | ((j == sp_blen [i] - 1) ? 0x80 : 0x00)));
 
       (void)fprintf (f, "\n");
     }
@@ -901,58 +901,58 @@ write_header (FILE *f)
 
   for (i = 0; i < sp_nstr; i++)
     {
-      long n = emit_one (sp_text + sp_off[i], sp_len[i], coded);
+      long n = emit_one (sp_text + sp_off [i], sp_len [i], coded);
       long j;
-      int guarded = (0 != strcmp (sp_guard[i], "-"));
+      int guarded = (0 != strcmp (sp_guard [i], "-"));
 
-      if (0 != verify_one (coded, sp_text + sp_off[i], sp_len[i]))
+      if (0 != verify_one (coded, sp_text + sp_off [i], sp_len [i]))
         {
           (void)fprintf (stderr,
                          "strpack: FATAL: %s does not round-trip\n",
-                         sp_name[i]);
+                         sp_name [i]);
           exit (1);
         }
 
-      if (0 != blob_verify (coded, sp_text + sp_off[i], sp_len[i]))
+      if (0 != blob_verify (coded, sp_text + sp_off [i], sp_len [i]))
         {
           (void)fprintf (stderr,
                          "strpack: FATAL: %s fails the emitted book walk\n",
-                         sp_name[i]);
+                         sp_name [i]);
           exit (1);
         }
 
       enc_total += n;
 
       if (guarded)
-        (void)fprintf (f, "# if %s\n", sp_guard[i]);
+        (void)fprintf (f, "# if %s\n", sp_guard [i]);
 
       {
-        long pv = sp_len[i];
+        long pv = sp_len [i];
 
         if (40 < pv)
           {
             pv = 40;
 
-            while (0 < pv && ' ' != sp_text[sp_off[i] + pv - 1])
+            while (0 < pv && ' ' != sp_text [sp_off [i] + pv - 1])
               pv--;
           }
 
         (void)fprintf (f, "/* \"");
 
         for (k = 0; k < pv; k++)
-          put_esc (f, sp_text[sp_off[i] + k]);
+          put_esc (f, sp_text [sp_off [i] + k]);
 
-        (void)fprintf (f, "%s\" */\n", ((pv < sp_len[i]) ? "..." : ""));
+        (void)fprintf (f, "%s\" */\n", ((pv < sp_len [i]) ? "..." : ""));
       }
-      (void)fprintf (f, "static const unsigned char lz_m_%s[%ld] = {\n  ",
-                     sp_name[i], n + 1);
+      (void)fprintf (f, "static const unsigned char lz_m_%s [%ld] = {\n  ",
+                     sp_name [i], n + 1);
 
       for (j = 0; j <= n; j++)
-        (void)fprintf (f, "0x%02x,%s", (unsigned)coded[j],
+        (void)fprintf (f, "0x%02x,%s", (unsigned)coded [j],
                        ((11 == (j % 12)) ? "\n  " : ""));
 
       (void)fprintf (f, "\n};\n#  define %s ((const char *)lz_m_%s)\n",
-                     sp_name[i], sp_name[i]);
+                     sp_name [i], sp_name [i]);
 
       if (guarded)
         (void)fprintf (f, "# endif\n");
@@ -965,22 +965,22 @@ write_header (FILE *f)
   for (i = 0; i < sp_nstr; i++)
     {
       long j = 0;
-      int guarded = (0 != strcmp (sp_guard[i], "-"));
+      int guarded = (0 != strcmp (sp_guard [i], "-"));
 
       if (guarded)
-        (void)fprintf (f, "# if %s\n", sp_guard[i]);
+        (void)fprintf (f, "# if %s\n", sp_guard [i]);
 
-      (void)fprintf (f, "#  define %s \\\n", sp_name[i]);
+      (void)fprintf (f, "#  define %s \\\n", sp_name [i]);
 
       do
         {
           long cut = j + 56;
 
-          if (cut < sp_len[i])
+          if (cut < sp_len [i])
             {
               long w = cut;
 
-              while (j < w && ' ' != sp_text[sp_off[i] + w - 1])
+              while (j < w && ' ' != sp_text [sp_off [i] + w - 1])
                 w--;
 
               if (j < w)
@@ -989,13 +989,13 @@ write_header (FILE *f)
 
           (void)fprintf (f, "  \"");
 
-          while (j < sp_len[i] && j < cut)
-            put_esc (f, sp_text[sp_off[i] + j++]);
+          while (j < sp_len [i] && j < cut)
+            put_esc (f, sp_text [sp_off [i] + j++]);
 
           (void)fprintf (f, "\"%s\n",
-                         ((j < sp_len[i]) ? " \\" : ""));
+                         ((j < sp_len [i]) ? " \\" : ""));
         }
-      while (j < sp_len[i]);
+      while (j < sp_len [i]);
 
       if (guarded)
         (void)fprintf (f, "# endif\n");
@@ -1028,11 +1028,11 @@ main (int argc, char **argv)
       return 2;
     }
 
-  f = fopen (argv[1], "r");
+  f = fopen (argv [1], "r");
 
   if (NULL == f)
     {
-      (void)fprintf (stderr, "strpack: cannot read %s\n", argv[1]);
+      (void)fprintf (stderr, "strpack: cannot read %s\n", argv [1]);
 
       return 1;
     }
@@ -1040,7 +1040,7 @@ main (int argc, char **argv)
   if (0 != read_input (f))
     {
       (void)fclose (f);
-      (void)fprintf (stderr, "strpack: bad input line in %s\n", argv[1]);
+      (void)fprintf (stderr, "strpack: bad input line in %s\n", argv [1]);
 
       return 1;
     }

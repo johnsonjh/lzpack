@@ -34,7 +34,7 @@ check (const char *in, unsigned want)
 int
 main (void)
 {
-  char nb[16];
+  char nb [16];
 
 #ifdef LZPACK_STREAM
   (void)printf ("\nmemtop unit test (streaming):\n");

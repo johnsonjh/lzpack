@@ -46,9 +46,9 @@
 
 /******************************************************************************/
 
-static char sym_name[MAXSYM][NAMELEN];
-static long sym_val[MAXSYM];
-static int sym_islabel[MAXSYM];
+static char sym_name [MAXSYM] [NAMELEN];
+static long sym_val [MAXSYM];
+static int sym_islabel [MAXSYM];
 static int nsym;
 
 /******************************************************************************/
@@ -57,8 +57,8 @@ static int nsym;
 # define MAXPRE 4
 #endif
 
-static char pre_name[MAXPRE][NAMELEN];
-static long pre_val[MAXPRE];
+static char pre_name [MAXPRE] [NAMELEN];
+static long pre_val [MAXPRE];
 static int npre;
 
 /******************************************************************************/
@@ -66,16 +66,16 @@ static int npre;
 typedef struct
 {
   int off;
-  char name[NAMELEN];
+  char name [NAMELEN];
   int width;
 } Ref;
 
-static Ref refs[MAXREF];
+static Ref refs [MAXREF];
 
 /******************************************************************************/
 
 static int nref;
-static unsigned char code[MAXCODE];
+static unsigned char code [MAXCODE];
 static int clen;
 static int cur_pass;
 
@@ -122,7 +122,7 @@ xstrtol (const char *nptr, const char **endptr, int base)
     }
 
   if (base == 16)
-    if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+    if (s [0] == '0' && (s [1] == 'x' || s [1] == 'X'))
       s += 2;
 
   cutoff = (neg ? max_neg : max_pos);
@@ -225,7 +225,7 @@ sym_find (const char *n)
   int i;
 
   for (i = 0; i < nsym; i++)
-    if (strcmp (sym_name[i], n) == 0)
+    if (strcmp (sym_name [i], n) == 0)
       return i;
 
   return -1;
@@ -252,19 +252,19 @@ sym_set (const char *n, long v, int islabel)
 # pragma warning( suppress : 6385 )
 #endif
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-      xstrcpy (sym_name[i], n);
+      xstrcpy (sym_name [i], n);
     }
-  else if (cur_pass == 2 && islabel && sym_islabel[i] && sym_val[i] != v)
+  else if (cur_pass == 2 && islabel && sym_islabel [i] && sym_val [i] != v)
     die ("phase error");
 
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
 #endif
-  sym_val[i] = v;
+  sym_val [i] = v;
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
 #endif
-  sym_islabel[i] = islabel;
+  sym_islabel [i] = islabel;
 }
 
 /******************************************************************************/
@@ -282,11 +282,11 @@ predefine (const char *n, long v)
 # pragma warning( suppress : 6385 6386 )
 #endif
   /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-  xstrcpy (pre_name[npre], n);
+  xstrcpy (pre_name [npre], n);
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
 #endif
-  pre_val[npre] = v;
+  pre_val [npre] = v;
   npre++;
 }
 
@@ -304,7 +304,7 @@ upcase (char *s)
 static int
 is_ident (const char *s)
 {
-  return s && (s[0] == '_' || s[0] == '.' || isalpha ((unsigned char)s[0]));
+  return s && (s [0] == '_' || s [0] == '.' || isalpha ((unsigned char)s [0]));
 }
 
 /******************************************************************************/
@@ -336,15 +336,15 @@ eval1 (const char *tok, int pass, long loc)
     return loc;
 
   if (n > 1 &&
-       (tok[n - 1] == 'h' || tok[n - 1] == 'H') &&
-         (tok[0] >= '0' && tok[0] <= '9'))
+       (tok [n - 1] == 'h' || tok [n - 1] == 'H') &&
+         (tok [0] >= '0' && tok [0] <= '9'))
     {
       unsigned long v = 0;
       size_t i;
 
       for (i = 0; i < n - 1; i++)
         {
-          char c = tok[i];
+          char c = tok [i];
           int d;
 
           if (c >= '0' && c <= '9')
@@ -366,9 +366,9 @@ eval1 (const char *tok, int pass, long loc)
       return (long)v;
     }
 
-  if (tok[0] >= '0' && tok[0] <= '9')
+  if (tok [0] >= '0' && tok [0] <= '9')
     {
-      if (n > 2 && tok[0] == '0' && (tok[1] == 'x' || tok[1] == 'X'))
+      if (n > 2 && tok [0] == '0' && (tok [1] == 'x' || tok [1] == 'X'))
         return xstrtol (tok + 2, 0, 16);
 
       return xstrtol (tok, 0, 10);
@@ -378,7 +378,7 @@ eval1 (const char *tok, int pass, long loc)
     int i = sym_find (tok);
 
     if (i >= 0)
-      return sym_val[i];
+      return sym_val [i];
 
     if (pass == 1)
       return 0;
@@ -396,7 +396,7 @@ evals (const char *s, int pass, long loc)
 {
   long acc = 0;
   int sign = 1;
-  char term[256];
+  char term [256];
   int ti = 0;
   size_t i;
 
@@ -407,13 +407,13 @@ evals (const char *s, int pass, long loc)
 
   for (i = 0;; i++)
     {
-      char c = s[i];
+      char c = s [i];
 
       if (c == '+' || c == '-' || c == 0)
         {
           if (ti > 0)
             {
-              term[ti] = 0;
+              term [ti] = 0;
               acc += sign * eval1 (term, pass, loc);
               ti = 0;
             }
@@ -426,7 +426,7 @@ evals (const char *s, int pass, long loc)
       else if (!isspace ((unsigned char)c))
         {
           if (ti < (int)sizeof (term) - 1)
-            term[ti++] = c;
+            term [ti++] = c;
           else
             {
               (void)fprintf (stderr, "stubasm: expression term too long\n");
@@ -453,8 +453,8 @@ regidx (const char *const *tab, const char *t, const char *what)
       exit (1);
     }
 
-  for (i = 0; tab[i]; i++)
-    if (!strcmp (tab[i], t))
+  for (i = 0; tab [i]; i++)
+    if (!strcmp (tab [i], t))
       return i;
 
   (void)fprintf (stderr, "stubasm: bad %s '%s'\n", what, t);
@@ -476,7 +476,7 @@ regidx (const char *const *tab, const char *t, const char *what)
 static int
 r8 (const char *t)
 {
-  static const char *T[] = { "B", "C", "D", "E", "H", "L", "M", "A", 0 };
+  static const char *T [] = { "B", "C", "D", "E", "H", "L", "M", "A", 0 };
 
   return regidx (T, t, "reg");
 }
@@ -486,7 +486,7 @@ r8 (const char *t)
 static int
 rp (const char *t)
 {
-  static const char *T[] = { "B", "D", "H", "SP", 0 };
+  static const char *T [] = { "B", "D", "H", "SP", 0 };
 
   return regidx (T, t, "rp");
 }
@@ -496,7 +496,7 @@ rp (const char *t)
 static int
 rpp (const char *t)
 {
-  static const char *T[] = { "B", "D", "H", "PSW", 0 };
+  static const char *T [] = { "B", "D", "H", "PSW", 0 };
 
   return regidx (T, t, "rpp");
 }
@@ -512,7 +512,7 @@ emit (int b)
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
 #endif
-  code[clen++] = (unsigned char)(b & 0xff);
+  code [clen++] = (unsigned char)(b & 0xff);
 }
 
 /******************************************************************************/
@@ -564,7 +564,7 @@ rec (const char *tok, int width)
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
 #endif
-      refs[nref].off = clen + 1;
+      refs [nref].off = clen + 1;
 
       if (tok)
         {
@@ -575,10 +575,10 @@ rec (const char *tok, int width)
 # pragma warning( suppress : 6385 )
 #endif
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          xstrcpy (refs[nref].name, tok);
+          xstrcpy (refs [nref].name, tok);
         }
 
-      refs[nref].width = width;
+      refs [nref].width = width;
       nref++;
     }
 }
@@ -598,9 +598,9 @@ lookup (const OpB *t, const char *n)
 {
   int i;
 
-  for (i = 0; t[i].name; i++)
-    if (!strcmp (t[i].name, n))
-      return t[i].op;
+  for (i = 0; t [i].name; i++)
+    if (!strcmp (t [i].name, n))
+      return t [i].op;
 
   return -1;
 }
@@ -610,14 +610,14 @@ lookup (const OpB *t, const char *n)
 static int
 z8 (const char *t)
 {
-  static const char *T[] = { "B", "C", "D", "E", "H", "L", "(HL)", "A", 0 };
+  static const char *T [] = { "B", "C", "D", "E", "H", "L", "(HL)", "A", 0 };
   int i;
 
   if (!t)
     return -1;
 
-  for (i = 0; T[i]; i++)
-    if (!strcmp (T[i], t))
+  for (i = 0; T [i]; i++)
+    if (!strcmp (T [i], t))
       return i;
 
   return -1;
@@ -628,14 +628,14 @@ z8 (const char *t)
 static int
 zrp (const char *t)
 {
-  static const char *T[] = { "BC", "DE", "HL", "SP", 0 };
+  static const char *T [] = { "BC", "DE", "HL", "SP", 0 };
   int i;
 
   if (!t)
     return -1;
 
-  for (i = 0; T[i]; i++)
-    if (!strcmp (T[i], t))
+  for (i = 0; T [i]; i++)
+    if (!strcmp (T [i], t))
       return i;
 
   return -1;
@@ -646,14 +646,14 @@ zrp (const char *t)
 static int
 zrp2 (const char *t)
 {
-  static const char *T[] = { "BC", "DE", "HL", "AF", 0 };
+  static const char *T [] = { "BC", "DE", "HL", "AF", 0 };
   int i;
 
   if (!t)
     return -1;
 
-  for (i = 0; T[i]; i++)
-    if (!strcmp (T[i], t))
+  for (i = 0; T [i]; i++)
+    if (!strcmp (T [i], t))
       return i;
 
   return -1;
@@ -664,14 +664,14 @@ zrp2 (const char *t)
 static int
 zcc (const char *t)
 {
-  static const char *T[] = { "NZ", "Z", "NC", "C", "PO", "PE", "P", "M", 0 };
+  static const char *T [] = { "NZ", "Z", "NC", "C", "PO", "PE", "P", "M", 0 };
   int i;
 
   if (!t)
     return -1;
 
-  for (i = 0; T[i]; i++)
-    if (!strcmp (T[i], t))
+  for (i = 0; T [i]; i++)
+    if (!strcmp (T [i], t))
       return i;
 
   return -1;
@@ -789,7 +789,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 
   if (!strcmp (op, "JR"))
     {
-      static const int o[4] = { 0x20, 0x28, 0x30, 0x38 };
+      static const int o [4] = { 0x20, 0x28, 0x30, 0x38 };
 
       cc = zcc (a0);
 
@@ -799,7 +799,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
             die ("bad JR cc");
 
           w = evals (a1, pass, loc);
-          emit (o[cc]);
+          emit (o [cc]);
         }
       else
         {
@@ -1121,7 +1121,7 @@ enc_z80 (const char *op, const char *a0, const char *a1, int pass, long loc)
 static void
 assemble (const char *path, int z80)
 {
-  static const OpB simple[] =
+  static const OpB simple [] =
     { { "NOP",  0x00 }, { "HLT",  0x76 }, { "XCHG", 0xEB }, { "XTHL", 0xE3 },
       { "SPHL", 0xF9 }, { "PCHL", 0xE9 }, { "RET",  0xC9 }, { "RLC",  0x07 },
       { "RRC",  0x0F }, { "RAL",  0x17 }, { "RAR",  0x1F }, { "CMA",  0x2F },
@@ -1129,31 +1129,31 @@ assemble (const char *path, int z80)
       { "RZ",   0xC8 }, { "RNC",  0xD0 }, { "RC",   0xD8 }, { "RPO",  0xE0 },
       { "RPE",  0xE8 }, { "RP",   0xF0 }, { "RM",   0xF8 }, { 0, 0 } };
 
-  static const OpB alu[] =
+  static const OpB alu [] =
     { { "ADD", 0x80 }, { "ADC", 0x88 }, { "SUB", 0x90 },
       { "SBB", 0x98 }, { "ANA", 0xA0 }, { "XRA", 0xA8 },
       { "ORA", 0xB0 }, { "CMP", 0xB8 }, { 0, 0 } };
 
-  static const OpB alui[] =
+  static const OpB alui [] =
     { { "ADI", 0xC6 }, { "ACI", 0xCE }, { "SUI", 0xD6 },
       { "SBI", 0xDE }, { "ANI", 0xE6 }, { "XRI", 0xEE },
       { "ORI", 0xF6 }, { "CPI", 0xFE }, { 0, 0 } };
 
-  static const OpB jmp[] =
+  static const OpB jmp [] =
     { { "JMP", 0xC3 }, { "JNZ", 0xC2 }, { "JZ",  0xCA }, { "JNC", 0xD2 },
       { "JC",  0xDA }, { "JPO", 0xE2 }, { "JPE", 0xEA }, { "JP",  0xF2 },
       { "JM",  0xFA }, { 0, 0 } };
 
-  static const OpB call[] =
+  static const OpB call [] =
     { { "CALL", 0xCD }, { "CNZ", 0xC4 }, { "CZ",  0xCC }, { "CNC", 0xD4 },
       { "CC",   0xDC }, { "CPO", 0xE4 }, { "CPE", 0xEC }, { "CP",  0xF4 },
       { "CM",   0xFC }, { 0, 0 } };
 
-  static const OpB mem[] =
+  static const OpB mem [] =
     { { "LDA",  0x3A }, { "STA",  0x32 },
       { "LHLD", 0x2A }, { "SHLD", 0x22 }, { 0, 0 } };
 
-  char line[1024];
+  char line [1024];
   int pass;
 
   nsym = 0;
@@ -1162,7 +1162,7 @@ assemble (const char *path, int z80)
     int pi;
 
     for (pi = 0; pi < npre; pi++)
-      sym_set (pre_name[pi], pre_val[pi], 0);
+      sym_set (pre_name [pi], pre_val [pi], 0);
   }
 
   for (pass = 1; pass <= 2; pass++)
@@ -1186,7 +1186,7 @@ assemble (const char *path, int z80)
         {
           char *s, *semi, *a0, *colon;
           const char *op, *a1;
-          char opU[256];
+          char opU [256];
           long loc;
           int v;
 
@@ -1230,7 +1230,7 @@ assemble (const char *path, int z80)
           {
             char *e = s + strlen (s);
 
-            while (e > s && isspace ((unsigned char)e[-1]))
+            while (e > s && isspace ((unsigned char)e [-1]))
               *--e = 0;
           }
 
@@ -1286,14 +1286,14 @@ assemble (const char *path, int z80)
 
           {
             char *t = s;
-            char w[32];
+            char w [32];
             char *q = t;
             int k = 0;
 
             while (*q && !isspace ((unsigned char)*q) && k < 31)
-              w[k++] = *q++;
+              w [k++] = *q++;
 
-            w[k] = 0;
+            w [k] = 0;
             upcase (w);
 
             if (!strcmp (w, "EQU"))
@@ -1306,7 +1306,7 @@ assemble (const char *path, int z80)
                 {
                   char *e = val + strlen (val);
 
-                  while (e > val && isspace ((unsigned char)e[-1]))
+                  while (e > val && isspace ((unsigned char)e [-1]))
                     *--e = 0;
                 }
 
@@ -1333,7 +1333,7 @@ assemble (const char *path, int z80)
                 {
                   char *e = a0 + strlen (a0);
 
-                  while (e > a0 && isspace ((unsigned char)e[-1]))
+                  while (e > a0 && isspace ((unsigned char)e [-1]))
                     *--e = 0;
                 }
               }
@@ -1404,11 +1404,11 @@ assemble (const char *path, int z80)
                   while (*tok && isspace ((unsigned char)*tok))
                     tok++;
 
-                  if (tok[0] == '\'' || tok[0] == '"')
+                  if (tok [0] == '\'' || tok [0] == '"')
                    {
                      const char *p = tok + 1;
 
-                     while (*p && *p != tok[0])
+                     while (*p && *p != tok [0])
                        emit (*p++);
                    }
                   else
@@ -1640,13 +1640,13 @@ assemble (const char *path, int z80)
 
 /******************************************************************************/
 
-static const char *SETUP_PATCH[] =
+static const char *SETUP_PATCH [] =
   { "LIT_SRC",  "DCMP_SRCTOP", "DCMP_DSTTOP",
     "DCMP_LEN", "DCMP_RUN", 0 };
 
 /******************************************************************************/
 
-static const char *DECOMP_PATCH[] =
+static const char *DECOMP_PATCH [] =
   { "OUT_END_HI", "OUT_END_LO", "PL_SRCTOP",
     "PL_DSTTOP",  "PL_LEN", 0 };
 
@@ -1657,8 +1657,8 @@ in_list (const char *const *l, const char *n)
 {
   int i;
 
-  for (i = 0; l[i]; i++)
-    if (!strcmp (l[i], n))
+  for (i = 0; l [i]; i++)
+    if (!strcmp (l [i], n))
       return 1;
 
   return 0;
@@ -1671,7 +1671,7 @@ emit_bytes (const char *name, const unsigned char *b, int n)
 {
   int i;
 
-  (void)printf ("static const unsigned char %s[%d] = {\n", name, n);
+  (void)printf ("static const unsigned char %s [%d] = {\n", name, n);
 
   for (i = 0; i < n; i++)
     {
@@ -1679,7 +1679,7 @@ emit_bytes (const char *name, const unsigned char *b, int n)
         (void)printf ("    ");
 
       (void)printf ("0x%02x,%s",
-                    b[i], ((i % 12 == 11 || i == n - 1) ? "\n" : " "));
+                    b [i], ((i % 12 == 11 || i == n - 1) ? "\n" : " "));
     }
 
   (void)printf ("};\n\n");
@@ -1687,9 +1687,9 @@ emit_bytes (const char *name, const unsigned char *b, int n)
 
 /******************************************************************************/
 
-static int fx_off[MAXREF], fx_tgt[MAXREF], nfx;
-static char sl_name[MAXREF][NAMELEN];
-static int sl_off[MAXREF], nsl;
+static int fx_off [MAXREF], fx_tgt [MAXREF], nfx;
+static char sl_name [MAXREF] [NAMELEN];
+static int sl_off [MAXREF], nsl;
 
 static void
 collect (const char *const *patch)
@@ -1701,30 +1701,30 @@ collect (const char *const *patch)
 
   for (j = 0; j < nref; j++)
     {
-      int k = sym_find (refs[j].name);
+      int k = sym_find (refs [j].name);
 
-      if (k >= 0 && sym_islabel[k])
+      if (k >= 0 && sym_islabel [k])
         {
-          if (refs[j].width != 2)
+          if (refs [j].width != 2)
             die ("byte-wide label reference");
 
-          fx_off[nfx] = refs[j].off;
-          fx_tgt[nfx] = (int)sym_val[k];
+          fx_off [nfx] = refs [j].off;
+          fx_tgt [nfx] = (int)sym_val [k];
 
           nfx++;
         }
-      else if (in_list (patch, refs[j].name))
+      else if (in_list (patch, refs [j].name))
         {
           if (nsl >= MAXREF)
             die ("too many patches");
 
-          if (strlen (refs[j].name) >= (size_t)NAMELEN) /* //-V547 */
+          if (strlen (refs [j].name) >= (size_t)NAMELEN) /* //-V547 */
             die ("patch name too long");
 
           /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-          xstrcpy (sl_name[nsl], refs[j].name);
+          xstrcpy (sl_name [nsl], refs [j].name);
 
-          sl_off[nsl] = refs[j].off;
+          sl_off [nsl] = refs [j].off;
 
           nsl++;
         }
@@ -1733,10 +1733,10 @@ collect (const char *const *patch)
 
 /******************************************************************************/
 
-static unsigned char setup[MAXCODE], decomp[MAXCODE];
-static int s_fx_off[MAXREF], s_fx_tgt[MAXREF];
-static char s_sl_name[MAXREF][NAMELEN];
-static int s_sl_off[MAXREF];
+static unsigned char setup [MAXCODE], decomp [MAXCODE];
+static int s_fx_off [MAXREF], s_fx_tgt [MAXREF];
+static char s_sl_name [MAXREF] [NAMELEN];
+static int s_sl_off [MAXREF];
 
 /******************************************************************************/
 
@@ -1749,11 +1749,11 @@ emit_fixes (const char *name, const char *uname, const int *off,
 {
   int i;
 
-  (void)printf ("static const unsigned short %s_fix[][2] = {\n", name);
+  (void)printf ("static const unsigned short %s_fix [] [2] = {\n", name);
 
   for (i = 0; i < n; i++)
     (void)printf ("    { %#4x, %#5x },\n",
-                  (unsigned int)off[i], (unsigned int)tgt[i]);
+                  (unsigned int)off [i], (unsigned int)tgt [i]);
 
   (void)printf ("};\n\n# define %s_FIX_N %d\n", uname, n);
 }
@@ -1765,15 +1765,15 @@ emit_fixes (const char *name, const char *uname, const int *off,
 static void
 emit_slots (const char *const *patch, const char *pfx,
             /* cppcheck-suppress constParameter */
-            char nm[][NAMELEN], const int *off, int n)
+            char nm [] [NAMELEN], const int *off, int n)
 {
   int p, i;
 
-  for (p = 0; patch[p]; p++)
+  for (p = 0; patch [p]; p++)
     for (i = 0; i < n; i++)
-      if (!strcmp (nm[i], patch[p]))
+      if (!strcmp (nm [i], patch [p]))
         (void)printf ("# define %s%s 0x%x\n",
-                      pfx, nm[i], (unsigned int)off[i]);
+                      pfx, nm [i], (unsigned int)off [i]);
 }
 
 /******************************************************************************/
@@ -1784,8 +1784,8 @@ zoff (const char *name)
   int j;
 
   for (j = 0; j < nref; j++)
-    if (!strcmp (refs[j].name, name))
-      return refs[j].off;
+    if (!strcmp (refs [j].name, name))
+      return refs [j].off;
 
   (void)fprintf (stderr, "stubasm: patch symbol '%s' not referenced\n", name);
 
@@ -1803,7 +1803,7 @@ zoff (const char *name)
 
 /******************************************************************************/
 
-static unsigned char z80blob[2 * MAXCODE];
+static unsigned char z80blob [2 * MAXCODE];
 
 static void
 emit_z80 (const char *setup_path, const char *decomp_path)
@@ -1863,13 +1863,13 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 # pragma warning( suppress : 6385 )
 #endif
     (void)printf ("# define Z80_GETBIT_OFF 0x%02x\n",
-                  (unsigned int)(sym_val[kg] - sym_val[ks]));
-    (void)printf ("static const unsigned short z80_getbit_fix[] = {");
+                  (unsigned int)(sym_val [kg] - sym_val [ks]));
+    (void)printf ("static const unsigned short z80_getbit_fix [] = {");
 
     for (gj = 0; gj < nref; gj++)
-      if (!strcmp (refs[gj].name, "GETBIT"))
+      if (!strcmp (refs [gj].name, "GETBIT"))
         (void)printf ("%s0x%02x", ng++ ? ", " : " ",
-                      (unsigned int)(refs[gj].off + slen));
+                      (unsigned int)(refs [gj].off + slen));
 
     (void)printf (" };\n# define Z80_GETBIT_FIX_N %d\n", ng);
   }
@@ -1879,7 +1879,7 @@ emit_z80 (const char *setup_path, const char *decomp_path)
 
 /******************************************************************************/
 
-static const char *RESTORE_PATCH[] =
+static const char *RESTORE_PATCH [] =
   { "SRCV_INIT", "DSTV_INIT", "OUT_END_HI", "OUT_END_LO", 0 };
 
 /*
@@ -1930,7 +1930,7 @@ emit_restorez80 (const char *path)
 
 /******************************************************************************/
 
-static const char *CHECK_PATCH[] = { "DST_LIM", "SP_LIM", 0 };
+static const char *CHECK_PATCH [] = { "DST_LIM", "SP_LIM", 0 };
 
 /*
  * Emit the optional (-C) runtime memory-check block prefixed to either stub.
@@ -1984,33 +1984,33 @@ main (int argc, char **argv)
   (void)memset (s_sl_name, 0, sizeof (s_sl_name));
   (void)memset (s_sl_off, 0, sizeof (s_sl_off));
 
-  if (argc == 4 && optmatch (argv[1], "-z80"))
+  if (argc == 4 && optmatch (argv [1], "-z80"))
     {
-      emit_z80 (argv[2], argv[3]);
+      emit_z80 (argv [2], argv [3]);
       flushout ();
 
       return 0;
     }
 
-  if (argc == 3 && optmatch (argv[1], "-r"))
+  if (argc == 3 && optmatch (argv [1], "-r"))
     {
-      emit_restore8080 (argv[2]);
+      emit_restore8080 (argv [2]);
       flushout ();
 
       return 0;
     }
 
-  if (argc == 3 && optmatch (argv[1], "-rz80"))
+  if (argc == 3 && optmatch (argv [1], "-rz80"))
     {
-      emit_restorez80 (argv[2]);
+      emit_restorez80 (argv [2]);
       flushout ();
 
       return 0;
     }
 
-  if (argc == 3 && optmatch (argv[1], "-chk"))
+  if (argc == 3 && optmatch (argv [1], "-chk"))
     {
-      emit_check (argv[2]);
+      emit_check (argv [2]);
       flushout ();
 
       return 0;
@@ -2024,7 +2024,7 @@ main (int argc, char **argv)
       return 2;
     }
 
-  assemble (argv[1], 0);
+  assemble (argv [1], 0);
   slen = clen;
   (void)memcpy (setup, code, (size_t)clen);
   collect (SETUP_PATCH);
@@ -2033,8 +2033,8 @@ main (int argc, char **argv)
 
   for (i = 0; i < nfx; i++)
     {
-      s_fx_off[i] = fx_off[i];
-      s_fx_tgt[i] = fx_tgt[i];
+      s_fx_off [i] = fx_off [i];
+      s_fx_tgt [i] = fx_tgt [i];
     }
 
   s_nsl = nsl;
@@ -2042,12 +2042,12 @@ main (int argc, char **argv)
   for (i = 0; i < nsl; i++)
     {
       /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
-      xstrcpy (s_sl_name[i], sl_name[i]);
+      xstrcpy (s_sl_name [i], sl_name [i]);
 
-      s_sl_off[i] = sl_off[i];
+      s_sl_off [i] = sl_off [i];
     }
 
-  assemble (argv[2], 0);
+  assemble (argv [2], 0);
   dlen = clen;
   (void)memcpy (decomp, code, (size_t)clen);
   collect (DECOMP_PATCH);

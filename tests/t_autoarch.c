@@ -57,7 +57,7 @@ detect (const unsigned char *buf, long len, long n)
 int
 main (void)
 {
-  unsigned char b[64];
+  unsigned char b [64];
   long i;
 
 #ifdef LZPACK_STREAM
@@ -67,42 +67,42 @@ main (void)
 #endif
 
   for (i = 0; i < 64; i++)
-    b[i] = 0x00;
+    b [i] = 0x00;
 
-  b[20] = 0xED;
+  b [20] = 0xED;
 
   check (detect (b, 64, 20), 0, "ED at 20 ignored when n=20 (in padding)");
   check (detect (b, 64, 21), 1, "ED at 20 seen when n=21 (in range)");
   check (detect (b, 64, 64), 1, "ED at 20 seen when n=64");
 
-  b[20] = 0x00;
-  b[10] = 0xCB;
+  b [20] = 0x00;
+  b [10] = 0xCB;
 
   check (detect (b, 64, 64), 1, "CB recognized");
 
-  b[10] = 0x00;
-  b[10] = 0xDD;
+  b [10] = 0x00;
+  b [10] = 0xDD;
 
   check (detect (b, 64, 64), 1, "DD recognized");
 
-  b[10] = 0x00;
-  b[10] = 0xED;
+  b [10] = 0x00;
+  b [10] = 0xED;
 
   check (detect (b, 64, 64), 1, "ED recognized");
 
-  b[10] = 0x00;
-  b[10] = 0xFD;
+  b [10] = 0x00;
+  b [10] = 0xFD;
 
   check (detect (b, 64, 64), 1, "FD recognized");
 
-  b[10] = 0x00;
-  b[0] = 0x21;
-  b[1] = 0x00;
-  b[2] = 0xED;
+  b [10] = 0x00;
+  b [0] = 0x21;
+  b [1] = 0x00;
+  b [2] = 0xED;
 
   check (detect (b, 64, 64), 0, "ED as an LXI operand is not a prefix");
 
-  b[0] = b[1] = b[2] = 0x00;
+  b [0] = b [1] = b [2] = 0x00;
   check (detect (b, 64, 64), 0, "all-8080 image stays 8080");
 
   /* Flawfinder: ignore */ /* False positive CWE-134 */

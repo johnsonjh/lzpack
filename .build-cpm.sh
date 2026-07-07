@@ -117,18 +117,17 @@ PACK="${PACK:-1}"
 # bytes TPA floor depends on it).
 MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-20641}"
 MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12292}"
-MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27827}"
+MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27790}"
 MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23191}"
 MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-15136}"
-MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28701}"
+MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28665}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
 # (optimal-parser) build raises it (e.g. 0xDDFF = 56K) because -e needs a
 # larger TPA than greedy to fit its DP block beside a usable window.
 TPA48="${TPA48:-0xBDFF}"
 
-# smallest window lzpack will fall back to (matches
-# the WINMIN in lzpack.c)
+# smallest window lzpack will fall back to (matches the WINMIN in lzpack.c)
 WINMIN="${WINMIN:-1024}"
 
 # Bytes of dynamic RAM the fit check reserves below the ceiling: the greedy

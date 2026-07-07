@@ -189,8 +189,8 @@ static int opt_lrbc_isx = 0;
 
 typedef struct lzf
 {
-  unsigned char fcb[36]; /* CP/M file control block */
-  unsigned char buf[128]; /* one-record DMA buffer */
+  unsigned char fcb [36]; /* CP/M file control block */
+  unsigned char buf [128]; /* one-record DMA buffer */
   unsigned char idx; /* next byte position in buf (0..128) */
   unsigned char mode; /* 0 = free, 1 = reading, 2 = writing */
   unsigned char ateof; /* reading: BDOS already reported end of file */
@@ -343,15 +343,15 @@ lzopen (const char *fn, int wr)
 /******************************************************************************/
 
 #ifndef LZPACK_STREAM
-static unsigned char g_a[BUFSZ];
-static unsigned char g_b[BUFSZ];
+static unsigned char g_a [BUFSZ];
+static unsigned char g_b [BUFSZ];
 #endif
 
 /******************************************************************************/
 
 /*
  * Self-extracting stub architecture.  By default lzpack autodetects, per input
- * file, whether the program needs a Z80 (see op8080_len[] and is_z80_*()) and
+ * file, whether the program needs a Z80 (see op8080_len [] and is_z80_*()) and
  * picks the Z80 or 8080 self-extractor to match, so the packed file runs
  * wherever the original would.  -8 forces the 8080 stub and -Z the Z80 stub.
  *
@@ -377,7 +377,7 @@ static unsigned char g_b[BUFSZ];
 
 #ifndef LZPACK_DECODE_ONLY
 # ifndef LZPACK_STREAM
-static unsigned char g_c[BUFSZ];
+static unsigned char g_c [BUFSZ];
 
 static void *
 lxmalloc (size_t n)
@@ -583,12 +583,12 @@ e_bit (int b)
   if (tagcnt == 8)
     {
       tagpos = ol;
-      ob[ol++] = 0;
+      ob [ol++] = 0;
       tagcnt = 0;
     }
 
   if (b)
-    ob[tagpos] |= (unsigned char)(1 << (7 - tagcnt));
+    ob [tagpos] |= (unsigned char)(1 << (7 - tagcnt));
 
   tagcnt++;
 }
@@ -598,7 +598,7 @@ e_bit (int b)
 static void
 e_byte (int x)
 {
-  ob[ol++] = (unsigned char)(x & 0xff);
+  ob [ol++] = (unsigned char)(x & 0xff);
 }
 
 # else
@@ -639,7 +639,7 @@ xremove (const char *filename)
  * produced, so only a small hold buffer is kept in RAM.  The single tag
  * byte is the only byte ever modified after being written, and the buffer
  * is flushed whole exactly when each new tag byte starts, so the live tag
- * byte is ALWAYS s_obuf[0] and the bytes flushed are always final.  At
+ * byte is ALWAYS s_obuf [0] and the bytes flushed are always final.  At
  * most 1 + 8 * 2 bytes accumulate between tag boundaries (eight tokens of
  * at most two payload bytes each), so OBSZ has ample slack.  s_ototal
  * counts flushed bytes; it is the only wide accumulator on this path (an
@@ -652,7 +652,7 @@ xremove (const char *filename)
 #  endif
 
 static LZF *s_of;
-static unsigned char s_obuf[OBSZ];
+static unsigned char s_obuf [OBSZ];
 static unsigned s_on;
 static long s_ototal;
 
@@ -689,13 +689,13 @@ e_bit (int b)
   if (tagcnt == 8)
     {
       obuf_flush ();
-      s_obuf[0] = 0; /* the new tag byte; see the flush-whole invariant */
+      s_obuf [0] = 0; /* the new tag byte; see the flush-whole invariant */
       s_on = 1;
       tagcnt = 0;
     }
 
   if (b)
-    s_obuf[0] |= (unsigned char)(1 << (7 - tagcnt));
+    s_obuf [0] |= (unsigned char)(1 << (7 - tagcnt));
 
   tagcnt++;
 }
@@ -705,7 +705,7 @@ e_bit (int b)
 static void
 e_byte (int x)
 {
-  s_obuf[s_on++] = (unsigned char)(x & 0xff);
+  s_obuf [s_on++] = (unsigned char)(x & 0xff);
 }
 
 # endif
@@ -852,7 +852,7 @@ e_match (int dist, int L)
 
 /******************************************************************************/
 
-static int head[HSZ];
+static int head [HSZ];
 
 /******************************************************************************/
 
@@ -866,7 +866,8 @@ static long N;
 static int
 hash3 (long i)
 {
-  return (int)((((unsigned)D[i] << 10) ^ ((unsigned)D[i + 1] << 5) ^ D[i + 2])
+  return (int)((((unsigned)D [i] << 10)
+                ^ ((unsigned)D [i + 1] << 5) ^ D [i + 2])
                & (HSZ - 1));
 }
 
@@ -881,8 +882,8 @@ hinsert (long i)
     return;
 
   h = hash3 (i);
-  lnk[i] = head[h];
-  head[h] = (int)i;
+  lnk [i] = head [h];
+  head [h] = (int)i;
 }
 # endif
 
@@ -976,7 +977,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
   long seg_start, ins;
   long *cost;
   int *tlen, *tdist, *stk;
-  static int l2d[MAXLEN + 1];
+  static int l2d [MAXLEN + 1];
 
   D = data;
   N = n;
@@ -994,7 +995,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
     long j;
 
     for (j = 0; j < HSZ; j++)
-      head[j] = -1;
+      head [j] = -1;
   }
 
   e_init (out);
@@ -1016,12 +1017,12 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
       for (j = 0; j <= span; j++)
         {
-          cost[j] = 0x3fffffffL;
-          tlen[j] = 0;
-          tdist[j] = 0;
+          cost [j] = 0x3fffffffL;
+          tlen [j] = 0;
+          tdist [j] = 0;
         }
 
-      cost[0] = 0;
+      cost [0] = 0;
 
       for (apos = seg_start; apos < seg_end; apos++)
         {
@@ -1034,11 +1035,11 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
               ins++;
             }
 
-          if (cost[jc] + 9 < cost[jc + 1])
+          if (cost [jc] + 9 < cost [jc + 1])
             {
-              cost[jc + 1] = cost[jc] + 9;
-              tlen[jc + 1] = 1;
-              tdist[jc + 1] = 0;
+              cost [jc + 1] = cost [jc] + 9;
+              tlen [jc + 1] = 1;
+              tdist [jc + 1] = 0;
             }
 
           cap = MAXLEN;
@@ -1054,7 +1055,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
               int h = hash3 (apos), dep = depth, maxml = 0;
               long p;
 
-              for (p = head[h]; p >= 0 && dep-- > 0; p = lnk[p])
+              for (p = head [h]; p >= 0 && dep-- > 0; p = lnk [p])
                 {
                   long d = apos - p;
                   int ml;
@@ -1063,12 +1064,12 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
                     break;
 
                   if (maxml > 0 && maxml < cap
-                      && D[p + maxml] != D[apos + maxml])
+                      && D [p + maxml] != D [apos + maxml])
                     continue;
 
                   ml = 0;
 
-                  while (ml < cap && D[p + ml] == D[apos + ml])
+                  while (ml < cap && D [p + ml] == D [apos + ml])
                     ml++;
 
                   if (ml > maxml)
@@ -1076,7 +1077,7 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
                       int L;
 
                       for (L = maxml + 1; L <= ml; L++)
-                        l2d[L] = (int)d;
+                        l2d [L] = (int)d;
 
                       maxml = ml;
 
@@ -1090,14 +1091,14 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
                 for (L = 3; L <= maxml; L++)
                   {
-                    int dd = l2d[L];
-                    long c2 = cost[jc] + match_bits (dd, L);
+                    int dd = l2d [L];
+                    long c2 = cost [jc] + match_bits (dd, L);
 
-                    if (c2 < cost[jc + L])
+                    if (c2 < cost [jc + L])
                       {
-                        cost[jc + L] = c2;
-                        tlen[jc + L] = L;
-                        tdist[jc + L] = dd;
+                        cost [jc + L] = c2;
+                        tlen [jc + L] = L;
+                        tdist [jc + L] = dd;
                       }
                   }
               }
@@ -1109,15 +1110,15 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
               long p;
 
               for (p = apos - 1; p >= lo; p--)
-                if (data[p] == data[apos] && data[p + 1] == data[apos + 1])
+                if (data [p] == data [apos] && data [p + 1] == data [apos + 1])
                   {
-                    long c2 = cost[jc] + match_bits ((int)(apos - p), 2);
+                    long c2 = cost [jc] + match_bits ((int)(apos - p), 2);
 
-                    if (c2 < cost[jc + 2])
+                    if (c2 < cost [jc + 2])
                       {
-                        cost[jc + 2] = c2;
-                        tlen[jc + 2] = 2;
-                        tdist[jc + 2] = (int)(apos - p);
+                        cost [jc + 2] = c2;
+                        tlen [jc + 2] = 2;
+                        tdist [jc + 2] = (int)(apos - p);
                       }
 
                     break;
@@ -1130,19 +1131,19 @@ compress (const unsigned char *data, long n, int start, unsigned char *out,
 
         for (kk = span; kk > 0;)
           {
-            stk[sp++] = (int)kk;
-            kk -= (tlen[kk] > 1 ? tlen[kk] : 1);
+            stk [sp++] = (int)kk;
+            kk -= (tlen [kk] > 1 ? tlen [kk] : 1);
           }
 
         for (kk = sp - 1; kk >= 0; kk--)
           {
-            int e = stk[kk];
-            int L = tlen[e];
+            int e = stk [kk];
+            int L = tlen [e];
 
             if (L > 1)
-              e_match (tdist[e], L);
+              e_match (tdist [e], L);
             else
-              e_lit (data[seg_start + e - 1]);
+              e_lit (data [seg_start + e - 1]);
           }
       }
 
@@ -1237,7 +1238,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (!ctrl)
         {
-          out[pos++] = (unsigned char)a;
+          out [pos++] = (unsigned char)a;
 
           continue;
         }
@@ -1385,7 +1386,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       for (i = 0; i < (int)ml; i++)
         if (pos < outlen)
-          out[pos++] = out[mpos++];
+          out [pos++] = out [mpos++];
     }
 
   return pos;
@@ -1462,14 +1463,14 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = pl[pi++];
+          bv = pl [pi++];
           bc = 8;
         }
 
       ctrl = (bv >> 7) & 1;
       bv = (bv << 1) & 0xff;
       bc--;
-      a = pl[pi++];
+      a = pl [pi++];
 
       if (!ctrl)
         {
@@ -1492,7 +1493,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
             {
               if (bc == 0)
                 {
-                  bv = pl[pi++];
+                  bv = pl [pi++];
                   bc = 8;
                 }
 
@@ -1509,7 +1510,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           int b0;
 
-          b0 = (pl[pi++]) & 1;
+          b0 = (pl [pi++]) & 1;
           a = 2;
 
           if (!b0)
@@ -1530,7 +1531,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = pl[pi++];
+          bv = pl [pi++];
           bc = 8;
         }
 
@@ -1550,7 +1551,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = pl[pi++];
+          bv = pl [pi++];
           bc = 8;
         }
 
@@ -1569,7 +1570,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
 
       if (bc == 0)
         {
-          bv = pl[pi++];
+          bv = pl [pi++];
           bc = 8;
         }
 
@@ -1590,7 +1591,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           if (bc == 0)
             {
-              bv = pl[pi++];
+              bv = pl [pi++];
               bc = 8;
             }
 
@@ -1614,7 +1615,7 @@ min_gap (const unsigned char *pl, long pl_len, long outlen, int litcnt,
         {
           if (bc == 0)
             {
-              bv = pl[pi++];
+              bv = pl [pi++];
               bc = 8;
             }
 
@@ -1697,17 +1698,17 @@ cpm_setfcb (unsigned char *fcb, const char *fn)
   int i;
 
   for (i = 0; i < 36; i++)
-    fcb[i] = 0;
+    fcb [i] = 0;
 
   for (i = 1; i <= 11; i++)
-    fcb[i] = ' ';
+    fcb [i] = ' ';
 
-  if (p[0] && p[1] == ':')
+  if (p [0] && p [1] == ':')
     {
-      if (p[0] >= 'A' && p[0] <= 'Z')
-        fcb[0] = (unsigned char)(p[0] - 'A' + 1);
-      else if (p[0] >= 'a' && p[0] <= 'z')
-        fcb[0] = (unsigned char)(p[0] - 'a' + 1);
+      if (p [0] >= 'A' && p [0] <= 'Z')
+        fcb [0] = (unsigned char)(p [0] - 'A' + 1);
+      else if (p [0] >= 'a' && p [0] <= 'z')
+        fcb [0] = (unsigned char)(p [0] - 'a' + 1);
 
       p += 2;
     }
@@ -1721,7 +1722,7 @@ cpm_setfcb (unsigned char *fcb, const char *fn)
       if (c >= 'a' && c <= 'z')
         c = (char)(c - 32);
 
-      fcb[i++] = (unsigned char)c;
+      fcb [i++] = (unsigned char)c;
     }
 
   while (*p && *p != '.')
@@ -1739,7 +1740,7 @@ cpm_setfcb (unsigned char *fcb, const char *fn)
       if (c >= 'a' && c <= 'z')
         c = (char)(c - 32);
 
-      fcb[i++] = (unsigned char)c;
+      fcb [i++] = (unsigned char)c;
     }
 }
 
@@ -1748,7 +1749,7 @@ cpm_setfcb (unsigned char *fcb, const char *fn)
 static long
 cpm_file_size (const char *fn)
 {
-  unsigned char fcb[36];
+  unsigned char fcb [36];
   long records, last_ext;
   int lrbc;
 
@@ -1757,9 +1758,9 @@ cpm_file_size (const char *fn)
 
   cpm_setfcb (fcb, fn);
   (void)bdos (35, BDOS_FCB (fcb));
-  records = ((long)fcb[33])
-          | ((long)fcb[34] << 8)
-          | ((long)fcb[35] << 16);
+  records = ((long)fcb [33])
+          | ((long)fcb [34] << 8)
+          | ((long)fcb [35] << 16);
 
   if (records <= 0)
     return -1;
@@ -1767,15 +1768,15 @@ cpm_file_size (const char *fn)
   last_ext = (records - 1L) / 128L;
 
   cpm_setfcb (fcb, fn);
-  fcb[12] = (unsigned char)(last_ext & 0x1f);
-  fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
-  fcb[32] = 0xff;
+  fcb [12] = (unsigned char)(last_ext & 0x1f);
+  fcb [14] = (unsigned char)((last_ext >> 5) & 0x3f);
+  fcb [32] = 0xff;
 
   if ((bdos (15, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
     return -1;
 
-  lrbc = fcb[32] & 0xff;
-  fcb[32] = 0x00;
+  lrbc = fcb [32] & 0xff;
+  fcb [32] = 0x00;
   (void)bdos (16, BDOS_FCB (fcb));
 
   if (lrbc <= 0 || lrbc >= 128)
@@ -1792,7 +1793,7 @@ cpm_file_size (const char *fn)
 static int
 cpm_set_byte_count (const char *fn, long nbytes)
 {
-  unsigned char fcb[36];
+  unsigned char fcb [36];
   long records, last_ext;
   int lrbc;
 
@@ -1811,15 +1812,15 @@ cpm_set_byte_count (const char *fn, long nbytes)
     lrbc = (int)(nbytes - (records - 1L) * 128L);
 
   cpm_setfcb (fcb, fn);
-  fcb[12] = (unsigned char)(last_ext & 0x1f);
-  fcb[14] = (unsigned char)((last_ext >> 5) & 0x3f);
-  fcb[32] = (unsigned char)(lrbc & 0x7f);
-  fcb[6] |= 0x80;
+  fcb [12] = (unsigned char)(last_ext & 0x1f);
+  fcb [14] = (unsigned char)((last_ext >> 5) & 0x3f);
+  fcb [32] = (unsigned char)(lrbc & 0x7f);
+  fcb [6] |= 0x80;
 
   if ((bdos (30, BDOS_FCB (fcb)) & 0x00ff) == 0xff)
     return -1;
 
-  fcb[6] &= 0x7f;
+  fcb [6] &= 0x7f;
 
   return 0;
 }
@@ -1887,7 +1888,7 @@ lz_mload (const char *m, char *out)
 
 # include <stdarg.h>
 
-static LZF lz_files[LZ_NFILES];
+static LZF lz_files [LZ_NFILES];
 
 static LZF *
 lzopen (const char *fn, int wr)
@@ -1896,30 +1897,30 @@ lzopen (const char *fn, int wr)
   int i;
 
   for (i = 0; i < LZ_NFILES; i++)
-    if (!lz_files[i].mode)
+    if (!lz_files [i].mode)
       break;
 
   if (i == LZ_NFILES)
     return NULL;
 
-  f = &lz_files[i];
-  cpm_setfcb (f->fcb, fn);
+  f = &lz_files [i];
+  cpm_setfcb (f -> fcb, fn);
 
   if (wr)
     {
-      (void)bdos (19, BDOS_FCB (f->fcb)); /* delete any old file */
-      cpm_setfcb (f->fcb, fn); /* fn 19 searches: rebuild */
+      (void)bdos (19, BDOS_FCB (f -> fcb)); /* delete any old file */
+      cpm_setfcb (f -> fcb, fn); /* fn 19 searches: rebuild */
 
-      if ((bdos (22, BDOS_FCB (f->fcb)) & 0xff) == 0xff) /* make */
+      if ((bdos (22, BDOS_FCB (f -> fcb)) & 0xff) == 0xff) /* make */
         return NULL;
     }
-  else if ((bdos (15, BDOS_FCB (f->fcb)) & 0xff) == 0xff) /* open */
+  else if ((bdos (15, BDOS_FCB (f -> fcb)) & 0xff) == 0xff) /* open */
     return NULL;
 
-  f->fcb[32] = 0; /* current record: start of file */
-  f->mode = (unsigned char)(wr ? 2 : 1);
-  f->idx = (unsigned char)(wr ? 0 : 128); /* reading: force first fill */
-  f->ateof = 0;
+  f -> fcb [32] = 0; /* current record: start of file */
+  f -> mode = (unsigned char)(wr ? 2 : 1);
+  f -> idx = (unsigned char)(wr ? 0 : 128); /* reading: force first fill */
+  f -> ateof = 0;
 
   return f;
 }
@@ -1929,24 +1930,24 @@ lzopen (const char *fn, int wr)
 static int
 lzgetc (LZF *f)
 {
-  if (f->idx >= 128)
+  if (f -> idx >= 128)
     {
-      if (f->ateof)
+      if (f -> ateof)
         return EOF;
 
-      (void)bdos (26, BDOS_FCB (f->buf)); /* DMA to this slot */
+      (void)bdos (26, BDOS_FCB (f -> buf)); /* DMA to this slot */
 
-      if ((bdos (20, BDOS_FCB (f->fcb)) & 0xff) != 0) /* read seq */
+      if ((bdos (20, BDOS_FCB (f -> fcb)) & 0xff) != 0) /* read seq */
         {
-          f->ateof = 1;
+          f -> ateof = 1;
 
           return EOF;
         }
 
-      f->idx = 0;
+      f -> idx = 0;
     }
 
-  return f->buf[f->idx++];
+  return f -> buf [f -> idx++];
 }
 
 /******************************************************************************/
@@ -1954,12 +1955,12 @@ lzgetc (LZF *f)
 static int
 lz_flushrec (LZF *f)
 {
-  (void)bdos (26, BDOS_FCB (f->buf)); /* DMA to this slot */
+  (void)bdos (26, BDOS_FCB (f -> buf)); /* DMA to this slot */
 
-  if ((bdos (21, BDOS_FCB (f->fcb)) & 0xff) != 0) /* write seq */
+  if ((bdos (21, BDOS_FCB (f -> fcb)) & 0xff) != 0) /* write seq */
     return -1; /* disk full */
 
-  f->idx = 0;
+  f -> idx = 0;
 
   return 0;
 }
@@ -1969,9 +1970,9 @@ lz_flushrec (LZF *f)
 static int
 lzputc (int c, LZF *f)
 {
-  f->buf[f->idx++] = (unsigned char)c;
+  f -> buf [f -> idx++] = (unsigned char)c;
 
-  if (f->idx >= 128 && lz_flushrec (f))
+  if (f -> idx >= 128 && lz_flushrec (f))
     return EOF;
 
   return (unsigned char)c;
@@ -1987,7 +1988,7 @@ lzread (void *p, size_t n, LZF *f)
   int c;
 
   while (got < n && (c = lzgetc (f)) != EOF)
-    d[got++] = (unsigned char)c;
+    d [got++] = (unsigned char)c;
 
   return got;
 }
@@ -2001,7 +2002,7 @@ lzwrite (const void *p, size_t n, LZF *f)
   size_t i;
 
   for (i = 0; i < n; i++)
-    if (lzputc (s[i], f) == EOF)
+    if (lzputc (s [i], f) == EOF)
       break;
 
   return i;
@@ -2014,19 +2015,19 @@ lzclose (LZF *f)
 {
   int rc = 0;
 
-  if (f->mode == 2 && f->idx)
+  if (f -> mode == 2 && f -> idx)
     {
-      while (f->idx < 128)
-        f->buf[f->idx++] = 0x1a; /* ^Z pad */
+      while (f -> idx < 128)
+        f -> buf [f -> idx++] = 0x1a; /* ^Z pad */
 
       if (lz_flushrec (f))
         rc = -1;
     }
 
-  if ((bdos (16, BDOS_FCB (f->fcb)) & 0xff) == 0xff) /* close */
+  if ((bdos (16, BDOS_FCB (f -> fcb)) & 0xff) == 0xff) /* close */
     rc = -1;
 
-  f->mode = 0;
+  f -> mode = 0;
 
   return rc;
 }
@@ -2046,7 +2047,7 @@ lzerror (LZF *f)
 static void
 lzunlink (const char *fn)
 {
-  unsigned char fcb[36];
+  unsigned char fcb [36];
 
   cpm_setfcb (fcb, fn);
   (void)bdos (19, BDOS_FCB (fcb));
@@ -2251,8 +2252,8 @@ lz_mputs (const char *m)
 
 /******************************************************************************/
 
-static char lz_lbuf[88];
-static char lz_fbuf[80];
+static char lz_lbuf [88];
+static char lz_fbuf [80];
 
 static int
 lz_fprintf (FILE *f, const char *fmt, ...)
@@ -2309,7 +2310,7 @@ lz_printf (const char *fmt, ...)
 
 # include <stdarg.h>
 
-static char lz_fbuf[80];
+static char lz_fbuf [80];
 
 static void
 lz_mfputs (const char *m, FILE *f)
@@ -2453,8 +2454,8 @@ writefile (const char *fn, const unsigned char *buf, long n)
 static void
 put16 (unsigned char *p, unsigned v)
 {
-  p[0] = (unsigned char)(v & 0xff);
-  p[1] = (unsigned char)((v >> 8) & 0xff);
+  p [0] = (unsigned char)(v & 0xff);
+  p [1] = (unsigned char)((v >> 8) & 0xff);
 }
 #endif
 
@@ -2463,7 +2464,7 @@ put16 (unsigned char *p, unsigned v)
 static unsigned
 get16 (const unsigned char *p)
 {
-  return (unsigned)p[0] | ((unsigned)p[1] << 8);
+  return (unsigned)p [0] | ((unsigned)p [1] << 8);
 }
 
 /******************************************************************************/
@@ -2484,7 +2485,7 @@ mkname (const char *in, const char *ext, char *out, size_t outsz)
     base = outsz - 1;
 
   (void)memcpy (out, in, base);
-  out[base] = '\0';
+  out [base] = '\0';
   (void)strncat (out, ext, outsz - base - 1);
 }
 
@@ -2730,7 +2731,7 @@ count_file (const char *fn)
 {
   LZF *f = lzopen (fn, 0);
   long n = 0;
-  unsigned char buf[128];
+  unsigned char buf [128];
 
   if (!f)
     return -1;
@@ -2775,7 +2776,7 @@ count_file (const char *fn)
 
 # ifndef LZPACK_NO_AUTOARCH
 
-static const unsigned char op8080_len[256] = {
+static const unsigned char op8080_len [256] = {
   1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
   1, 3, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
   1, 3, 3, 1, 1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1,
@@ -2820,7 +2821,7 @@ put_check (unsigned char *dst, lzpos stub_v, lzpos wtop)
   (void)memcpy (dst, chkstub, CHK_LEN);
 
   for (i = 0; i < CHKSTUB_FIX_N; i++)
-    put16 (dst + chkstub_fix[i][0], (unsigned)(stub_v + chkstub_fix[i][1]));
+    put16 (dst + chkstub_fix [i] [0], (unsigned)(stub_v + chkstub_fix [i] [1]));
 
   put16 (dst + CHK_DST_LIM, (unsigned)(wtop + 1));
 
@@ -2846,11 +2847,11 @@ put_header (unsigned char *outf, const unsigned char *data, long stub_v,
             long outlen)
 {
   (void)memcpy (outf, data, LITCNT);
-  outf[0] = 0xc3;
+  outf [0] = 0xc3;
   put16 (outf + 1, (unsigned)stub_v);
   (void)memcpy (outf + 5, "-pc1-", 5);
   put16 (outf + 10, (unsigned)outlen);
-  outf[12] = outf[13] = outf[14] = outf[15] = 0;
+  outf [12] = outf [13] = outf [14] = outf [15] = 0;
 }
 
 /******************************************************************************/
@@ -2885,8 +2886,8 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
   put16 (stub + P_PL_LEN, (unsigned)pllen);
   put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1)));
 
-  stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
-  stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
+  stub [P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
+  stub [P_CP_LO] = (unsigned char)(out_end & 0xff);
 
   {
     /* GETBIT is CALLed; retarget call operands to the relocated routine */
@@ -2894,7 +2895,7 @@ build_z80 (unsigned char *outf, const unsigned char *data, long pllen,
     int gi;
 
     for (gi = 0; gi < Z80_GETBIT_FIX_N; gi++)
-      put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
+      put16 (stub + z80_getbit_fix [gi], (unsigned)getbit_v);
   }
 
   return LITCNT + pllen + LITCNT + chk + STUBLEN;
@@ -2931,21 +2932,21 @@ build_8080 (unsigned char *outf, const unsigned char *data, long pllen,
   (void)memcpy (de, decomp8080, S8_DLEN);
 
   for (i = 0; i < SETUP8080_FIX_N; i++)
-    put16 (su + setup8080_fix[i][0],
-           (unsigned)(stub_v + chk + setup8080_fix[i][1]));
+    put16 (su + setup8080_fix [i] [0],
+           (unsigned)(stub_v + chk + setup8080_fix [i] [1]));
 
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
   put16 (su + S8S_DCMP_DSTTOP, (unsigned)dcmp_dsttop);
-  su[S8S_DCMP_LEN] = (unsigned char)S8_DLEN; /* 8-bit reloc count; see guard */
+  su [S8S_DCMP_LEN] = (unsigned char)S8_DLEN; /* 8-bit reloc count; see guard */
   put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
 
   for (i = 0; i < DECOMP8080_FIX_N; i++)
-    put16 (de + decomp8080_fix[i][0],
-           (unsigned)(stub_run + decomp8080_fix[i][1]));
+    put16 (de + decomp8080_fix [i] [0],
+           (unsigned)(stub_run + decomp8080_fix [i] [1]));
 
-  de[S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
-  de[S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
+  de [S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
+  de [S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
 
   put16 (de + S8D_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
@@ -2969,12 +2970,12 @@ is_z80_image (const unsigned char *d, long n)
 
   while (i < n)
     {
-      int op = d[i];
+      int op = d [i];
 
       if (op == 0xCB || op == 0xDD || op == 0xED || op == 0xFD)
         return 1;
 
-      i += op8080_len[op];
+      i += op8080_len [op];
     }
 
   return 0;
@@ -2990,7 +2991,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   unsigned char *data = g_a, *pl = g_b, *outf = g_c;
   long n, pllen, outlen, pl_dst_top, ming, total, body;
   long stub_dst_top, dcmp_dsttop;
-  char nb[1024];
+  char nb [1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
 
@@ -3007,7 +3008,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
    * byte is 0C9h (RET); refuse them rather than packing the header.
    */
 
-  if (n > 0 && data[0] == 0xc9)
+  if (n > 0 && data [0] == 0xc9)
     {
       /* Flawfinder: ignore */ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_GENCOM, fn);
@@ -3286,7 +3287,7 @@ win_load_ahead (lzpos pos)
           break;
         }
 
-      s_win[s_loaded & s_wmask] = (unsigned char)c;
+      s_win [s_loaded & s_wmask] = (unsigned char)c;
       s_loaded++;
     }
 }
@@ -3296,9 +3297,9 @@ win_load_ahead (lzpos pos)
 static int
 s_hash3 (lzpos i)
 {
-  return (int)((((unsigned)s_win[i & s_wmask] << 10)
-                ^ ((unsigned)s_win[(i + 1) & s_wmask] << 5)
-                ^ s_win[(i + 2) & s_wmask]) & (HSZ - 1));
+  return (int)((((unsigned)s_win [i & s_wmask] << 10)
+                ^ ((unsigned)s_win [(i + 1) & s_wmask] << 5)
+                ^ s_win [(i + 2) & s_wmask]) & (HSZ - 1));
 }
 
 /******************************************************************************/
@@ -3312,8 +3313,8 @@ s_hinsert (lzpos i)
     return;
 
   h = s_hash3 (i);
-  s_lnk[i & s_wmask] = head[h];
-  head[h] = (int)(i & s_wmask);
+  s_lnk [i & s_wmask] = head [h];
+  head [h] = (int)(i & s_wmask);
 }
 
 /******************************************************************************/
@@ -3397,7 +3398,7 @@ static int *o_tdist;
 static int *o_stk;
 static lzpos o_blk;
 
-static int o_l2d[MAXLEN + 1];
+static int o_l2d [MAXLEN + 1];
 
 /*
  * Bit costs from match_bits() top out around 35 (1+16 header bits plus the
@@ -3405,12 +3406,12 @@ static int o_l2d[MAXLEN + 1];
  * three tables; o_l2d above stays int because it stores distances.
  */
 
-static unsigned char o_mb0[MAXLEN + 1];
-static unsigned char o_mb1[MAXLEN + 1];
-static unsigned char o_mb3[MAXLEN + 1];
+static unsigned char o_mb0 [MAXLEN + 1];
+static unsigned char o_mb1 [MAXLEN + 1];
+static unsigned char o_mb3 [MAXLEN + 1];
 
 #  define OMBITS(d, L) \
-  ((d) <= 128 ? o_mb0[L] : (d) <= 1152 ? o_mb1[L] : o_mb3[L])
+  ((d) <= 128 ? o_mb0 [L] : (d) <= 1152 ? o_mb1 [L] : o_mb3 [L])
 
 /******************************************************************************/
 
@@ -3421,12 +3422,12 @@ opt_cost_tables (void)
 
   for (L = 2; L <= MAXLEN; L++)
     {
-      o_mb0[L] = (unsigned char)match_bits (1, L);
-      o_mb1[L] = (unsigned char)match_bits (200, L);
+      o_mb0 [L] = (unsigned char)match_bits (1, L);
+      o_mb1 [L] = (unsigned char)match_bits (200, L);
     }
 
   for (L = 3; L <= MAXLEN; L++)
-    o_mb3[L] = (unsigned char)match_bits (2000, L);
+    o_mb3 [L] = (unsigned char)match_bits (2000, L);
 }
 
 /******************************************************************************/
@@ -3492,14 +3493,14 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
   opt_cost_tables ();
 
   for (k = 0; k < (lzpos)HSZ; k++)
-    head[k] = -1;
+    head [k] = -1;
 
   e_init_stream (out);
 
   win_load_ahead (0);
 
   for (k = 0; k < LITCNT && k < n; k++)
-    first16[k] = s_win[k & s_wmask];
+    first16 [k] = s_win [k & s_wmask];
 
   for (apos = 0; apos < (lzpos)start && n - apos > 2; apos++)
     {
@@ -3519,12 +3520,12 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
       for (j = 0; j <= span; j++)
         {
-          o_cost[j] = LZ_OCOST_MAX;
-          o_tlen[j] = 0;
-          o_tdist[j] = 0;
+          o_cost [j] = LZ_OCOST_MAX;
+          o_tlen [j] = 0;
+          o_tdist [j] = 0;
         }
 
-      o_cost[0] = 0;
+      o_cost [0] = 0;
 
       for (apos = seg_start; apos < seg_end; apos++)
         {
@@ -3540,11 +3541,11 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
           win_load_ahead (apos);
 
-          if (o_cost[jc] + 9 < o_cost[jc + 1])
+          if (o_cost [jc] + 9 < o_cost [jc + 1])
             {
-              o_cost[jc + 1] = o_cost[jc] + 9;
-              o_tlen[jc + 1] = 1;
-              o_tdist[jc + 1] = s_win[apos & s_wmask];
+              o_cost [jc + 1] = o_cost [jc] + 9;
+              o_tlen [jc + 1] = 1;
+              o_tdist [jc + 1] = s_win [apos & s_wmask];
             }
 
           cap = MAXLEN;
@@ -3558,7 +3559,7 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
           if (cap >= 3 && n - apos > 2)
             {
               lzpos base = apos & ~s_wmask;
-              int stored = head[s_hash3 (apos)];
+              int stored = head [s_hash3 (apos)];
               int dep = depth, maxml = 0;
 
               while (stored >= 0 && dep-- > 0)
@@ -3576,10 +3577,10 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
                     break;
 
                   if (maxml > 0 && maxml < cap
-                      && s_win[(p + (lzpos)maxml) & s_wmask]
-                           != s_win[(apos + (lzpos)maxml) & s_wmask])
+                      && s_win [(p + (lzpos)maxml) & s_wmask]
+                           != s_win [(apos + (lzpos)maxml) & s_wmask])
                     {
-                      stored = s_lnk[p & s_wmask];
+                      stored = s_lnk [p & s_wmask];
 
                       continue;
                     }
@@ -3587,8 +3588,8 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
                   ml = 0;
 
                   while (ml < cap
-                         && s_win[(p + (lzpos)ml) & s_wmask]
-                              == s_win[(apos + (lzpos)ml) & s_wmask])
+                         && s_win [(p + (lzpos)ml) & s_wmask]
+                              == s_win [(apos + (lzpos)ml) & s_wmask])
                     ml++;
 
                   if (ml > maxml)
@@ -3596,7 +3597,7 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
                       int L;
 
                       for (L = maxml + 1; L <= ml; L++)
-                        o_l2d[L] = (int)d;
+                        o_l2d [L] = (int)d;
 
                       maxml = ml;
 
@@ -3604,7 +3605,7 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
                         break;
                     }
 
-                  stored = s_lnk[p & s_wmask];
+                  stored = s_lnk [p & s_wmask];
                 }
 
               {
@@ -3612,15 +3613,15 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
                 for (L = 3; L <= maxml; L++)
                   {
-                    int d = o_l2d[L];
+                    int d = o_l2d [L];
                     lzpos jL = jc + (lzpos)L;
-                    lzcost c2 = o_cost[jc] + OMBITS (d, L);
+                    lzcost c2 = o_cost [jc] + OMBITS (d, L);
 
-                    if (c2 < o_cost[jL])
+                    if (c2 < o_cost [jL])
                       {
-                        o_cost[jL] = c2;
-                        o_tlen[jL] = L;
-                        o_tdist[jL] = d;
+                        o_cost [jL] = c2;
+                        o_tlen [jL] = L;
+                        o_tdist [jL] = d;
                       }
                   }
               }
@@ -3632,17 +3633,18 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
               lzpos p;
 
               for (p = apos; p-- > lo;)
-                if (s_win[p & s_wmask] == s_win[apos & s_wmask]
-                    && s_win[(p + 1) & s_wmask] == s_win[(apos + 1) & s_wmask])
+                if (s_win [p & s_wmask] == s_win [apos & s_wmask]
+                    && s_win [(p + 1) & s_wmask] ==
+                      s_win [(apos + 1) & s_wmask])
                   {
                     int d2 = (int)(apos - p);
-                    lzcost c2 = o_cost[jc] + OMBITS (d2, 2);
+                    lzcost c2 = o_cost [jc] + OMBITS (d2, 2);
 
-                    if (c2 < o_cost[jc + 2])
+                    if (c2 < o_cost [jc + 2])
                       {
-                        o_cost[jc + 2] = c2;
-                        o_tlen[jc + 2] = 2;
-                        o_tdist[jc + 2] = (int)(apos - p);
+                        o_cost [jc + 2] = c2;
+                        o_tlen [jc + 2] = 2;
+                        o_tdist [jc + 2] = (int)(apos - p);
                       }
 
                     break;
@@ -3655,19 +3657,19 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
         for (kk = (int)span; kk > 0;)
           {
-            o_stk[sp++] = kk;
-            kk -= (o_tlen[kk] > 1 ? o_tlen[kk] : 1);
+            o_stk [sp++] = kk;
+            kk -= (o_tlen [kk] > 1 ? o_tlen [kk] : 1);
           }
 
         for (kk = sp - 1; kk >= 0; kk--)
           {
-            int e = o_stk[kk];
-            int L = o_tlen[e];
+            int e = o_stk [kk];
+            int L = o_tlen [e];
 
             if (L > 1)
-              e_match (o_tdist[e], L);
+              e_match (o_tdist [e], L);
             else
-              e_lit (o_tdist[e]);
+              e_lit (o_tdist [e]);
           }
       }
 
@@ -3697,15 +3699,15 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
   unsigned out_end = (unsigned)(TPA + outlen);
   lzpos lit_src = TPA + LITCNT + pllen, stub_v = lit_src + LITCNT;
   lzpos stub_dst_top = pl_dst_top + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
-  unsigned char hdr[LITCNT], stub[STUBLEN], chkb[CHK_LEN];
+  unsigned char hdr [LITCNT], stub [STUBLEN], chkb [CHK_LEN];
   lzpos chk, k;
 
   (void)memcpy (hdr, first16, LITCNT);
-  hdr[0] = 0xc3;
+  hdr [0] = 0xc3;
   put16 (hdr + 1, (unsigned)stub_v);
   (void)memcpy (hdr + 5, "-pc1-", 5);
   put16 (hdr + 10, (unsigned)outlen);
-  hdr[12] = hdr[13] = hdr[14] = hdr[15] = 0;
+  hdr [12] = hdr [13] = hdr [14] = hdr [15] = 0;
   (void)lzwrite (hdr, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
@@ -3735,8 +3737,8 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
   put16 (stub + P_PL_LEN, (unsigned)pllen);
   put16 (stub + P_JP_RELOC, (unsigned)(stub_dst_top - (Z80_DCMP_LEN - 1)));
 
-  stub[P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
-  stub[P_CP_LO] = (unsigned char)(out_end & 0xff);
+  stub [P_CP_HI] = (unsigned char)((out_end >> 8) & 0xff);
+  stub [P_CP_LO] = (unsigned char)(out_end & 0xff);
 
   {
     /* GETBIT is CALLed; retarget call operands to the relocated routine */
@@ -3744,7 +3746,7 @@ assemble_z80_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
     int gi;
 
     for (gi = 0; gi < Z80_GETBIT_FIX_N; gi++)
-      put16 (stub + z80_getbit_fix[gi], (unsigned)getbit_v);
+      put16 (stub + z80_getbit_fix [gi], (unsigned)getbit_v);
   }
 
   (void)lzwrite (stub, STUBLEN, outf);
@@ -3763,16 +3765,16 @@ assemble_8080_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
   lzpos decomp_file_v;
   lzpos stub_run = pl_dst_top + 51;
   lzpos dcmp_dsttop = stub_run + S8_DLEN - 1;
-  unsigned char hdr[LITCNT], su[S8_SLEN], de[S8_DLEN], chkb[CHK_LEN];
+  unsigned char hdr [LITCNT], su [S8_SLEN], de [S8_DLEN], chkb [CHK_LEN];
   lzpos chk, k;
   int i;
 
   (void)memcpy (hdr, first16, LITCNT);
-  hdr[0] = 0xc3;
+  hdr [0] = 0xc3;
   put16 (hdr + 1, (unsigned)stub_v);
   (void)memcpy (hdr + 5, "-pc1-", 5);
   put16 (hdr + 10, (unsigned)outlen);
-  hdr[12] = hdr[13] = hdr[14] = hdr[15] = 0;
+  hdr [12] = hdr [13] = hdr [14] = hdr [15] = 0;
   (void)lzwrite (hdr, LITCNT, outf);
 
   for (k = 0; k < pllen; k++)
@@ -3798,21 +3800,21 @@ assemble_8080_stream (LZF *outf, const unsigned char *first16, lzpos pllen,
   (void)memcpy (de, decomp8080, S8_DLEN);
 
   for (i = 0; i < SETUP8080_FIX_N; i++)
-    put16 (su + setup8080_fix[i][0],
-           (unsigned)(stub_v + chk + setup8080_fix[i][1]));
+    put16 (su + setup8080_fix [i] [0],
+           (unsigned)(stub_v + chk + setup8080_fix [i] [1]));
 
   put16 (su + S8S_LIT_SRC, (unsigned)lit_src);
   put16 (su + S8S_DCMP_SRCTOP, (unsigned)(decomp_file_v + S8_DLEN - 1));
   put16 (su + S8S_DCMP_DSTTOP, (unsigned)dcmp_dsttop);
-  su[S8S_DCMP_LEN] = (unsigned char)S8_DLEN; /* 8-bit reloc count; see guard */
+  su [S8S_DCMP_LEN] = (unsigned char)S8_DLEN; /* 8-bit reloc count; see guard */
   put16 (su + S8S_DCMP_RUN, (unsigned)stub_run);
 
   for (i = 0; i < DECOMP8080_FIX_N; i++)
-    put16 (de + decomp8080_fix[i][0],
-           (unsigned)(stub_run + decomp8080_fix[i][1]));
+    put16 (de + decomp8080_fix [i] [0],
+           (unsigned)(stub_run + decomp8080_fix [i] [1]));
 
-  de[S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
-  de[S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
+  de [S8D_OUT_END_HI] = (unsigned char)((out_end >> 8) & 0xff);
+  de [S8D_OUT_END_LO] = (unsigned char)(out_end & 0xff);
   put16 (de + S8D_PL_SRCTOP, (unsigned)(lit_src - 1));
   put16 (de + S8D_PL_DSTTOP, (unsigned)pl_dst_top);
   put16 (de + S8D_PL_LEN, (unsigned)pllen);
@@ -3845,7 +3847,7 @@ is_z80_file (LZF *f, lzpos n)
       if (op == 0xCB || op == 0xDD || op == 0xED || op == 0xFD)
         return 1;
 
-      for (skip = op8080_len[op] - 1; skip > 0; skip--)
+      for (skip = op8080_len [op] - 1; skip > 0; skip--)
         {
           if (lzgetc (f) == EOF)
             return 0;
@@ -3870,8 +3872,8 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   long stub_dst_top, dcmp_dsttop;
   lzpos dp_blk = (lzpos)LZ_STDBLK; /* parse-DP block (LZ_OPTBLK for -E) */
   const char *dp_tag = ""; /* progress tag, "-E" for the -E engine */
-  unsigned char first16[LITCNT];
-  char nb[64];
+  unsigned char first16 [LITCNT];
+  char nb [64];
 
   /* cppcheck-suppress variableScope */
   const char *oom = MSG_E_WINMEM;
@@ -3895,14 +3897,14 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
       if (in)
         {
-          unsigned char hdr[LITCNT];
+          unsigned char hdr [LITCNT];
           long k;
 
           k = (long)lzread (hdr, LITCNT, in);
           (void)lzclose (in);
 
           /* CP/M-3 GENCOM header record: first byte is 0C9h (RET). */
-          if (k >= 1 && hdr[0] == 0xc9)
+          if (k >= 1 && hdr [0] == 0xc9)
             {
               /* Flawfinder: ignore */ /* False positive CWE-134 */
               (void)fprintf (stderr, MSG_E_GENCOM, fn);
@@ -4183,9 +4185,9 @@ parse_header (const unsigned char *data, long n, unsigned *stubv,
   if (n < 16)
     return 1;
 
-  if (data[0] == 0xc3)
+  if (data [0] == 0xc3)
     sv = get16 (data + 1);
-  else if (data[0] == 0x18 && data[2] == 0xc3)
+  else if (data [0] == 0x18 && data [2] == 0xc3)
     sv = get16 (data + 3);
   else
     return 1;
@@ -4213,7 +4215,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   unsigned char *data = g_a, *out = g_b;
   long n, outlen = 0, pstart;
   unsigned stubv = 0, lit_src = 0;
-  char nb[1024];
+  char nb [1024];
 
   n = readfile (fn, data, (size_t)BUFSZ);
 
@@ -4298,7 +4300,7 @@ fread_full (void *p, size_t n, LZF *f)
   int c;
 
   while (got < n && (c = lzgetc (f)) != EOF)
-    d[got++] = (unsigned char)c;
+    d [got++] = (unsigned char)c;
 
   return got;
 }
@@ -4309,10 +4311,10 @@ static int
 do_restore (const char *fn, const char *oname, int verbose)
 {
   unsigned char *buf;
-  unsigned char hdr[LITCNT], lit[LITCNT];
+  unsigned char hdr [LITCNT], lit [LITCNT];
   long n, outlen = 0, pllen, ming, bufsz, srcoff;
   unsigned stubv = 0, lit_src = 0;
-  char nb[64];
+  char nb [64];
   LZF *f;
 
   n = count_file (fn);
@@ -4419,7 +4421,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   {
     /* Reuse the self-extracting decompressor for -R: copy CALL-able core */
 
-    static unsigned char rcore[LZ_RCORE_LEN];
+    static unsigned char rcore [LZ_RCORE_LEN];
     unsigned cbase, sv, dv, oe;
     int i;
 
@@ -4430,22 +4432,22 @@ do_restore (const char *fn, const char *oname, int verbose)
 
     for (i = 0; i < LZ_RCORE_FIX_N; i++)
       {
-        unsigned t = cbase + (unsigned)LZ_RCORE_FIX[i][1];
+        unsigned t = cbase + (unsigned)LZ_RCORE_FIX [i] [1];
 
-        rcore[LZ_RCORE_FIX[i][0]] = (unsigned char)(t & 0xff);
-        rcore[LZ_RCORE_FIX[i][0] + 1] = (unsigned char)((t >> 8) & 0xff);
+        rcore [LZ_RCORE_FIX [i] [0]] = (unsigned char)(t & 0xff);
+        rcore [LZ_RCORE_FIX [i] [0] + 1] = (unsigned char)((t >> 8) & 0xff);
       }
 
     sv = (unsigned)(buf + srcoff) - 1;
     dv = (unsigned)(buf + LITCNT);
     oe = (unsigned)(buf + outlen);
 
-    rcore[LZ_RCORE_SRCV] = (unsigned char)(sv & 0xff);
-    rcore[LZ_RCORE_SRCV + 1] = (unsigned char)((sv >> 8) & 0xff);
-    rcore[LZ_RCORE_DSTV] = (unsigned char)(dv & 0xff);
-    rcore[LZ_RCORE_DSTV + 1] = (unsigned char)((dv >> 8) & 0xff);
-    rcore[LZ_RCORE_OEHI] = (unsigned char)((oe >> 8) & 0xff);
-    rcore[LZ_RCORE_OELO] = (unsigned char)(oe & 0xff);
+    rcore [LZ_RCORE_SRCV] = (unsigned char)(sv & 0xff);
+    rcore [LZ_RCORE_SRCV + 1] = (unsigned char)((sv >> 8) & 0xff);
+    rcore [LZ_RCORE_DSTV] = (unsigned char)(dv & 0xff);
+    rcore [LZ_RCORE_DSTV + 1] = (unsigned char)((dv >> 8) & 0xff);
+    rcore [LZ_RCORE_OEHI] = (unsigned char)((oe >> 8) & 0xff);
+    rcore [LZ_RCORE_OELO] = (unsigned char)(oe & 0xff);
 
     ((void (*) (void)) rcore) ();
   }
@@ -4487,7 +4489,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 /*
  * True for the per-file patch slots in the -C check block: the two limit
  * words and the three +stub_v fixup operands.  Every other byte of a
- * genuine block must equal the chkstub[] template byte.
+ * genuine block must equal the chkstub [] template byte.
  */
 
 static int
@@ -4500,7 +4502,7 @@ chk_patch_slot (int k)
     return 1;
 
   for (i = 0; i < CHKSTUB_FIX_N; i++)
-    if (k == (int)chkstub_fix[i][0] || k == (int)chkstub_fix[i][0] + 1)
+    if (k == (int)chkstub_fix [i] [0] || k == (int)chkstub_fix [i] [0] + 1)
       return 1;
 
   return 0;
@@ -4521,9 +4523,9 @@ chk_patch_slot (int k)
 static int
 do_list (const char *fn)
 {
-  unsigned char hdr[LITCNT];
+  unsigned char hdr [LITCNT];
 #ifndef LZPACK_COMPRESS_ONLY
-  static unsigned char chkb[CHK_LEN + 7];
+  static unsigned char chkb [CHK_LEN + 7];
   const char *tag = "";
   long chk_off = -1;
   int chk_got = 0;
@@ -4555,7 +4557,7 @@ do_list (const char *fn)
    * reads its prologue) -- are copied out of the passing 128-byte chunks.
    * Nothing here trusts the offset: bytes are only captured where the
    * chunks actually cover them, and the window is validated against the
-   * chkstub[] template only after parse_header() accepts the file, so a
+   * chkstub [] template only after parse_header() accepts the file, so a
    * foreign or corrupted input at worst reports no floor and no tag.
    */
 
@@ -4564,12 +4566,12 @@ do_list (const char *fn)
 
   if (got == (size_t)LITCNT)
     {
-      unsigned char buf[128];
+      unsigned char buf [128];
 
 #ifndef LZPACK_COMPRESS_ONLY
-      if (hdr[0] == 0xc3)
+      if (hdr [0] == 0xc3)
         chk_off = (long)get16 (hdr + 1) - TPA;
-      else if (hdr[0] == 0x18 && hdr[2] == 0xc3)
+      else if (hdr [0] == 0x18 && hdr [2] == 0xc3)
         chk_off = (long)get16 (hdr + 3) - TPA;
 
       if (chk_off < LITCNT) /* would overlap the header: not a -C stub */
@@ -4590,7 +4592,7 @@ do_list (const char *fn)
                 hi = n + (long)r;
 
               for (; lo < hi; lo++, chk_got++)
-                chkb[lo - chk_off] = buf[lo - n];
+                chkb [lo - chk_off] = buf [lo - n];
             }
 #endif
 
@@ -4626,7 +4628,7 @@ do_list (const char *fn)
    * Recognize the -C runtime memory check, and the memory floor embedded
    * in it when the file carries one.  The captured window counts as a
    * check block only when every byte was read from inside the
-   * (LRBC-corrected) file, every template byte matches chkstub[], and all
+   * (LRBC-corrected) file, every template byte matches chkstub [], and all
    * three +stub_v fixup operands equal the values put_check() would have
    * patched for this stub address; DST_LIM then holds the enforced floor
    * + 1.
@@ -4639,7 +4641,7 @@ do_list (const char *fn)
       ischk = 1;
 
       for (k = 0; k < CHK_LEN; k++)
-        if (chkb[k] != chkstub[k] && !chk_patch_slot (k))
+        if (chkb [k] != chkstub [k] && !chk_patch_slot (k))
           {
             ischk = 0;
 
@@ -4648,8 +4650,8 @@ do_list (const char *fn)
 
       if (ischk)
         for (k = 0; k < CHKSTUB_FIX_N; k++)
-          if (get16 (chkb + chkstub_fix[k][0])
-              != ((stubv + (unsigned)chkstub_fix[k][1]) & 0xFFFFU))
+          if (get16 (chkb + chkstub_fix [k] [0])
+              != ((stubv + (unsigned)chkstub_fix [k] [1]) & 0xFFFFU))
             {
               ischk = 0;
 
@@ -4677,12 +4679,12 @@ do_list (const char *fn)
       {
         const unsigned char *sp = chkb + sbase;
 
-        if (sp[0] == 0x21 && get16 (sp + 1) == lit_src
-            && sp[3] == 0x11 && sp[4] == 0x00 && sp[5] == 0x01)
+        if (sp [0] == 0x21 && get16 (sp + 1) == lit_src
+            && sp [3] == 0x11 && sp [4] == 0x00 && sp [5] == 0x01)
           {
-            if (sp[6] == 0x01)
+            if (sp [6] == 0x01)
               tag = "  [Z80]";
-            else if (sp[6] == 0x06)
+            else if (sp [6] == 0x06)
               tag = "  [8080]";
           }
       }
@@ -4761,7 +4763,7 @@ parse_memtop (const char *s)
 
   v = 0;
 
-  if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+  if (s [0] == '0' && (s [1] == 'x' || s [1] == 'X'))
     {
       for (s += 2;; s++)
         {
@@ -4927,11 +4929,11 @@ version (void)
      * how much the system reports free.
      */
     {
-      unsigned mcb[3];
+      unsigned mcb [3];
 
-      mcb[1] = 0xFFFFU;
+      mcb [1] = 0xFFFFU;
       (void)bdos (53, BDOS_FCB (mcb));
-      tk = mcb[1] / 64U;
+      tk = mcb [1] / 64U;
     }
 
     if (tk > 64U)
@@ -5034,8 +5036,8 @@ is_wildcard (const char *s)
 
 #if defined(LZ_CPM) && LZPACK_WILDCARD
 
-static unsigned char g_dma[128];
-static char g_wname[13];
+static unsigned char g_dma [128];
+static char g_wname [13];
 
 /******************************************************************************/
 
@@ -5047,9 +5049,9 @@ fcb_to_name (const unsigned char *e)
 
   for (i = 1; i <= 11; i++)
     {
-      int c = e[i] & 0x7f;
+      int c = e [i] & 0x7f;
 
-      if (i == 9 && (e[9] & 0x7f) != ' ')
+      if (i == 9 && (e [9] & 0x7f) != ' ')
         *d++ = '.';
 
       if (c != ' ')
@@ -5075,15 +5077,15 @@ fcb_to_name (const unsigned char *e)
 typedef struct
 {
   unsigned long dwFileAttributes;
-  unsigned long ftCreation[2];
-  unsigned long ftLastAccess[2];
-  unsigned long ftLastWrite[2];
+  unsigned long ftCreation [2];
+  unsigned long ftLastAccess [2];
+  unsigned long ftLastWrite [2];
   unsigned long nFileSizeHigh;
   unsigned long nFileSizeLow;
   unsigned long dwReserved0;
   unsigned long dwReserved1;
-  char cFileName[260];
-  char cAlternateFileName[14];
+  char cFileName [260];
+  char cAlternateFileName [14];
 } LZ_FINDDATA;
 /* cppcheck-suppress-end unusedStructMember */
 
@@ -5121,9 +5123,9 @@ main (int argc, char **argv)
 
   for (i = 1; i < argc; i++)
     {
-      if (argv[i][0] == '-' && argv[i][1])
+      if (argv [i] [0] == '-' && argv [i] [1])
         {
-          char c = argv[i][1];
+          char c = argv [i] [1];
 
           if (c == 'R' || c == 'r')
             mode = 1;
@@ -5146,7 +5148,7 @@ main (int argc, char **argv)
             opt_checked = 1;
           else if (c == 'm' || c == 'M')
             {
-              unsigned v = (i + 1 < argc) ? parse_memtop (argv[++i]) : 0;
+              unsigned v = (i + 1 < argc) ? parse_memtop (argv [++i]) : 0;
 
               if (!v)
                 {
@@ -5161,7 +5163,7 @@ main (int argc, char **argv)
 # ifndef LZPACK_COMPRESS_ONLY
           else if (c == 'f' || c == 'F')
             {
-              unsigned v = (i + 1 < argc) ? parse_memtop (argv[++i]) : 0;
+              unsigned v = (i + 1 < argc) ? parse_memtop (argv [++i]) : 0;
 
               if (!v)
                 {
@@ -5196,7 +5198,7 @@ main (int argc, char **argv)
                   return 2;
                 }
 
-              oname = argv[++i];
+              oname = argv [++i];
             }
 #ifdef LZ_CPM
           else if (c == 'i' || c == 'I')
@@ -5223,7 +5225,7 @@ main (int argc, char **argv)
           else
             {
               /* Flawfinder: ignore */ /* False positive CWE-134 */
-              (void)fprintf (stderr, MSG_E_UNKNOWN, argv[i]);
+              (void)fprintf (stderr, MSG_E_UNKNOWN, argv [i]);
 
               return 2;
             }
@@ -5263,9 +5265,9 @@ main (int argc, char **argv)
 
   for (i = 1; i < argc; i++)
     {
-      if (argv[i][0] == '-' && argv[i][1])
+      if (argv [i] [0] == '-' && argv [i] [1])
         {
-          char c = argv[i][1];
+          char c = argv [i] [1];
 
           if (c == 'o' || c == 'O' || c == 'm' || c == 'M'
 #if !defined(LZPACK_DECODE_ONLY) && !defined(LZPACK_COMPRESS_ONLY)
@@ -5278,25 +5280,25 @@ main (int argc, char **argv)
         }
 
 #if LZ_INT_WILDCARD
-      if (is_wildcard (argv[i]))
+      if (is_wildcard (argv [i]))
         {
           int found = 0;
 
 # if defined(LZ_CPM) && LZPACK_WILDCARD
-          unsigned char fcb[36];
+          unsigned char fcb [36];
           int k, j, hit = 0;
 
-          cpm_setfcb (fcb, argv[i]);
-          fcb[0] = 0; /* current drive only, ignores drive prefix */
+          cpm_setfcb (fcb, argv [i]);
+          fcb [0] = 0; /* current drive only, ignores drive prefix */
 
           for (k = 1; k <= 11; k++)
             {
               if (k == 9)
                 hit = 0;
-              if (fcb[k] == '*')
+              if (fcb [k] == '*')
                 hit = 1;
               if (hit)
-                fcb[k] = '?';
+                fcb [k] = '?';
             }
 
           for (k = 0;; k++)
@@ -5317,22 +5319,22 @@ main (int argc, char **argv)
             }
 # elif LZ_WIN_WILDCARD
           LZ_FINDDATA fd;
-          void *h = FindFirstFileA (argv[i], &fd);
+          void *h = FindFirstFileA (argv [i], &fd);
 
           if (h != LZ_INVALID_HANDLE)
             {
               const char *s, *sep = 0;
-              char wbuf[600];
+              char wbuf [600];
               size_t plen;
 
-              for (s = argv[i]; *s; s++)
+              for (s = argv [i]; *s; s++)
                 if (*s == '\\' || *s == '/' || *s == ':')
                   sep = s;
-              plen = sep ? (size_t)(sep - argv[i] + 1) : 0;
+              plen = sep ? (size_t)(sep - argv [i] + 1) : 0;
 
               if (plen < sizeof (wbuf))
                 {
-                  (void)memcpy (wbuf, argv[i], plen);
+                  (void)memcpy (wbuf, argv [i], plen);
 
                   do
                     {
@@ -5356,23 +5358,23 @@ main (int argc, char **argv)
           if (!found)
             {
               /* Flawfinder: ignore */ /* False positive CWE-134 */
-              (void)fprintf (stderr, MSG_E_READ, argv[i]);
+              (void)fprintf (stderr, MSG_E_READ, argv [i]);
               rc |= 1;
             }
 
           continue;
         }
 
-      rc |= LZ_RUN_ONE (argv[i]);
+      rc |= LZ_RUN_ONE (argv [i]);
 #else
 # ifndef LZPACK_DECODE_ONLY
       if (mode == 0)
         {
 #  ifdef LZPACK_STREAM
-          rc |= do_compress_stream (argv[i], oname, 1, use8080, auto_stub,
+          rc |= do_compress_stream (argv [i], oname, 1, use8080, auto_stub,
                                     optimal);
 #  else
-          rc |= do_compress (argv[i], oname, 1, use8080, auto_stub, optimal);
+          rc |= do_compress (argv [i], oname, 1, use8080, auto_stub, optimal);
 #  endif
         }
       else
@@ -5384,11 +5386,11 @@ main (int argc, char **argv)
           (void)fprintf (stderr, MSG_E_NOREST);
           rc |= 1;
 # else
-          rc |= do_restore (argv[i], oname, 1);
+          rc |= do_restore (argv [i], oname, 1);
 # endif
         }
       else
-        rc |= do_list (argv[i]);
+        rc |= do_list (argv [i]);
 #endif
     }
 
