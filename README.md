@@ -477,7 +477,7 @@ UNIX‑like system.
   ```
 
 The GNU GCC, LLVM Clang, PCC, NVIDIA HPC SDK C/C++, Oracle Studio C/C++, DMD
-ImportC, CompCert C, Open64, PathScale EKOPath, IBM XL C/C++, DJGPP, Vbcc,
+ImportC, CompCert C, Open64, PathScale EKOPath, IBM XL C/C++, DJGPP, Vbcc, Ack,
 IBM Open XL C/C++, МЦСТ LCC, and Microsoft Visual C/C++ compilers are
 regularly tested.
 
