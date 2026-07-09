@@ -246,10 +246,16 @@ typedef struct sp_cand
   int len;
 } sp_cand;
 
+/******************************************************************************/
+
 static sp_cand sp_top [SP_TOPK];
 static int sp_ntop;
 
+/******************************************************************************/
+
 static unsigned char sp_resid [SP_MAXTXT];
+
+/******************************************************************************/
 
 static void
 make_resid (void)
