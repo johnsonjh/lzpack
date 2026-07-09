@@ -275,7 +275,7 @@ command -v cppi > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> cppi <<<<<<<<<<<<<<<<"
   for f in ./cs8080.h ./csz80.h ./csr8080.h ./csrz80.h ./cschk.h \
     ./stubasm.c ./strpack.c ./lzpack.c ./tests/t_autoarch.c \
-    ./tests/t_memtop.c; do
+    ./tests/t_memtop.c ./bsdmalloc.h; do
     if (
       set -x
       cppi -a --check "${f}"
@@ -416,7 +416,7 @@ aCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
 aCFLAGS="${aCFLAGS:?} -Wsign-conversion${GCCW}"
 aCFLAGS="${aCFLAGS:?} -U_FORTIFY_SOURCE"
 aCFLAGS="${aCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
-aCFLAGS="${aCFLAGS:?} -DGCC_ANALYZER -march=native -fanalyzer"
+aCFLAGS="${aCFLAGS:?} -DDEBUG -DGCC_ANALYZER -march=native -fanalyzer"
 
 command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
   printf '\n%s\n\n' ">>>>>>>>>>>>>>>> gcc analyzer standard <<<<<<<<<<<<<<<<"
@@ -536,7 +536,7 @@ apCFLAGS="-std=c89 -pedantic -ansi -Wall -Werror -Wpedantic -Wextra -O3"
 apCFLAGS="${apCFLAGS:?} -Wsign-conversion${GCCW}"
 apCFLAGS="${apCFLAGS:?} -U_FORTIFY_SOURCE"
 apCFLAGS="${apCFLAGS:?} -D_FORTIFY_SOURCE=${FORTIFY_LEVEL:-3}"
-apCFLAGS="${apCFLAGS:?} -DGCC_ANALYZER -march=native -fanalyzer"
+apCFLAGS="${apCFLAGS:?} -DDEBUG -DGCC_ANALYZER -march=native -fanalyzer"
 apCFLAGS="${apCFLAGS:?} -DLZPACK_PACKED_MSGS"
 
 command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
@@ -576,7 +576,7 @@ command -v "${GCC_CMD:-gcc}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-lCFLAGS="-U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
+lCFLAGS="-DDEBUG -U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
 lCFLAGS="${lCFLAGS:-} -Wno-padded -Wno-missing-noreturn"
 lCFLAGS="${lCFLAGS:-} -Wno-disabled-macro-expansion"
 lCFLAGS="${lCFLAGS:-} -Wno-used-but-marked-unused -Werror -ferror-limit=0"
@@ -696,7 +696,7 @@ command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
 
 ################################################################################
 
-lpCFLAGS="-U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
+lpCFLAGS="-DDEBUG -U_FORTIFY_SOURCE -O3 -Weverything -Wno-unsafe-buffer-usage"
 lpCFLAGS="${lpCFLAGS:-} -Wno-padded -Wno-missing-noreturn"
 lpCFLAGS="${lpCFLAGS:-} -Wno-disabled-macro-expansion"
 lpCFLAGS="${lpCFLAGS:-} -Wno-used-but-marked-unused -Werror -ferror-limit=0"
@@ -1744,7 +1744,7 @@ command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
       set -x
       "${MAKE:-make}" \
         CC="${CLANG_CMD:-clang}" \
-        CFLAGS="${SAN_CFLAGS:?}"
+        CFLAGS="${SAN_CFLAGS:?} -DDEBUG"
     ) && san_cycle; then
       :
     else
@@ -1770,7 +1770,7 @@ command -v "${CLANG_CMD:-clang}" > /dev/null 2>&1 && {
       "${MAKE:-make}" \
         CC="${CLANG_CMD:-clang}" \
         CFLAGS="${SAN_CFLAGS:?} -DLZPACK_STREAM -DLZPACK_OPT \
-          -DLZPACK_PACKED_MSGS"
+          -DLZPACK_PACKED_MSGS -DDEBUG"
     ) && san_cycle; then
       :
     else
@@ -1795,7 +1795,7 @@ command -v valgrind > /dev/null 2>&1 && {
     set -x
     # shellcheck disable=SC3045
     ulimit -n 384 > /dev/null 2>&1 || :
-    "${MAKE:-make}" CFLAGS="-O1 -g" \
+    "${MAKE:-make}" CFLAGS="-O1 -g -DDEBUG" \
       && valgrind --quiet --error-exitcode=99 --leak-check=full \
         ./lzpack -E -C -F 0xBDFF -O "${vg_d}/t.pop" "${vg_d}/in.bin" \
       && valgrind --quiet --error-exitcode=99 --leak-check=full \

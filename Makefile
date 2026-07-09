@@ -33,7 +33,7 @@ build: all
 # Builds the native LZPACK binary.
 
 lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h \
-		lzpack.c
+		lzpack.c bsdmalloc.h
 	@eval echo \
 		"$${CC:-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" -I. \
 		-o $@ lzpack.c "$${LDFLAGS:-$(XLDFLAGS)}" \
@@ -51,7 +51,7 @@ lzpack: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h \
 # that are subject to change at any time in the future.
 
 linux64-static linux64-musl: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h \
-		cschk.h csmsg.h lzpack.c
+		cschk.h csmsg.h lzpack.c bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command env rm mv mkdir "$${MAKE:-make}" upx musl-gcc \
@@ -78,7 +78,7 @@ linux64-static linux64-musl: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h \
 # that are subject to change at any time in the future.
 
 linux32-owcc linux32-static: lzpack.c cs8080.h csz80.h csr8080.h csrz80.h \
-		cschk.h csmsg.h lzpack.c
+		cschk.h csmsg.h lzpack.c bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command env rm mv mkdir "$${MAKE:-make}" \
@@ -154,7 +154,7 @@ cschk.h: chk.asm stubasm
 
 # Builds the stub assembler.
 
-stubasm: stubasm.c
+stubasm: stubasm.c bsdmalloc.h
 	@eval echo \
 		"$${CC-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" \
 		-o $@ stubasm.c "$${LDFLAGS:-$(XLDFLAGS)}" \
@@ -167,7 +167,7 @@ stubasm: stubasm.c
 
 # Builds the message-string compressor.
 
-strpack: strpack.c
+strpack: strpack.c bsdmalloc.h
 	@eval echo \
 		"$${CC-$(XCC)}" "$${CFLAGS:-$(XCFLAGS)}" \
 		-o $@ strpack.c "$${LDFLAGS:-$(XLDFLAGS)}" \
@@ -245,7 +245,8 @@ stub stubs: cs8080.h csz80.h csr8080.h csrz80.h cschk.h csmsg.h stubasm.c
 # https://z88dk.org/
 
 cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh .wincap.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh \
+		.wincap.sh bsdmalloc.h
 	@env CPM_BACKEND="auto" ./.build-cpm.sh
 
 ################################################################################
@@ -254,7 +255,8 @@ cpm cpm80 cpm-auto cpm80-auto: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://github.com/z88dk/z88dk
 
 cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh .wincap.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh \
+		.wincap.sh bsdmalloc.h
 	@env CPM_BACKEND="local" ./.build-cpm.sh
 
 ################################################################################
@@ -263,7 +265,8 @@ cpm-local cpm80-local: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://hub.docker.com/r/z88dk/z88dk
 
 cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
-		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh .wincap.sh
+		csmsg.h stubasm.c lzpack.c .build-cpm.sh .common.sh \
+		.wincap.sh bsdmalloc.h
 	@env CPM_BACKEND="docker" ./.build-cpm.sh
 
 ################################################################################
@@ -272,7 +275,7 @@ cpm-docker cpm80-docker: cs8080.h csz80.h csr8080.h csrz80.h cschk.h \
 # https://github.com/tsupplis/cpm86-crossdev
 
 cpm86 cpm-86: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
-	lz86body.asm .lz86gen.sh
+	lz86body.asm .lz86gen.sh bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx aztec42_cc aztec42_sqz aztec42_link \
@@ -310,7 +313,7 @@ cpm86 cpm-86: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 # https://github.com/open-watcom/open-watcom-v2
 
 msdos dos pcdos: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
-	lz86body.asm .lz86gen.sh
+	lz86body.asm .lz86gen.sh bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx owcc wasm)
@@ -343,7 +346,7 @@ OS2OLD=This is an OS/2 32-bit executable
 OS2NEW=This LZPACK requires 32-bit OS/2.
 
 os2: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
-	lz86body.asm .lz86gen.sh
+	lz86body.asm .lz86gen.sh bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command owcc sed)
@@ -361,7 +364,7 @@ os2: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
 # Protected-mode (386+) MS-DOS build using DJGPP and embedded CWSDPMI.
 # https://www.delorie.com/djgpp/ and https://sandmann.dotster.com/cwsdpmi/
 
-djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c bsdmalloc.h
 	@mkdir -p ./djgpp/
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
@@ -398,7 +401,7 @@ djgpp: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 # https://gitlab.com/tkchia/build-ia16
 
 elks: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c lz86body.asm \
-	.lz86gen.sh
+	.lz86gen.sh bsdmalloc.h
 	@mkdir -p ./elks/
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
@@ -414,7 +417,7 @@ elks: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c lz86body.asm \
 
 # Windows 32-bit MSVCRT and 64-bit UCRT builds using Fedora MinGW-w64 GCC
 
-windows: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+windows: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command upx \
@@ -437,7 +440,8 @@ windows: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 CCV51=/usr/xcc/armv5-unknown-linux-musleabi/bin
 CCV52=armv5-unknown-linux-musleabi
 
-docker-armv5-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+docker-armv5-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
+		bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command cp grep rm docker upx)
@@ -460,7 +464,8 @@ docker-armv5-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 CCV61=/usr/xcc/aarch64-linux-musl-cross/bin
 CCV62=aarch64-linux-musl
 
-docker-arm64-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+docker-arm64-musl: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
+		bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command cp grep rm docker upx)
@@ -482,7 +487,8 @@ CROSSMINT="$${HOME:?}/crossmint"
 CROSSMINT_ARCH="$(CROSSMINT)/usr/m68k-atari-mintelf"
 CROSSMINT_GCC="$(CROSSMINT)/usr/bin/m68k-atari-mintelf-gcc"
 
-crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c \
+		bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command cp grep rm "$(CROSSMINT_GCC)" upx)
@@ -508,7 +514,7 @@ crossmint-atari atari: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
 
 VBCC=/opt/vbcc
 
-amiga: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c
+amiga: cs8080.h csz80.h cschk.h csmsg.h stubasm.c lzpack.c bsdmalloc.h
 	@(export CPE1704TKS=1 && . ./.common.sh && \
 		export FIND_COMMAND_FATAL=1 && \
 		find_command cp grep rm "$${VBCC:-$(VBCC)}/bin/vc" cranker)
@@ -663,20 +669,22 @@ bindist: .lint.sh .common.sh .updatedocs.sh tests/run.sh
 ################################################################################
 
 tags etags ctags gtags TAGS GPATH GRTAGS GTAGS cscope cscope.out tag: \
-	cs8080.h csz80.h stubasm.c lzpack.c tests/t_autoarch.c
+	cs8080.h csz80.h stubasm.c lzpack.c tests/t_autoarch.c bsdmalloc.h
 	@command -v etags > /dev/null 2>&1 && \
 		{ { echo etags...; etags cs8080.h csz80.h stubasm.c lzpack.c \
-			tests/t_autoarch.c && exit 0; }; exit 1; } || :
+			tests/t_autoarch.c bsdmalloc.h && exit 0; }; \
+			exit 1; } || :
 	@command -v ctags > /dev/null 2>&1 && \
 		{ { echo ctags...; ctags cs8080.h csz80.h stubasm.c lzpack.c \
-			tests/t_autoarch.c 2> /dev/null && exit 0; }; \
+			tests/t_autoarch.c bsdmalloc.h \
+				2> /dev/null && exit 0; }; \
 			exit 1; } || :
 	@command -v gtags > /dev/null 2>&1 && \
 		{ { echo gtags...; gtags . && exit 0; }; \
 			exit 1; } || :
 	@command -v cscope > /dev/null 2>&1 && \
 		{ { echo cscope...; cscope -b cs8080.h csz80.h stubasm.c \
-			lzpack.c tests/t_autoarch.c && exit 0; }; \
+			lzpack.c tests/t_autoarch.c bsdmalloc.h && exit 0; }; \
 			exit 1; } || :
 
 ################################################################################
