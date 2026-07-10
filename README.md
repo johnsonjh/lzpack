@@ -157,7 +157,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
-  |  **Z80** | `28,223`&nbsp;(`27.5K`) | `31,305`&nbsp;(`30.5K`) | `37,449`&nbsp;(`36.5K`) | `49,737`&nbsp;(`48.5K`) |
+  |  **Z80** | `28,083`&nbsp;(`27.4K`) | `31,155`&nbsp;(`30.4K`) | `37,299`&nbsp;(`36.4K`) | `49,587`&nbsp;(`48.4K`) |
   | **8080** | `30,727`&nbsp;(`30.0K`) | `33,779`&nbsp;(`33.0K`) | `39,943`&nbsp;(`39.0K`) | `52,231`&nbsp;(`51.0K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
@@ -284,7 +284,7 @@ or tools are required when cross‑compiling.
 ## Usage
 
 ```
-LZPACK v1.05 - CP/M-80 (8080 and Z80) executable compressor
+LZPACK v1.06 - CP/M-80 (8080 and Z80) executable compressor
 Copyright (c) 2026 Jeffrey H. Johnson <johnsonjh.dev@gmail.com>
 
 Usage:
@@ -490,7 +490,7 @@ Most users will only be interested in the native binary build.
 | Make Target | Description                        | Toolchain                                                                                                                   |
 |------------:|:-----------------------------------|:----------------------------------------------------------------------------------------------------------------------------|
 | `all`       | Native&nbsp;binary                 | ANSI&nbsp;C89&nbsp;compiler&nbsp;(*e.g.*,&nbsp;`c89`,&nbsp;`gcc`,&nbsp;`clang`)                                             |
-| `cpm`       | CP/M‑80&nbsp;8080&nbsp;+&nbsp;Z80  | [z88dk](https://z88dk.org/)&nbsp;(**2026‑06‑08+**)&nbsp;and&nbsp;[patched](tnylpo.diff)&nbsp;`tnylpo`                       |
+| `cpm`       | CP/M‑80&nbsp;8080&nbsp;+&nbsp;Z80  | [z88dk](https://z88dk.org/)&nbsp;(**2026‑07‑10+**)&nbsp;and&nbsp;[patched](tnylpo.diff)&nbsp;`tnylpo`                       |
 | `cpm86`     | CP/M‑86&nbsp;8086/8088             | [cross‑Aztec&nbsp;C86&nbsp;v4.2](https://github.com/tsupplis/cpm86-crossdev)&nbsp;([tsupplis](https://github.com/tsupplis)) |
 | `os2`       | OS/2&nbsp;i386                     | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2)                                                 |
 | `msdos`     | MS‑DOS&nbsp;8086/8088              | [Open&nbsp;Watcom&nbsp;V2.0](https://github.com/open-watcom/open-watcom-v2)                                                 |

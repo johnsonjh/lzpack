@@ -115,8 +115,8 @@ PACK="${PACK:-1}"
 # fails the build -- when an image outgrows its ceiling, so size
 # regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
 # bytes TPA floor depends on it).
-MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-20641}"
-MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12292}"
+MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-20491}"
+MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12186}"
 MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27829}"
 MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23191}"
 MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-15136}"
@@ -475,7 +475,7 @@ build_arch()
   # (a smaller packer leaves more TPA for the match window, a smaller
   # unpacker restores larger programs).
   # shellcheck disable=SC2086
-  run_zcc zcc +cpm ${XOPT:-} -SO2 -O3 --opt-code-size \
+  run_zcc zcc +cpm ${XOPT:-} -SO3 -O3 --opt-code-size \
     -m lzpack.c -clib="${clib}" -o "${lc}" \
     -DLZPACK_STREAM=1 -DLZPACK_COMPRESS_ONLY \
     "-DHSZ=${HSZ}" "-DMZXFILE=${MZXFILE}" \
@@ -484,13 +484,13 @@ build_arch()
   printf '%s\n' ">> [${clib}]${BLDN}${uc}"
   # lzunpack needs no HSZ: the hash table belongs to the compressor only.
   # shellcheck disable=SC2086
-  run_zcc zcc +cpm ${XOPT:-} -SO2 -O3 --opt-code-size \
+  run_zcc zcc +cpm ${XOPT:-} -SO3 -O3 --opt-code-size \
     -m lzpack.c -clib="${clib}" -o "${uc}" \
     -DLZPACK_STREAM=1 -DLZPACK_DECODE_ONLY "-DMZXFILE=${MZXFILE}" \
     ${LZUNPACK_EXTRA_DEFS:-} ${BDOSIO_PRAGMAS} \
     "-pragma-define:CRT_STACK_SIZE=${STACKSZ}"
   printf '%s\n' ">> [${clib}] building ${sc}"
-  run_zcc zcc +cpm -SO2 -O3 --opt-code-size \
+  run_zcc zcc +cpm -SO3 -O3 --opt-code-size \
     -m stubasm.c -clib="${clib}" -o "${sc}" \
     -DAMALLOC -DMAXSYM=96 -DMAXREF=96 -DMAXCODE=768
 
