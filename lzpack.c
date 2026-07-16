@@ -3553,11 +3553,16 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
   for (seg_start = (lzpos)start; seg_start < n;)
     {
       /*
-       * Ack MIPS mcg has been observed to clobber a seg_end while
-       * leaving span intact, which produced an infinite loop, so
-       * recompute the limit as seg_start + span wherever needed.
+       * Segment length first (subtract-first: 16-bit lzpos cannot wrap).
+       * Some compilers (ACK MIPS mcg) have clobbered a long-lived seg_end
+       * across the table-init / DP body while leaving span intact, which
+       * stalled the outer loop.  Derive span independently, then (re)build
+       * seg_end from seg_start + span immediately before each use so a
+       * clobbered copy cannot stick.  Keep the classic apos < seg_end form
+       * for picky 16-bit / SDCC builds that miscompile apos - seg_start.
        */
       lzpos span = (n - seg_start > o_blk) ? o_blk : (n - seg_start);
+      lzpos seg_end;
       lzpos j;
 
       for (j = 0; j <= span; j++)
@@ -3569,7 +3574,10 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
       o_cost [0] = 0;
 
-      for (apos = seg_start; apos - seg_start < span; apos++)
+      /* Fresh end bound after table init (see comment above). */
+      seg_end = seg_start + span;
+
+      for (apos = seg_start; apos < seg_end; apos++)
         {
           lzpos jc = apos - seg_start;
           int cap;
@@ -3592,8 +3600,8 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
           cap = MAXLEN;
 
-          if ((lzpos)cap > span - jc)
-            cap = (int)(span - jc);
+          if ((lzpos)cap > seg_end - apos)
+            cap = (int)(seg_end - apos);
 
           if ((lzpos)cap > n - apos)
             cap = (int)(n - apos);
@@ -3715,14 +3723,18 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
           }
       }
 
-      while (ins < seg_start + span)
+      /* Re-derive after DP/emit so a clobbered seg_end cannot stall advance */
+      /*cppcheck-suppress redundantAssignment*/
+      seg_end = seg_start + span;
+
+      while (ins < seg_end)
         {
           win_load_ahead (ins);
           s_hinsert (ins);
           ins++;
         }
 
-      seg_start += span;
+      seg_start = seg_end;
 
       prog_show (ptag, (long)(seg_start - (lzpos)start));
     }
