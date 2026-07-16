@@ -25,7 +25,7 @@
 
 /******************************************************************************/
 
-#define LZPACK_VER "v1.06"
+#define LZPACK_VER "v1.07"
 
 /******************************************************************************/
 
@@ -3552,11 +3552,13 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
   for (seg_start = (lzpos)start; seg_start < n;)
     {
-      /* seg_start + o_blk, subtract-first: a 16-bit lzpos cannot wrap */
-      lzpos seg_end = (n - seg_start > o_blk) ? (seg_start + o_blk) : n;
-      lzpos span, j;
-
-      span = seg_end - seg_start;
+      /*
+       * Ack MIPS mcg has been observed to clobber a seg_end while
+       * leaving span intact, which produced an infinite loop, so
+       * recompute the limit as seg_start + span wherever needed.
+       */
+      lzpos span = (n - seg_start > o_blk) ? o_blk : (n - seg_start);
+      lzpos j;
 
       for (j = 0; j <= span; j++)
         {
@@ -3567,7 +3569,7 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
       o_cost [0] = 0;
 
-      for (apos = seg_start; apos < seg_end; apos++)
+      for (apos = seg_start; apos - seg_start < span; apos++)
         {
           lzpos jc = apos - seg_start;
           int cap;
@@ -3590,8 +3592,8 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
 
           cap = MAXLEN;
 
-          if ((lzpos)cap > seg_end - apos)
-            cap = (int)(seg_end - apos);
+          if ((lzpos)cap > span - jc)
+            cap = (int)(span - jc);
 
           if ((lzpos)cap > n - apos)
             cap = (int)(n - apos);
@@ -3713,14 +3715,14 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
           }
       }
 
-      while (ins < seg_end)
+      while (ins < seg_start + span)
         {
           win_load_ahead (ins);
           s_hinsert (ins);
           ins++;
         }
 
-      seg_start = seg_end;
+      seg_start += span;
 
       prog_show (ptag, (long)(seg_start - (lzpos)start));
     }
