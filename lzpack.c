@@ -23,6 +23,8 @@
 # undef LZPACK_VER
 #endif
 
+/******************************************************************************/
+
 #define LZPACK_VER "v1.06"
 
 /******************************************************************************/
@@ -168,16 +170,22 @@ static int opt_lrbc_isx = 0;
 # endif
 #endif
 
+/******************************************************************************/
+
 #if LZPACK_WILDCARD && (!defined(LZ_CPM) || defined(LZPACK_NO_WILDCARD))
 # undef LZPACK_WILDCARD
 # define LZPACK_WILDCARD 0 /* off: needs CP/M BDOS or NO_WILDCARD */
 #endif
+
+/******************************************************************************/
 
 #if defined(_WIN32) && !defined(LZPACK_NO_WILDCARD)
 # define LZ_WIN_WILDCARD 1
 #else
 # define LZ_WIN_WILDCARD 0
 #endif
+
+/******************************************************************************/
 
 #if (defined(LZ_CPM) && LZPACK_WILDCARD) || LZ_WIN_WILDCARD
 # define LZ_INT_WILDCARD 1
@@ -224,6 +232,8 @@ static void lz_cput (int c);
 static void lz_mputs (const char *m);
 static const char *lz_mload (const char *m, char *out);
 
+/******************************************************************************/
+
 # define LZ_MSG_PACKED 1
 # define LZ_MPUTS(f, s) ((void)(f), lz_mputs (s))
 
@@ -234,6 +244,8 @@ static const char *lz_mload (const char *m, char *out);
 # undef stderr
 # define stdout ((FILE *)0)
 # define stderr ((FILE *)0)
+
+/******************************************************************************/
 
 /* Flawfinder: ignore */ /* False positive CWE-134 */
 # define fprintf lz_fprintf /* //-V1059 */
@@ -271,12 +283,16 @@ static const char *lz_mload (const char *m, char *out);
 static int lz_fprintf (FILE *f, const char *fmt, ...);
 static int lz_printf (const char *fmt, ...);
 
+/******************************************************************************/
+
 #  define LZ_MPUTS(f, s) lz_mfputs ((s), (f))
 
 /* Flawfinder: ignore */ /* False positive CWE-134 */
 #  define fprintf lz_fprintf /* //-V1059 */
 /* Flawfinder: ignore */ /* False positive CWE-134 */
 #  define printf  lz_printf  /* //-V1059 */
+
+/******************************************************************************/
 
 # else
 
@@ -3348,9 +3364,13 @@ s_hinsert (lzpos i)
 #   endif
 #  endif
 
+/******************************************************************************/
+
 #  ifndef LZ_STDBLK_MIN
 #   define LZ_STDBLK_MIN 128L
 #  endif
+
+/******************************************************************************/
 
 #  ifdef LZ_POS16
 #   define LZ_OCOST_MAX 0xFFFFU
@@ -3366,6 +3386,8 @@ s_hinsert (lzpos i)
 #   define LZ_OCOST_MAX 0x3fffffffL
 #  endif
 
+/******************************************************************************/
+
 /*
  * Heap to reserve below the match window for the parse-DP arrays: enough
  * for the smallest block both engines fall back to.  opt_alloc then grows
@@ -3378,17 +3400,25 @@ s_hinsert (lzpos i)
   ((long)(LZ_STDBLK_MIN + 1) * (sizeof (lzcost) + 3 * sizeof (int)) + 512L)
 #  endif
 
+/******************************************************************************/
+
 #  ifndef LZ_OPTDEPTH
 #   define LZ_OPTDEPTH 1024
 #  endif
+
+/******************************************************************************/
 
 #  ifndef LZ_OPT_ALLOC
 #   define LZ_OPT_ALLOC(n) malloc ((n))
 #  endif
 
+/******************************************************************************/
+
 #  ifndef LZ_OPT_FREE
 #   define LZ_OPT_FREE(p) free ((p))
 #  endif
+
+/******************************************************************************/
 
 #  define OFREE(p)     \
   do {                 \
@@ -3396,13 +3426,19 @@ s_hinsert (lzpos i)
     (p) = NULL;        \
   } while (never)
 
+/******************************************************************************/
+
 static lzcost *o_cost;
 static int *o_tlen;
 static int *o_tdist;
 static int *o_stk;
 static lzpos o_blk;
 
+/******************************************************************************/
+
 static int o_l2d [MAXLEN + 1];
+
+/******************************************************************************/
 
 /*
  * Bit costs from match_bits() top out around 35 (1+16 header bits plus the
