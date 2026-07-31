@@ -429,7 +429,7 @@ any packed program can be inspected on the target machine itself.
 | [LZPCKL64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL64.gz)   | 40&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;x86‑64)   |
 
 > If you need a CP/M ARC utility, `UNARC` is available for
-[8080](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/..utils/unarca.com)
+[8080](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/.utils/unarca.com)
 and [Z80](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/.utils/unarcz.com)
 CP/M‑80, and `ARCCPM`
 for [CP/M‑86](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/.utils/arccpm.cmd).
