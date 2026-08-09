@@ -69,7 +69,7 @@
 /******************************************************************************/
 
 #ifdef LZPACK_STREAM
-static const int never =0;
+static const int never = 0;
 # define FREE(p) \
   do {           \
     free((p));   \
