@@ -158,7 +158,7 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
   |  **Z80** | `28,095`&nbsp;(`27.4K`) | `31,167`&nbsp;(`30.4K`) | `37,311`&nbsp;(`36.4K`) | `49,599`&nbsp;(`48.4K`) |
-  | **8080** | `30,737`&nbsp;(`30.0K`) | `33,809`&nbsp;(`33.0K`) | `39,953`&nbsp;(`39.0K`) | `52,241`&nbsp;(`51.0K`) |
+  | **8080** | `30,849`&nbsp;(`30.1K`) | `33,921`&nbsp;(`33.1K`) | `40,065`&nbsp;(`39.1K`) | `52,353`&nbsp;(`51.1K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
