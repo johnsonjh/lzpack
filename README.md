@@ -157,8 +157,8 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
   |   System |               1K‑window |               2K‑window |               4K‑window |               8K‑window |
   |---------:|------------------------:|------------------------:|------------------------:|------------------------:|
-  |  **Z80** | `28,095`&nbsp;(`27.4K`) | `31,167`&nbsp;(`30.4K`) | `37,311`&nbsp;(`36.4K`) | `49,599`&nbsp;(`48.4K`) |
-  | **8080** | `30,849`&nbsp;(`30.1K`) | `33,921`&nbsp;(`33.1K`) | `40,065`&nbsp;(`39.1K`) | `52,353`&nbsp;(`51.1K`) |
+  |  **Z80** | `27,903`&nbsp;(`27.2K`) | `30,975`&nbsp;(`30.2K`) | `37,119`&nbsp;(`36.2K`) | `49,407`&nbsp;(`48.2K`) |
+  | **8080** | `30,980`&nbsp;(`30.2K`) | `34,052`&nbsp;(`33.2K`) | `40,196`&nbsp;(`39.2K`) | `52,484`&nbsp;(`51.2K`) |
 
 * The test files were "trimmed" to their "near‑exact" length on the Linux
   host system used for testing (determined by discarding up to, but *not*
@@ -412,7 +412,7 @@ any packed program can be inspected on the target machine itself.
 
 |                                                                                          File  | Size        | Platform                              |
 |-----------------------------------------------------------------------------------------------:|------------:|:--------------------------------------|
-| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 20&nbsp;KiB | **CP/M‑80**&nbsp;(8080)               |
+| [LZPCKI80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKI80.ARC) | 24&nbsp;KiB | **CP/M‑80**&nbsp;(8080)               |
 | [LZPCKZ80.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKZ80.ARC) | 24&nbsp;KiB | **CP/M‑80**&nbsp;(Z80)                |
 | [LZPCK86C.ARC](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCK86C.ARC) | 20&nbsp;KiB | **CP/M‑86**&nbsp;(8086/8088)          |
 | [LZPCKELK.Z](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKELK.Z)     | 16&nbsp;KiB | **ELKS**&nbsp;(8086/8088)             |
@@ -424,7 +424,7 @@ any packed program can be inspected on the target machine itself.
 | [LZPCKW32.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW32.ZIP) | 36&nbsp;KiB | **Windows**&nbsp;(32‑bit&nbsp;MSVCRT) |
 | [LZPCKW64.ZIP](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKW64.ZIP) | 24&nbsp;KiB | **Windows**&nbsp;(64‑bit&nbsp;UCRT)   |
 | [LZPCKA32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA32.gz)   | 32&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;ARMv5)    |
-| [LZPCKA64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA64.gz)   | 36&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;ARMv8)    |
+| [LZPCKA64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKA64.gz)   | 40&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;ARMv8)    |
 | [LZPCKL32.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL32.gz)   | 16&nbsp;KiB | **Linux**&nbsp;(32‑bit&nbsp;i386)     |
 | [LZPCKL64.gz](https://github.com/johnsonjh/lzpack/raw/refs/heads/master/bindist/LZPCKL64.gz)   | 40&nbsp;KiB | **Linux**&nbsp;(64‑bit&nbsp;x86‑64)   |
 
