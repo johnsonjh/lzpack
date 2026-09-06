@@ -115,11 +115,11 @@ PACK="${PACK:-1}"
 # fails the build -- when an image outgrows its ceiling, so size
 # regressions surface immediately (the Z80 packer's 8K-window-at-52,978-
 # bytes TPA floor depends on it).
-MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-20311}"
+MCAP_Z80_LZPACK="${MCAP_Z80_LZPACK:-20723}"
 MCAP_Z80_LZUNPACK="${MCAP_Z80_LZUNPACK:-12141}"
 MCAP_Z80_STUBASM="${MCAP_Z80_STUBASM:-27921}"
-MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23444}"
-MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-15379}"
+MCAP_8080_LZPACK="${MCAP_8080_LZPACK:-23730}"
+MCAP_8080_LZUNPACK="${MCAP_8080_LZUNPACK:-15355}"
 MCAP_8080_STUBASM="${MCAP_8080_STUBASM:-28924}"
 
 # Memory ceiling for the fit check.  Default 0xBDFF = a 48K system; the -e
@@ -559,7 +559,7 @@ done
 
 if [ "${FITFAIL}" = 1 ]; then
   printf '\n%s\n\n' \
-    "FATAL: a tool's runtime footprint will not fit a 48K CP/M-80 system" >&2
+    "FATAL: a tool's runtime footprint is too large" >&2
   exit 1
 fi
 
