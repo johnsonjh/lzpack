@@ -37,6 +37,7 @@ csmsg.h
 /djgpp
 /djgpp/
 /elks/
+.envrc
 *.exe
 *.EXE
 /GPATH
