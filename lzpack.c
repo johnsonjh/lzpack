@@ -25,7 +25,7 @@
 
 /******************************************************************************/
 
-#define LZPACK_VER "v1.07"
+#define LZPACK_VER "v1.08"
 
 /******************************************************************************/
 
@@ -3084,6 +3084,26 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       return 1;
     }
 
+  /* Check MEMTOP early, before compression starts */
+  outlen = n;
+  stub_dst_top = (long)(TPA + outlen) + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
+  dcmp_dsttop = (long)(TPA + outlen + 51) + S8_DLEN - 1;
+
+  if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
+    {
+      long safe_top = (use8080 ? dcmp_dsttop : stub_dst_top) + (n >> 3) + 32;
+
+      if (safe_top > 65535L)
+        safe_top = 65535L;
+
+      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      (void)fprintf (stderr, MSG_E_NOFIT,
+                     fn, ((long)memtop + 513L) / 1024L, (long)memtop,
+                     safe_top);
+
+      return 1;
+    }
+
 #  ifndef LZPACK_NO_AUTOARCH
   if (auto_stub)
     use8080 = (is_z80_image (data, n) ? 0 : 1);
@@ -3105,8 +3125,6 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 #  endif
 
   prog_done ();
-
-  outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
   ming = min_gap (pl, pllen, outlen - LITCNT, LITCNT, pl_dst_top);
 
@@ -4001,6 +4019,26 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       return 1;
     }
 
+  /* Check MEMTOP early, before window allocation and compression start */
+  outlen = n;
+  stub_dst_top = (long)(TPA + outlen) + (Z80_HEADROOM + Z80_DCMP_LEN - 1);
+  dcmp_dsttop = (long)(TPA + outlen + 51) + S8_DLEN - 1;
+
+  if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
+    {
+      long safe_top = (use8080 ? dcmp_dsttop : stub_dst_top) + (n >> 3) + 32;
+
+      if (safe_top > 65535L)
+        safe_top = 65535L;
+
+      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      (void)fprintf (stderr, MSG_E_NOFIT,
+                     fn, ((long)memtop + 513L) / 1024L, (long)memtop,
+                     safe_top);
+
+      return 1;
+    }
+
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
     /* Flawfinder: ignore */ /* False positive CWE-134 */
@@ -4100,7 +4138,6 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   (void)lzclose (in);
   (void)lzclose (tmp);
 
-  outlen = n;
   pl_dst_top = (long)(TPA + outlen) - 1;
 
   /* CP/M stdio cannot reliably read a file back through "w+b"; reopen "rb". */
