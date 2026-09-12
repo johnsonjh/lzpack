@@ -4,5 +4,5 @@ Atari version (c) Grunenberg, Mandel, 1994, Dirk Haun, 1996/97
   (c) Yoshizaki, 1988-1989, Grunenberg, Mandel, 1994, Haun, 1996/97
 
 LHarc is freeware.
-It may be freely distributed for non‑commercial purposes.
+It may be freely distributed for non-commercial purposes.
 Copyright remains with the authors.
