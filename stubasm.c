@@ -255,7 +255,7 @@ sym_set (const char *n, long v, int islabel)
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6385 )
 #endif
-      /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+      /*Flawfinder: ignore*/ /* ZCC limitation: checked to be safe */
       xstrcpy (sym_name [i], n);
     }
   else if (cur_pass == 2 && islabel && sym_islabel [i] && sym_val [i] != v)
@@ -285,7 +285,7 @@ predefine (const char *n, long v)
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6385 6386 )
 #endif
-  /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+  /*Flawfinder: ignore*/ /* ZCC limitation: checked to be safe */
   xstrcpy (pre_name [npre], n);
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6386 )
@@ -578,7 +578,7 @@ rec (const char *tok, int width)
 #if defined(_MSC_VER)
 # pragma warning( suppress : 6385 )
 #endif
-          /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+          /*Flawfinder: ignore*/ /* ZCC limitation: checked to be safe */
           xstrcpy (refs [nref].name, tok);
         }
 
@@ -1350,7 +1350,7 @@ assemble (const char *path, int z80)
               exit (1);
             }
 
-          /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+          /*Flawfinder: ignore*/ /* ZCC limitation: checked to be safe */
           xstrcpy (opU, op);
 
           upcase (opU);
@@ -1725,7 +1725,7 @@ collect (const char *const *patch)
           if (strlen (refs [j].name) >= (size_t)NAMELEN) /* //-V547 */
             die ("patch name too long");
 
-          /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+          /*Flawfinder: ignore*/ /* ZCC limitation: checked to be safe */
           xstrcpy (sl_name [nsl], refs [j].name);
 
           sl_off [nsl] = refs [j].off;
@@ -1768,7 +1768,7 @@ emit_fixes (const char *name, const char *uname, const int *off,
 
 static void
 emit_slots (const char *const *patch, const char *pfx,
-            /* cppcheck-suppress constParameter */
+            /*cppcheck-suppress constParameter*/
             char nm [] [NAMELEN], const int *off, int n)
 {
   int p, i;
@@ -2045,7 +2045,7 @@ main (int argc, char **argv)
 
   for (i = 0; i < nsl; i++)
     {
-      /* Flawfinder: ignore */ /* ZCC limitation: checked to be safe */
+      /*Flawfinder: ignore*/ /* ZCC limitation: checked to be safe */
       xstrcpy (s_sl_name [i], sl_name [i]);
 
       s_sl_off [i] = sl_off [i];

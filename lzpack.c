@@ -201,11 +201,11 @@ static int opt_lrbc_isx = 0;
 
 typedef struct lzf
 {
-  unsigned char fcb [36]; /* CP/M file control block */
+  unsigned char fcb [36];  /* CP/M file control block */
   unsigned char buf [128]; /* one-record DMA buffer */
-  unsigned char idx; /* next byte position in buf (0..128) */
-  unsigned char mode; /* 0 = free, 1 = reading, 2 = writing */
-  unsigned char ateof; /* reading: BDOS already reported end of file */
+  unsigned char idx;       /* next byte position in buf (0..128) */
+  unsigned char mode;      /* 0 = free, 1 = reading, 2 = writing */
+  unsigned char ateof;     /* reading: BDOS already reported end of file */
 } LZF;
 
 /******************************************************************************/
@@ -247,9 +247,9 @@ static const char *lz_mload (const char *m, char *out);
 
 /******************************************************************************/
 
-/* Flawfinder: ignore */ /* False positive CWE-134 */
+/*Flawfinder: ignore*/ /* False positive CWE-134 */
 # define fprintf lz_fprintf /* //-V1059 */
-/* Flawfinder: ignore */ /* False positive CWE-134 */
+/*Flawfinder: ignore*/ /* False positive CWE-134 */
 # define printf  lz_printf  /* //-V1059 */
 # ifndef LZPACK_NO_PROGRESS
 #  define LZ_CPUT(c) lz_cput (c)
@@ -287,9 +287,9 @@ static int lz_printf (const char *fmt, ...);
 
 #  define LZ_MPUTS(f, s) lz_mfputs ((s), (f))
 
-/* Flawfinder: ignore */ /* False positive CWE-134 */
+/*Flawfinder: ignore*/ /* False positive CWE-134 */
 #  define fprintf lz_fprintf /* //-V1059 */
-/* Flawfinder: ignore */ /* False positive CWE-134 */
+/*Flawfinder: ignore*/ /* False positive CWE-134 */
 #  define printf  lz_printf  /* //-V1059 */
 
 /******************************************************************************/
@@ -406,7 +406,7 @@ lxmalloc (size_t n)
 
   if (!p)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_OOM);
 
       exit (1);
@@ -474,8 +474,11 @@ typedef long lzcost;
 
 # define MEMTOP_MIN (0x1000 + 51 + S8_DLEN + 128)
 
-/* Set to MEMTOP at startup (-M overrides): zero-initialized so it stays in
- * BSS, where the CP/M-80 build's trailing-zero .COM trim can elide it. */
+/*
+ * Set to MEMTOP at startup (-M overrides): zero-initialized so it stays in
+ * BSS, where the CP/M-80 build's trailing-zero .COM trim can elide it.
+ */
+
 static unsigned memtop;
 
 /*
@@ -548,7 +551,7 @@ prog_show (const char *tag, long done)
     return;
 
   pg_pct = pct;
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   (void)fprintf (stderr, MSG_P_PROG, pg_name, tag, pct);
 }
 
@@ -1207,7 +1210,7 @@ g_bit (void)
     {
       if (ip >= ip_end)
         {
-          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          /*Flawfinder: ignore*/ /* False positive CWE-134 */
           (void)fprintf (stderr, MSG_E_EOD);
 
           exit (1);
@@ -1248,7 +1251,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
       if (ip >= ip_end)
         {
-          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          /*Flawfinder: ignore*/ /* False positive CWE-134 */
           (void)fprintf (stderr, MSG_E_EOD);
 
           exit (1);
@@ -1307,7 +1310,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
 
           if (ip >= ip_end)
             {
-              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              /*Flawfinder: ignore*/ /* False positive CWE-134 */
               (void)fprintf (stderr, MSG_E_EOD);
 
               exit (1);
@@ -1396,7 +1399,7 @@ decode (const unsigned char *pl, long pllen, unsigned char *out, long outlen,
     cp:
       if (off >= (unsigned)pos)
         {
-          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          /*Flawfinder: ignore*/ /* False positive CWE-134 */
           (void)fprintf (stderr, MSG_E_UNDERFLOW);
 
           exit (1);
@@ -2284,12 +2287,12 @@ lz_fprintf (FILE *f, const char *fmt, ...)
   (void)f;
 # ifdef __SCCZ80
   (void)fmt;
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf),
                    lz_mload (*(const char **)(void *)ap, lz_fbuf),
                    (void *)(ap - 2));
 # else
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf), lz_mload (fmt, lz_fbuf), ap);
 # endif
   va_end (ap);
@@ -2308,12 +2311,12 @@ lz_printf (const char *fmt, ...)
   va_start (ap, fmt);
 # ifdef __SCCZ80
   (void)fmt;
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf),
                    lz_mload (*(const char **)(void *)(ap + 2), lz_fbuf),
                    (void *)ap);
 # else
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   (void)vsnprintf (lz_lbuf, sizeof (lz_lbuf), lz_mload (fmt, lz_fbuf), ap);
 # endif
   va_end (ap);
@@ -2373,7 +2376,7 @@ lz_fprintf (FILE *f, const char *fmt, ...)
   va_list ap;
 
   va_start (ap, fmt);
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   r = vfprintf (f, lz_mload (fmt, lz_fbuf), ap);
   va_end (ap);
 
@@ -2389,7 +2392,7 @@ lz_printf (const char *fmt, ...)
   va_list ap;
 
   va_start (ap, fmt);
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   r = vfprintf (stdout, lz_mload (fmt, lz_fbuf), ap);
   va_end (ap);
 
@@ -3017,7 +3020,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n < 0)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -3030,7 +3033,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n > 0 && data [0] == 0xc9)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_GENCOM, fn);
 
       return 1;
@@ -3054,7 +3057,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
         n = r_outlen;
 
         if (verbose)
-          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          /*Flawfinder: ignore*/ /* False positive CWE-134 */
           (void)fprintf (stderr, MSG_P_REPACK, fn);
       }
   }
@@ -3062,7 +3065,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n > MZXFILE)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_MZX, fn, (long)MZXFILE);
 
       return 1;
@@ -3070,7 +3073,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n > 65535L)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_HDRBIG, fn);
 
       return 1;
@@ -3078,7 +3081,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (n <= LITCNT + 32)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_SMALL, fn);
 
       return 1;
@@ -3096,7 +3099,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       if (safe_top > 65535L)
         safe_top = 65535L;
 
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_NOFIT,
                      fn, ((long)memtop + 513L) / 1024L, (long)memtop,
                      safe_top);
@@ -3115,7 +3118,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)fprintf (stderr, MSG_P_NOEXTRA);
 
   pllen = compress (data, n, LITCNT, pl, 1024, LZ_STDBLK);
@@ -3136,7 +3139,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_NOFIT,
                      fn, ((long)memtop + 513L) / 1024L, (long)memtop,
                      (use8080 ? dcmp_dsttop : stub_dst_top));
@@ -3152,7 +3155,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
   if (total >= n)
     {
       if (verbose)
-        /* Flawfinder: ignore */ /* False positive CWE-134 */
+        /*Flawfinder: ignore*/ /* False positive CWE-134 */
         (void)fprintf (stderr, MSG_P_SKIPPED,
                        fn, n, total);
 
@@ -3167,7 +3170,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
 
   if (writefile (oname, outf, total))
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_WRITE, oname);
 
       return 1;
@@ -3182,7 +3185,7 @@ do_compress (const char *fn, const char *oname, int verbose, int use8080,
       const char *amark = (auto_stub ? " auto" : "");
 #  endif
 
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_P_PACKED,
                      fn, n, total, p10 / 10, p10 % 10,
                      (use8080 ? "8080" : "Z80"), amark, oname);
@@ -3262,6 +3265,7 @@ win_alloc (void)
                * This window leaves enough heap for the DP block only if a
                * probe of the reserve succeeds; otherwise try a smaller one.
                */
+
               void *guard = malloc ((size_t)s_win_reserve);
 
               if (!guard)
@@ -3491,8 +3495,8 @@ opt_cost_tables (void)
 /******************************************************************************/
 
 /*
- * Allocate the parse-DP arrays.  The block size is probed from `want' down
- * to `lo' (halving), so the largest block that fits the heap left over after
+ * Allocate the parse-DP arrays.  The block size is probed from 'want' down
+ * to 'lo' (halving), so the largest block that fits the heap left over after
  * the window is used.  o_blk records the size actually obtained.
  */
 
@@ -3579,6 +3583,7 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
        * clobbered copy cannot stick.  Keep the classic apos < seg_end form
        * for picky 16-bit / SDCC builds that miscompile apos - seg_start.
        */
+
       lzpos span = (n - seg_start > o_blk) ? o_blk : (n - seg_start);
       lzpos seg_end;
       lzpos j;
@@ -3741,7 +3746,11 @@ compress_stream (LZF *in, lzpos n, int start, LZF *out, int depth,
           }
       }
 
-      /* Re-derive after DP/emit so a clobbered seg_end cannot stall advance */
+      /*
+       * Re-derive after DP/emit so a clobbered
+       * seg_end cannot stall advance
+       */
+
       /*cppcheck-suppress redundantAssignment*/
       seg_end = seg_start + span;
 
@@ -3947,14 +3956,14 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   unsigned char first16 [LITCNT];
   char nb [64];
 
-  /* cppcheck-suppress variableScope */
+  /*cppcheck-suppress variableScope*/
   const char *oom = MSG_E_WINMEM;
 
   n = count_file (fn);
 
   if (n < 0)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -3978,7 +3987,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
           /* CP/M-3 GENCOM header record: first byte is 0C9h (RET). */
           if (k >= 1 && hdr [0] == 0xc9)
             {
-              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              /*Flawfinder: ignore*/ /* False positive CWE-134 */
               (void)fprintf (stderr, MSG_E_GENCOM, fn);
 
               return 1;
@@ -3986,7 +3995,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
           if (k == LITCNT && parse_header (hdr, n, &rsv, &rls, &rol) == 0)
             {
-              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              /*Flawfinder: ignore*/ /* False positive CWE-134 */
               (void)fprintf (stderr, MSG_E_PACKED,
                              fn);
 
@@ -3997,7 +4006,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (n > MZXFILE)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_MZX, fn, (long)MZXFILE);
 
       return 1;
@@ -4005,7 +4014,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (n > 65535L)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_HDRBIG, fn);
 
       return 1;
@@ -4013,7 +4022,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (n <= LITCNT + 32)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_SMALL, fn);
 
       return 1;
@@ -4031,7 +4040,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       if (safe_top > 65535L)
         safe_top = 65535L;
 
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_NOFIT,
                      fn, ((long)memtop + 513L) / 1024L, (long)memtop,
                      safe_top);
@@ -4041,7 +4050,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
 #  ifdef LZPACK_NO_OPT
   if (optimal && verbose)
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)fprintf (stderr, MSG_P_NOEXTRA);
 
 #  else
@@ -4071,7 +4080,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
 
   if (!in)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -4082,7 +4091,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!tmp)
     {
       (void)lzclose (in);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_TMPMAKE, LZTMP);
 
       return 1;
@@ -4121,7 +4130,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     }
 
   if (verbose)
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)fprintf (stderr, MSG_P_WINDOW,
                    fn, (long)s_winsz, (long)s_maxback);
 
@@ -4147,7 +4156,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!tmp)
     {
       lzunlink (LZTMP);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_TMPOPEN, LZTMP);
 
       return 1;
@@ -4165,7 +4174,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (use8080 ? (dcmp_dsttop > (long)memtop) : (stub_dst_top > (long)memtop))
     {
       lzunlink (LZTMP);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_NOFIT,
                      fn, ((long)memtop + 513L) / 1024L, (long)memtop,
                      (use8080 ? dcmp_dsttop : stub_dst_top));
@@ -4182,7 +4191,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (total >= n)
     {
       if (verbose)
-        /* Flawfinder: ignore */ /* False positive CWE-134 */
+        /*Flawfinder: ignore*/ /* False positive CWE-134 */
         (void)fprintf (stderr, MSG_P_SKIPPED,
                        fn, n, total);
 
@@ -4202,7 +4211,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
   if (!outf)
     {
       lzunlink (LZTMP);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_WRITE, oname);
 
       return 1;
@@ -4214,7 +4223,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
     {
       (void)lzclose (outf);
       lzunlink (LZTMP);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_TMPOPEN, LZTMP);
 
       return 1;
@@ -4244,7 +4253,7 @@ do_compress_stream (const char *fn, const char *oname, int verbose,
       const char *amark = (auto_stub ? " auto" : "");
 #  endif
 
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_P_PACKED, fn,
                      n, total, p10 / 10, p10 % 10, (use8080 ? "8080" : "Z80"),
                      amark, oname);
@@ -4312,7 +4321,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (n < 0)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -4320,7 +4329,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (n > BUFSZ)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_RESTBIG, fn);
 
       return 1;
@@ -4328,7 +4337,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (parse_header (data, n, &stubv, &lit_src, &outlen))
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_NOTPOP, fn);
 
       return 1;
@@ -4338,7 +4347,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (outlen > MZXFILE)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_EXPMZX, fn,
                (long)MZXFILE);
 
@@ -4348,7 +4357,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if ((long)lit_src - TPA < 0 ||
       (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_BADHDR, fn);
 
       return 1;
@@ -4365,14 +4374,14 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (writefile (oname, out, outlen))
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_WRITE, oname);
 
       return 1;
     }
 
   if (verbose)
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)fprintf (stderr, MSG_P_RESTORED,
                    fn, n, outlen, oname);
 
@@ -4412,7 +4421,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (n < 0)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -4428,7 +4437,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (!f)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -4438,7 +4447,7 @@ do_restore (const char *fn, const char *oname, int verbose)
       || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
       (void)lzclose (f);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_NOTPOP, fn);
 
       return 1;
@@ -4447,7 +4456,7 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (outlen > MZXFILE)
     {
       (void)lzclose (f);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_EXPMZX, fn,
                (long)MZXFILE);
 
@@ -4458,7 +4467,7 @@ do_restore (const char *fn, const char *oname, int verbose)
       || (long)lit_src - TPA + LITCNT > n || outlen < LITCNT)
     {
       (void)lzclose (f);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_BADHDR, fn);
 
       return 1;
@@ -4473,7 +4482,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (ming < outlen + 1 - LONG_MAX)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_BADHDR, fn);
 
       return 1;
@@ -4483,7 +4492,7 @@ do_restore (const char *fn, const char *oname, int verbose)
 
   if (!buf)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_RESTOOM, fn);
 
       return 1;
@@ -4500,7 +4509,7 @@ do_restore (const char *fn, const char *oname, int verbose)
         (void)lzclose (f);
 
       FREE (buf);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -4510,7 +4519,10 @@ do_restore (const char *fn, const char *oname, int verbose)
 
 #  ifdef LZ_ASM_RESTORE
   {
-    /* Reuse the self-extracting decompressor for -R: copy CALL-able core */
+    /*
+     * Reuse the self-extracting decompressor
+     * for -R: copy CALL-able core
+     */
 
     static unsigned char rcore [LZ_RCORE_LEN];
     unsigned cbase, sv, dv, oe;
@@ -4555,14 +4567,14 @@ do_restore (const char *fn, const char *oname, int verbose)
   if (writefile (oname, buf, outlen))
     {
       FREE (buf);
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_WRITE, oname);
 
       return 1;
     }
 
   if (verbose)
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)fprintf (stderr, MSG_P_RESTORED, fn, n, outlen,
                    oname);
 
@@ -4629,7 +4641,7 @@ do_list (const char *fn)
 
   if (!f)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_READ, fn);
 
       return 1;
@@ -4707,7 +4719,7 @@ do_list (const char *fn)
 
   if (got < (size_t)LITCNT || parse_header (hdr, n, &stubv, &lit_src, &outlen))
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)printf (MSG_P_LNOTPOP, fn);
 
       return 0;
@@ -4787,11 +4799,11 @@ do_list (const char *fn)
     long p10 = (outlen ? (n * 1000L + outlen / 2) / outlen : 0);
 
 #ifndef LZPACK_COMPRESS_ONLY
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)printf (MSG_P_LSIZES,
                   fn, n, outlen, p10 / 10, p10 % 10, tag);
 #else
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)printf (MSG_P_LSIZES,
                   fn, n, outlen, p10 / 10, p10 % 10);
 #endif
@@ -4803,11 +4815,11 @@ do_list (const char *fn)
     {
       unsigned dlim = get16 (chkb + CHK_DST_LIM);
 
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)printf (MSG_P_LFLOOR0, fn, (dlim - 1U) & 0xFFFFU);
     }
   else
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)printf (MSG_P_LNOCHK, fn);
 
 #endif
@@ -4820,7 +4832,7 @@ do_list (const char *fn)
 static void
 herald (FILE *f)
 {
-  /* Flawfinder: ignore */ /* False positive CWE-134 */
+  /*Flawfinder: ignore*/ /* False positive CWE-134 */
   (void)fprintf (f, MSG_V_HERALD1, LZ_PROG, LZPACK_VER, LZ_KIND);
   LZ_MPUTS (f, MSG_V_COPYR);
 }
@@ -4886,9 +4898,12 @@ parse_memtop (const char *s)
         }
 
 # if UINT_MAX > 0xFFFFU
-      /* On 16-bit ints 65536..65539 wrap to 0..3 and the KB-form floor
-       * rejects them below; wider ints must reject the range explicitly. */
-      /* cppcheck-suppress compareValueOutOfTypeRangeError */
+      /*
+       * On 16-bit ints 65536..65539 wrap to 0..3 and the KB-form floor
+       * rejects them below; wider ints must reject the range explicitly.
+       */
+
+      /*cppcheck-suppress compareValueOutOfTypeRangeError*/
       if (v > 0xFFFFU)
         return 0;
 # endif
@@ -4993,7 +5008,7 @@ version (void)
     int ver = (int)(w & 0xff);
     const char *os = (sys >= 2) ? "CP/NET" : (sys == 1) ? "MP/M" : "CP/M";
 
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)printf (MSG_V_CPM, os, (ver >> 4) & 0xf, ver & 0xf, ver, sys);
     LZ_MPUTS (stdout, ((ver >= 0x30) ? MSG_V_LRBC1 : MSG_V_LRBC0));
   }
@@ -5019,6 +5034,7 @@ version (void)
      * segment -- a small-model program cannot use more than that regardless of
      * how much the system reports free.
      */
+
     {
       unsigned mcb [3];
 
@@ -5033,9 +5049,12 @@ version (void)
     cpu = "Intel x86";
     memword = "memory";
 # else
-    /* CP/M-80 (z88dk): the BDOS entry word at 0x0006 (from the JMP at 0x0005)
-     * tops the flat TPA, which starts at TPA (0x100). */
-    /* cppcheck-suppress intToPointerCast */
+    /*
+     * CP/M-80 (z88dk): the BDOS entry word at 0x0006 (from the JMP at 0x0005)
+     * tops the flat TPA, which starts at TPA (0x100).
+     */
+
+    /*cppcheck-suppress intToPointerCast*/
     tk = (unsigned)((*(unsigned *)6 - (unsigned)TPA) / 1024U);
     memword = "TPA";
 #  ifdef LZPACK_8080
@@ -5046,10 +5065,10 @@ version (void)
 # endif
 
 # ifdef LZPACK_DECODE_ONLY
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)printf (MSG_V_BUILDD, cpu, tk, memword);
 # else
-    /* Flawfinder: ignore */ /* False positive CWE-134 */
+    /*Flawfinder: ignore*/ /* False positive CWE-134 */
     (void)printf (MSG_V_BUILDC, cpu, eopt, tk, memword);
 
 #  ifdef LZPACK_NO_AUTOARCH
@@ -5060,7 +5079,7 @@ version (void)
       static const char *defstub = "Z80";
 #   endif
 
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)printf (MSG_V_AUTO0, defstub);
     }
 #  else
@@ -5089,7 +5108,7 @@ version (void)
 /******************************************************************************/
 
 # ifdef LZPACK_COMPRESS_ONLY
-/* Flawfinder: ignore */ /* False positive CWE-134 */
+/*Flawfinder: ignore*/ /* False positive CWE-134 */
 #  define LZ_RUN_RESTORE(FN) ((void)fprintf (stderr, MSG_E_NOREST), 1)
 # else
 #  define LZ_RUN_RESTORE(FN) do_restore ((FN), oname, 1)
@@ -5164,7 +5183,7 @@ fcb_to_name (const unsigned char *e)
 
 /******************************************************************************/
 
-/* cppcheck-suppress-begin unusedStructMember */
+/*cppcheck-suppress-begin unusedStructMember*/
 typedef struct
 {
   unsigned long dwFileAttributes;
@@ -5178,7 +5197,7 @@ typedef struct
   char cFileName [260];
   char cAlternateFileName [14];
 } LZ_FINDDATA;
-/* cppcheck-suppress-end unusedStructMember */
+/*cppcheck-suppress-end unusedStructMember*/
 
 /******************************************************************************/
 
@@ -5243,7 +5262,7 @@ main (int argc, char **argv)
 
               if (!v)
                 {
-                  /* Flawfinder: ignore */ /* False positive CWE-134 */
+                  /*Flawfinder: ignore*/ /* False positive CWE-134 */
                   (void)fprintf (stderr, MSG_E_BADM);
 
                   return 2;
@@ -5258,7 +5277,7 @@ main (int argc, char **argv)
 
               if (!v)
                 {
-                  /* Flawfinder: ignore */ /* False positive CWE-134 */
+                  /*Flawfinder: ignore*/ /* False positive CWE-134 */
                   (void)fprintf (stderr, MSG_E_BADF);
 
                   return 2;
@@ -5283,7 +5302,7 @@ main (int argc, char **argv)
             {
               if (i + 1 >= argc)
                 {
-                  /* Flawfinder: ignore */ /* False positive CWE-134 */
+                  /*Flawfinder: ignore*/ /* False positive CWE-134 */
                   (void)fprintf (stderr, MSG_E_OARG);
 
                   return 2;
@@ -5298,7 +5317,7 @@ main (int argc, char **argv)
                 opt_lrbc_isx = 1;
               else
                 {
-                  /* Flawfinder: ignore */ /* False positive CWE-134 */
+                  /*Flawfinder: ignore*/ /* False positive CWE-134 */
                   (void)fprintf (stderr, MSG_E_IREQ);
 
                   return 2;
@@ -5315,7 +5334,7 @@ main (int argc, char **argv)
             }
           else
             {
-              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              /*Flawfinder: ignore*/ /* False positive CWE-134 */
               (void)fprintf (stderr, MSG_E_UNKNOWN, argv [i]);
 
               return 2;
@@ -5341,7 +5360,7 @@ main (int argc, char **argv)
 
   if (oname && nfiles > 1)
     {
-      /* Flawfinder: ignore */ /* False positive CWE-134 */
+      /*Flawfinder: ignore*/ /* False positive CWE-134 */
       (void)fprintf (stderr, MSG_E_OMULTI);
 
       return 2;
@@ -5352,7 +5371,10 @@ main (int argc, char **argv)
     mode = 1;
 #endif
 
-  /* Second pass: process each input file (skipping options). */
+  /*
+   * Second pass: process each input file
+   * (skipping options).
+   */
 
   for (i = 1; i < argc; i++)
     {
@@ -5448,7 +5470,7 @@ main (int argc, char **argv)
 
           if (!found)
             {
-              /* Flawfinder: ignore */ /* False positive CWE-134 */
+              /*Flawfinder: ignore*/ /* False positive CWE-134 */
               (void)fprintf (stderr, MSG_E_READ, argv [i]);
               rc |= 1;
             }
@@ -5473,7 +5495,7 @@ main (int argc, char **argv)
       if (mode == 1)
         {
 # ifdef LZPACK_COMPRESS_ONLY
-          /* Flawfinder: ignore */ /* False positive CWE-134 */
+          /*Flawfinder: ignore*/ /* False positive CWE-134 */
           (void)fprintf (stderr, MSG_E_NOREST);
           rc |= 1;
 # else
