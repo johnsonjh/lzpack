@@ -7,21 +7,21 @@
 **LZPACK** is an executable compressor for CP/M‑80 binaries.
 
 It shrinks 8080 and Z80 `.COM` programs, often to half their original size,
-while leaving them directly executable: every packed file is a
+while leaving them directly executable: every compressed file is a
 *self‑extracting* `.COM` that decompresses itself and runs without any
-separate unpacker and requires no changes to how the program is invoked.
+separate decompressor and requires no changes to how the program is invoked.
 
 It works very much like Yoshihiko Mino's classic CP/M‑80 *PopCom!* utility,
-but packs tighter by using a better compression engine and decompresses
-faster by using smaller hand‑optimized decompression stubs.
+but compresses programs tighter by using a better compression engine and
+decompresses faster by using smaller hand‑optimized decompression stubs.
 
-The **LZPACK** program and the packed executables it produces can run on a
-wide range of CP/M‑80 machines, including systems with Z80, 8080, 8085, and
-V20 processors, and systems with less than 48K&nbsp;TPA.
+The **LZPACK** program itself as well as the compressed executables it
+produces can run on a wide range of CP/M‑80 machines, including systems with
+Z80, 8080, 8085, and V20 processors, and systems with less than 48K&nbsp;TPA.
 
 Running the compressor on a system without CP/M‑80's memory constraints (such
-as on MS‑DOS, OS/2, Windows, Linux, or in any UNIX‑like environment) gives
-even better compression results.
+as on MS‑DOS, OS/2, Windows, Linux, BSD, or in most other UNIX‑like
+environments) gives even better compression results.
 
 [Precompiled binaries for many systems are available for download.](#downloads)
 
@@ -58,11 +58,11 @@ even better compression results.
 **LZPACK** is a single, ultra‑portable ANSI C89 program.
 
 The *compressor* runs on just about anything with an ANSI C89 compiler.  You
-can pack CP/M‑80 programs on any modern UNIX
+can compress CP/M‑80 programs on any modern UNIX
 (even [**ELKS**](https://github.com/ghaerr/elks)), OS/2, Windows, or MS‑DOS
-system without emulation, as well as pack natively on the CP/M‑80 target.
+system without emulation, as well as *compress natively on the CP/M‑80 target*.
 
-The *decompressor* that is embedded into each packed executable is
+The *decompressor* that is embedded into each compressed executable is
 hand‑written and highly optimized 8080 or Z80 assembly.
 
 Precompiled binaries are provided for **CP/M‑80** (8080 and Z80),
@@ -71,18 +71,19 @@ Precompiled binaries are provided for **CP/M‑80** (8080 and Z80),
 i386, 32‑bit ARMv5, 64‑bit x86‑64, and 64‑bit ARMv8), **Atari&nbsp;ST**
 (TOS/MINT), **AmigaOS** (68K), and **Windows** (both 32‑ and 64‑bit versions).
 
-The CP/M‑80 builds also run on **MSX‑DOS** (as do the packed executables
+The CP/M‑80 builds also run on **MSX‑DOS** (as do the compressed executables
 **LZPACK** generates).
 
 ## Details
 
 **LZPACK**'s `‑R` (restore) and `‑L` (list) commands recognize both **LZPACK**
-and *PopCom!*‑packed files (as they use the same container and stream format),
-making it simple to decompress (and recompress) already packed executables.
+and *PopCom!*‑compressed files (as they use the same container and stream
+format), making it simple to decompress (and recompress) already
+compressed executables.
 
-**LZPACK** (and **LZPACK**‑packed binaries) can run on a *plain 8080*, not
-just the Z80.  **LZPACK** analyzes the file to be packed and automatically
-detects if the program actually uses Z80 instructions, and picks a matching
+**LZPACK** (and **LZPACK**‑compressed binaries) can run on a *plain 8080*, not
+just the Z80.  **LZPACK** analyzes the file to be compressed and automatically
+detects if the program might execute Z80 instructions, and picks a matching
 decompression stub.
 
 Users can also specify `‑8` to explicitly use the 8080 stub, or `‑Z` to force
@@ -91,9 +92,9 @@ For example, the CP/M‑80 **LZPACK** program itself (when built for 8080) is
 misdetected as a Z80 binary due to the Z80 opcode scanning code embedded in
 the executable.
 
-While packed 8080 programs using the 8080 stub will run on any 8080 (or 8085)
-system, they can sometimes be packed smaller by using the Z80 stub, at the
-cost of 8080 compatibility.  If you aren't packing executables for public
+While compressed 8080 programs using the 8080 stub will run on *any* 8080
+(or 8085) system, they can sometimes be compressed smaller by using the Z80 stub, at the
+cost of 8080 compatibility.  If you aren't compressing executables for public
 distribution, you might want to use the Z80 stub unconditionally if you have
 a Z80‑powered system.
 
@@ -114,7 +115,7 @@ Z80 stubs are assembled from their included sources during the build process
 using an included custom assembler, [**StubASM**](stubasm.c), also written in
 portable C89.
 
-It may not be the smallest executable packer, nor the most technically
+It may not be the smallest executable compressor, nor the most technically
 impressive, but it is permissively licensed, portable (able to run on machines
 ranging from tiny CP/M‑80 systems to current workstations running any
 operating system), and extremely compatible (without depending on undefined
@@ -123,7 +124,7 @@ behavior or undocumented functionality of any hardware or software).
 ### Compression results
 
 The table below compares **LZPACK** against *PopCom!* 1.0 (the most popular
-CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
+CP/M‑80 executable compressor) on a few real‑world CP/M‑80 executables.
 
 | Program   | Original |                  PopCom! |                 LZPACK/N |                LZPACK/N+ |                 LZPACK/C |
 |:----------|---------:|-------------------------:|-------------------------:|-------------------------:|-------------------------:|
@@ -169,8 +170,9 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
   on CP/M‑Plus (CP/M‑80 or CP/M‑86&nbsp;3+) or DOS‑PLUS (CP/M‑86&nbsp;4+), the
   [LRBC](https://www.seasip.info/Cpm/bytelen.html) (Last Record Byte Count)
   metadata is used to determine how many bytes of the final record should be
-  packed.  On CP/M&nbsp;2.2 systems, all bytes in the final record are packed.
-  *PopCom!* does not support sizing via the LRBC and compresses all records.
+  compressed.  On CP/M&nbsp;2.2 systems, all bytes in the final record are
+  compressed.  *PopCom!* does *not *support sizing via the LRBC and compresses
+  all bytes of the final record.
 
 * Because the [`tnylpo`](https://gitlab.com/gbrein/tnylpo) and
   [`cpm`](https://github.com/jhallen/cpm) emulators used for testing do *not*
@@ -181,10 +183,10 @@ CP/M‑80 packer) on a few real‑world CP/M‑80 executables.
 
 ### Decompression stubs
 
-Because every packed program must include a copy of the decompression stub,
+Because every compressed program must include a copy of the decompression stub,
 it is vital that the code be as small (and fast) as possible.  The table below
 compares the **LZPACK** decompression stubs against those from the
-*PopCom!* packer.
+*PopCom!* compressor.
 
 |      CPU |         PopCom! | LZPACK          |
 |---------:|----------------:|:----------------|
@@ -198,24 +200,24 @@ compares the **LZPACK** decompression stubs against those from the
 
 ### Operation
 
-When a packed program is invoked, the CP/M loader places it at `0x100` and a
-`JP` at the entry redirects control to the decompression stub, which then:
+When a compressed program is invoked, the CP/M loader places it at `0x100` and
+a `JP` at the entry redirects control to the decompression stub, which then:
 
-1. Restores the 16 original header bytes the packer has saved,
+1. Restores the 16 original header bytes the decompressor has saved,
 2. Relocates the compressed payload and the decompression stub into the high
    end of the TPA, so the stub can run without overwriting itself,
 3. Decompresses in‑place into the TPA, writing output from `0x110` upward, and
-4. Jumps back to `0x100` to run the unpacked executable image.
+4. Jumps back to `0x100` to run the decompressed executable image.
 
 * This scheme does **not** currently support CP/M‑Plus / CP/M‑3+
   `GENCOM`‑processed executables which use pre‑initialization code or have
-  attached RSXs.  Such images carry a one‑page header whose first byte is
-  `0C9h` (a `RET`, harmless on CP/M&nbsp;2.2); **LZPACK** detects this marker
-  and refuses to pack them with a `GENCOM unsupported` error.  You can use the
-  `GENCOM` utility to convert executables to standard CP/M binary images if
-  possible (without the `GENCOM` header, pre‑init code, or RSXs) before using
-  **LZPACK**.
-* Support for some `GENCOM`‑processed CP/M‑Plus executables may be added in
+  attached RSXs.  These program have a header (the first byte is `0C9h` which
+  is `RET`, to prevent them from running on CP/M&nbsp;2.2).  **LZPACK** detects
+  the `GENCOM` header and refuses to compress (giving a `GENCOM unsupported`
+  error).  You should use the `GENCOM` utility to convert these executables to
+  standard CP/M executables if possible (*i.e.*, no pre‑init code, or RSXs)
+  before compressing with **LZPACK**.
+* Support for *some* `GENCOM`‑processed CP/M‑Plus executables may be added in
   a future **LZPACK** release.
 
 #### Compressors
@@ -230,7 +232,7 @@ When a packed program is invoked, the CP/M loader places it at `0x100` and a
 2. The **streaming** implementation reads the input through a sliding window
    and writes the output to a temporary file, so its working memory is
    independent of the file size.  This lets memory‑constrained systems
-   (*e.g.*, CP/M‑80, CP/M‑86, real‑mode MS‑DOS, and ELKS) pack arbitrarily
+   (*e.g.*, CP/M‑80, CP/M‑86, real‑mode MS‑DOS, and ELKS) compress arbitrarily
    large executables.
 
 Each implementation has **two modes**, which trade memory for size:
@@ -277,10 +279,10 @@ or tools are required when cross‑compiling.
   does far more work per byte.
 
 * **LZPACK** prioritizes the smallest output with the fastest possible
-  *unpacking*, because decompression happens *every time the packed program
-  is run*, while packing happens rarely (especially on vintage systems) and
-  can be done on modern hardware (which almost everyone has now, in the
-  year 2026).
+  *decompression*, because decompression happens *every time the compressed
+  program is run*, while compression (*usually*) happens rarely, especially
+  now that the compression need not be done on vintage systems, but on modern
+  hardware (which almost everyone has now, in the year 2026).
 
 ## Usage
 
@@ -307,20 +309,20 @@ On all other platforms, a single `lzpack` tool is provided, as shown above.
 
 ### Memory ceiling (`-M`)
 
-As a packed program decompresses in place on the target machine, the image
+As a compressed program decompresses in place on the target machine, the image
 expands to its full original size at `0x100` with the relocated decompressor
-sitting above it.  At packing time, **LZPACK** verifies that everything fits
-below a memory ceiling (*MEMTOP*), and will refuse to produce an output file
-otherwise.  The default is at `0xBDFF`, so all packed programs are guaranteed
-to run on any **48K&nbsp;TPA** system, but the `‑M` option can be used to
-override this:
+sitting above it.  At compression time, **LZPACK** verifies that everything
+fits below a memory ceiling (*MEMTOP*), and will refuse to produce an output
+file otherwise.  The default is at `0xBDFF`, so all compressed programs are
+guaranteed to run on any **48K&nbsp;TPA** system.  The `‑M` option can be used
+to override this:
 
-* Use `‑M 64` to pack programs too large for **48K&nbsp;TPA**, but the result
-  *requires* a correspondingly larger TPA at run time.
+* Use `‑M 64` to compress programs too large for **48K&nbsp;TPA**, but the
+  result *requires* a correspondingly larger TPA at run time.
 * Use `‑M 32` (or less) to guarantee the output runs on smaller systems, or
-  to keep the unpacker away from any resident driver that might have stolen
-  the top of the TPA, or to enforce a maximum image size while developing new
-  software.
+  to keep the decompressor away from any resident driver (that might have
+  stolen the top of the TPA), or to enforce a maximum image size while
+  developing new software.
 
 The `‑M` option accepts an argument in three formats:
 
@@ -332,19 +334,22 @@ The `‑M` option accepts an argument in three formats:
 
 Values below `0x1190` (**4K**) or above `0xFFFF` (**64K**) are rejected.
 
+**LZPACK** may suggest a "worst case" value if `‑M` is required but was
+not supplied.
+
 ### Runtime memory check (`-C`)
 
-The packing‑time checks cannot know the details of the machine the packed
-program will eventually run on; for example, it might have a much smaller TPA
-than the one running the packer, or it might have a resident driver that
-lowers the BDOS pointer at `0x0006`, which could be silently overwritten
-during decompression.  The `‑C` option enhances the stub with a small
-(48‑byte) runtime check.  It verifies that the highest address the unpacker
-will write to lies below the BDOS base and that at least 24 bytes are clear
-of the live inherited stack.  If the program does not fit, it prints `No room`
-and aborts.
+The compression‑time checks cannot know the details of the machine the
+compressed program will eventually run on; for example, it might have a much
+smaller TPA than the one running the compressor, or it might have a resident
+driver that lowers the BDOS pointer at `0x0006` (which could be silently
+overwritten during decompression).  The `‑C` option enhances the stub with
+a small (48‑byte) runtime check.  It verifies that the highest address the
+decompressor will write to lies below the BDOS base and that at least 24 bytes
+are clear of the live inherited stack.  If the program does not fit, it
+prints `No room` and aborts.
 
-Because this check adds an extra 48 bytes to every packed executable, it is
+Because this check adds an extra 48 bytes to every compressed executable, it is
 disabled by default.  Enabling it does **not** consume any high memory, and it
 is never relocated, so it will not change what fits with any given
 `‑M` setting.
@@ -359,32 +364,31 @@ not end‑users.
 
 <br>
 
-The `‑C` option adds a check that refuses a TPA that the *unpacker* would
-overrun, but a packed program almost always needs more memory to actually
-*run* than it does to simply unpack.  With a TPA that sits between those
-two bounds, the program unpacks successfully but then crashes (or silently
+The `‑C` option adds a check that refuses a TPA that the *decompressor* would
+overrun, but a compressed program almost always needs more memory to actually
+*run* than it does to simply decompress.  With a TPA that sits between those
+two bounds, the program decompresses successfully but then crashes (or silently
 corrupts memory) during its own startup (which would still happen even in
 the absence of any executable compression).
 
-When the packer is informed of the actual program runtime memory requirements
-via the `‑F` option, the check/verification stub (normally emitted with `‑C`)
+When the decompressor is informed of the actual program runtime memory
+requirements via the `‑F` option, the check stub (normally emitted with `‑C`)
 can cleanly refuse to run on a machine whose memory top lies below the
 specified floor.  The argument accepts the same formats as `‑M` (and
 implies `‑C`).
 
-Most CP/M users wishing to save space on their disks will be packing existing
-programs and will never need to use `‑F`.  Developers who are creating CP/M
-software (who ship packed executables), especially when working with compiled
-languages, can greatly benefit.  A compiled `.COM` usually understates its
-runtime footprint: uninitialized data (BSS) is not necessarily stored in the
-file at all, and the language's runtime and startup code carves its stack and
-heap out of high memory *before* the first line of user code (*e.g.*,
-`main()`) runs.
-
-Because the trouble happens early, no in‑program check can catch this sort
-of shortfall.  By the time the `main()` function could test anything, the
-runtime has already cleared BSS across the BDOS or planted a heap with a
-wrapped size, or simply crashed without any useful messages displayed at all.
+Most CP/M users wishing to save space on their disks will be compressing
+existing programs and will never need to use `‑F`.  Developers who are
+creating CP/M software (who ship compressed executables), especially when
+working with compiled languages, can greatly benefit.  For most CP/M‑80
+programs, the size of the executable on the disk is not representative of the
+actual runtime footprint, and the language runtime for most high‑level
+languages setup stack and heap *before* any user code (*e.g.*, `main()`) runs.
+Potential trouble can happen at this early stage in tight memory situations,
+there is no in‑program check a developer can easily add to their programs
+without using completely custom startup code.  A program might start but not
+work correctly, or just crash without any useful error messages displayed
+at all.
 
 Finding the floor value to use is an extra step at release: read the end of
 static storage from the linker's map and add the runtime's stack reserve, or
@@ -393,19 +397,24 @@ emulator that can dynamically shrink the TPA.
 
 It is hoped that the **LZPACK** build can serve as an example of this process,
 since the shipped CP/M‑80 binaries (`LZPACK.COM` and `LZUNPACK.COM`) are
-packed with a floor derived from each tool's own map plus the stack reserve,
-so on any system with a TPA large enough for them to *unpack* but too small
-for them to fully *initialize*, they simply print `No room` and exit cleanly,
-which would be impossible to achieve using C code alone.
+compressed with a floor derived from each tool's own map plus the stack
+reserve, so on any system with a TPA large enough for them to *decompress*
+successfully but too small for them to fully *initialize and run user code*,
+they simply print `No room` and exit cleanly, which would be impossible to
+achieve using C code alone.
 
-The `‑L` (list) command reads the check block back out of a packed file.
-It reports `no ‑C check` for files packed without `‑C` and the enforced
-floor for checked files (`‑C check; floor 0xBDFF`).  The size line also
-tags the self‑extractor's architecture (`[Z80]` or `[8080]`), recognized
-from the stub bytes themselves; files whose stub is not recognized (foreign
-tools, or other **LZPACK** versions) simply list untagged.  On **CP/M‑80**
-systems the list option is part of `LZUNPACK.COM`, so the embedded floor of
-any packed program can be inspected on the target machine itself.
+The `‑L` (list) command reads the check code out of a compressed executable.
+It reports `no ‑C check` for files compressed without `‑C`, and the enforced
+floor for checked files (`‑C check; floor 0xBDFF`).
+
+It also reports the self‑extractor's architecture (`[Z80]` or `[8080]`),
+(recognized by the stub bytes themselves, not by full program analysis).
+Files with an unrecognized stub (foreign tools, uncompressed executables, and
+possibly newer versions of **LZPACK**) will not display the architecture.
+
+On **CP/M‑80** systems the list option is in the `LZUNPACK.COM` executable, so
+the embedded floor of any compressed program can be inspected on a CP/M‑80
+system.
 
 </details>
 
