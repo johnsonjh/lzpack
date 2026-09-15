@@ -1695,6 +1695,8 @@ static int fx_off [MAXREF], fx_tgt [MAXREF], nfx;
 static char sl_name [MAXREF] [NAMELEN];
 static int sl_off [MAXREF], nsl;
 
+/******************************************************************************/
+
 static void
 collect (const char *const *patch)
 {
@@ -1983,10 +1985,10 @@ main (int argc, char **argv)
   int s_nfx = 0;
   int s_nsl = 0;
 
-  (void)memset (s_fx_off, 0, sizeof (s_fx_off));
-  (void)memset (s_fx_tgt, 0, sizeof (s_fx_tgt));
+  (void)memset (s_fx_off,  0, sizeof (s_fx_off));
+  (void)memset (s_fx_tgt,  0, sizeof (s_fx_tgt));
   (void)memset (s_sl_name, 0, sizeof (s_sl_name));
-  (void)memset (s_sl_off, 0, sizeof (s_sl_off));
+  (void)memset (s_sl_off,  0, sizeof (s_sl_off));
 
   if (argc == 4 && optmatch (argv [1], "-z80"))
     {
